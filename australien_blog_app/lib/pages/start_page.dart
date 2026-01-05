@@ -1,6 +1,7 @@
 // pages/start_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../main.dart';
 import '../widgets/styled_button.dart';
 
 class StartPage extends StatelessWidget {
@@ -37,7 +38,7 @@ class StartPage extends StatelessWidget {
             StyledButton(
               topPercentage: 0.55,
               color: Colors.blue[700]!,
-              text: 'Einstellungen',
+              text: 'Settings',
               icon: Icons.settings,
               onPressed: () {
                 Navigator.pushNamed(context, '/settings');
@@ -47,11 +48,11 @@ class StartPage extends StatelessWidget {
             ),
             StyledButton(
               topPercentage: 0.3,
-              color: Colors.blue[500]!,
-              text: 'Datei hochladen',
-              icon: Icons.upload_file,
+              color: accent_color,
+              text: 'Manage Points',
+              icon: Icons.list_alt,
               onPressed: () {
-                Navigator.pushNamed(context, '/upload_file');
+                Navigator.pushNamed(context, '/manage_points');
               },
               screenHeight: screenHeight,
               screenWidth: screenWidth,
@@ -59,10 +60,10 @@ class StartPage extends StatelessWidget {
             StyledButton(
               topPercentage: 0.05,
               color: Colors.blue[300]!,
-              text: 'Dateien durchsuchen',
-              icon: Icons.folder_open,
+              text: 'Add Point',
+              icon: Icons.add_location,
               onPressed: () {
-                Navigator.pushNamed(context, '/browse_files');
+                Navigator.pushNamed(context, '/upload_point');
               },
               screenHeight: screenHeight,
               screenWidth: screenWidth,

@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:exif/exif.dart';
 import 'package:path_provider/path_provider.dart';
@@ -10,10 +11,12 @@ import 'package:latlong2/latlong.dart';
 import '../model/interest_point.dart';
 import 'coordinate_picker.dart';
 
-
-
 // --- Page ---
 class AddInterestPointPage extends StatefulWidget {
+  final InterestPoint? existingPoint; // Pass existing point for editing
+
+  const AddInterestPointPage({this.existingPoint, Key? key}) : super(key: key);
+
   @override
   _AddInterestPointPageState createState() => _AddInterestPointPageState();
 }
@@ -32,6 +35,52 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
 
   File? _titleImage;
   List<File> _otherImages = [];
+  bool _isEditMode = false;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Set system UI overlay style for normal navigation bar color
+    SystemChrome.setSystemUIOverlayStyle(
+      const SystemUiOverlayStyle(
+        systemNavigationBarColor: Colors.white,
+        systemNavigationBarIconBrightness: Brightness.dark,
+      ),
+    );
+
+    // Load existing point data if editing
+    if (widget.existingPoint != null) {
+      _isEditMode = true;
+      _loadExistingPoint(widget.existingPoint!);
+    }
+  }
+
+  @override
+  void dispose() {
+    _nameCtrl.dispose();
+    _shortDescCtrl.dispose();
+    _descCtrl.dispose();
+    _latCtrl.dispose();
+    _lonCtrl.dispose();
+    _dateCtrl.dispose();
+    super.dispose();
+  }
+
+  void _loadExistingPoint(InterestPoint point) {
+    _nameCtrl.text = point.name;
+    _shortDescCtrl.text = point.shortDescription;
+    _descCtrl.text = point.description ?? '';
+    _latCtrl.text = point.lat?.toStringAsFixed(6) ?? '';
+    _lonCtrl.text = point.lon?.toStringAsFixed(6) ?? '';
+    _dateCtrl.text = point.date ?? '';
+
+    // Load images
+    if (point.titleImagePath.isNotEmpty) {
+      _titleImage = File(point.titleImagePath);
+    }
+    _otherImages = point.otherImagePaths.map((p) => File(p)).toList();
+  }
 
   // --- Format EXIF Date ---
   String? _formatExifDate(String? exifDate) {
@@ -71,12 +120,13 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       double? convertToDecimal(IfdTag? tag, IfdTag? ref) {
         if (tag == null || ref == null) return null;
         try {
-          final values = tag.values as List<Ratio>;
-          if (values.length < 3) return null;
+          final values = tag.values;
+          if (values is! IfdRatios) return null;
+          if (values.ratios.length < 3) return null;
 
-          double d = values[0].toDouble();
-          double m = values[1].toDouble();
-          double s = values[2].toDouble();
+          double d = values.ratios[0].toDouble();
+          double m = values.ratios[1].toDouble();
+          double s = values.ratios[2].toDouble();
           double res = d + (m / 60.0) + (s / 3600.0);
 
           final refStr = ref.printable.toUpperCase();
@@ -118,7 +168,6 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       final List<XFile> picked = await _picker.pickMultiImage() ?? [];
 
       if (picked.isNotEmpty) {
-        // Create a new list to ensure proper state update
         List<File> newFiles = [];
 
         for (var xf in picked) {
@@ -197,23 +246,47 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
 
     List<dynamic> currentList = [];
     if (await file.exists()) currentList = jsonDecode(await file.readAsString());
-    int newId = currentList.isEmpty ? 1 : (currentList.last['id'] as int) + 1;
 
-    // Copy title
-    String newTitlePath = '${appDir.path}/img_${newId}_title${path.extension(_titleImage!.path)}';
-    await _titleImage!.copy(newTitlePath);
+    int pointId;
+    if (_isEditMode && widget.existingPoint != null) {
+      // Editing: use existing ID
+      pointId = widget.existingPoint!.id;
+      // Remove old entry
+      currentList.removeWhere((item) => item['id'] == pointId);
+    } else {
+      // Adding: create new sequential ID
+      pointId = currentList.isEmpty ? 1 : (currentList.map((e) => e['id'] as int).reduce((a, b) => a > b ? a : b)) + 1;
+    }
 
-    // Copy others
+    // Copy title image (only if it's a new file, not already in app directory)
+    String newTitlePath;
+    if (_titleImage!.path.startsWith(appDir.path)) {
+      // Already in app directory (editing mode)
+      newTitlePath = _titleImage!.path;
+    } else {
+      // New image from gallery
+      newTitlePath = '${appDir.path}/img_${pointId}_title${path.extension(_titleImage!.path)}';
+      await _titleImage!.copy(newTitlePath);
+    }
+
+    // Copy other images
     List<String> newOtherPaths = [];
     for (int i = 0; i < _otherImages.length; i++) {
-      String p = '${appDir.path}/img_${newId}_other_$i${path.extension(_otherImages[i].path)}';
-      await _otherImages[i].copy(p);
-      newOtherPaths.add(p);
+      String imagePath;
+      if (_otherImages[i].path.startsWith(appDir.path)) {
+        // Already in app directory
+        imagePath = _otherImages[i].path;
+      } else {
+        // New image from gallery
+        imagePath = '${appDir.path}/img_${pointId}_other_$i${path.extension(_otherImages[i].path)}';
+        await _otherImages[i].copy(imagePath);
+      }
+      newOtherPaths.add(imagePath);
     }
 
     // Create object
     InterestPoint point = InterestPoint(
-      id: newId,
+      id: pointId,
       name: _nameCtrl.text,
       shortDescription: _shortDescCtrl.text,
       titleImagePath: newTitlePath,
@@ -226,7 +299,8 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
 
     currentList.add(point.toJson());
     await file.writeAsString(jsonEncode(currentList));
-    if (mounted) Navigator.pop(context);
+
+    if (mounted) Navigator.pop(context, true); // Return true to indicate save
   }
 
   Widget _buildField(TextEditingController ctrl, String label, {String? hint}) {
@@ -249,7 +323,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       onWillPop: _onWillPop,
       child: Scaffold(
         appBar: AppBar(
-          title: Text("New Point"),
+          title: Text(_isEditMode ? "Edit Point" : "New Point"),
           shape: RoundedRectangleBorder(borderRadius: BorderRadius.vertical(bottom: Radius.circular(20))),
         ),
         body: Form(
@@ -286,15 +360,15 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                   const SizedBox(width: 10),
                   Expanded(child: _buildField(_lonCtrl, "Lon", hint: "0.0000")),
                   const SizedBox(width: 10),
-                  // Pick on Map Button
+                  // Pick on Map Button - Icon only
                   Padding(
                     padding: const EdgeInsets.only(bottom: 15),
-                    child: OutlinedButton.icon(
+                    child: IconButton.outlined(
                       onPressed: _pickCoordinatesOnMap,
-                      icon: Icon(Icons.map),
-                      label: Text("Pick on Map"),
-                      style: OutlinedButton.styleFrom(
-                        padding: EdgeInsets.symmetric(vertical: 12),
+                      icon: Icon(Icons.map, size: 24),
+                      tooltip: "Pick on Map",
+                      style: IconButton.styleFrom(
+                        padding: EdgeInsets.all(12),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(15),
                         ),
@@ -304,12 +378,22 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                 ],
               ),
 
-
               _buildField(_dateCtrl, "Date", hint: "DD/MM/YYYY"),
               _buildField(_descCtrl, "Full Description"),
 
               const SizedBox(height: 20),
-              Text("Other Images (Drag to reorder)", style: TextStyle(fontWeight: FontWeight.bold)),
+              // Other Images Header with Add Button
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("Other Images (Drag to reorder)", style: TextStyle(fontWeight: FontWeight.bold)),
+                  IconButton(
+                    onPressed: _pickOtherImages,
+                    icon: Icon(Icons.add_photo_alternate),
+                    tooltip: "Add Images",
+                  ),
+                ],
+              ),
               const SizedBox(height: 10),
 
               SizedBox(
@@ -336,12 +420,14 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                 ),
               ),
 
-              TextButton.icon(onPressed: _pickOtherImages, icon: Icon(Icons.add_photo_alternate), label: Text("Add Images")),
               const SizedBox(height: 40),
               ElevatedButton(
                 onPressed: _saveData,
-                style: ElevatedButton.styleFrom(shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15))),
-                child: Text("Save Point"),
+                style: ElevatedButton.styleFrom(
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                  padding: EdgeInsets.symmetric(vertical: 16),
+                ),
+                child: Text(_isEditMode ? "Update Point" : "Save Point"),
               ),
             ],
           ),
@@ -368,7 +454,6 @@ class _ImageTileState extends State<ImageTile> {
   @override
   void initState() {
     super.initState();
-    // Simulate loading delay - the Image.file widget will handle actual loading
     Future.delayed(Duration.zero, () {
       if (mounted) {
         setState(() => _isLoading = false);

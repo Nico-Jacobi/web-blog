@@ -42,7 +42,6 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
   bool _isEditMode = false;
 
   // Linking variables
-  bool _linkToPrevious = true;
   InterestPoint? _lastPoint;
   TripMethod _selectedMethod = TripMethod.car;
 
@@ -196,7 +195,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
 
     final LatLng? result = await Navigator.push(
       context,
-      MaterialPageRoute(builder: (context) => CoordinatePickerPage()), // Pass initialLocation if supported
+      MaterialPageRoute(builder: (context) => CoordinatePickerPage()),
     );
 
     if (result != null) {
@@ -267,21 +266,21 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     currentList.add(point.toJson());
     await file.writeAsString(jsonEncode(currentList));
 
-    // --- Save Connection if Linked ---
-    if (!_isEditMode && _linkToPrevious && _lastPoint != null) {
-      final connFile = File('${appDir.path}/connections.json');
-      List<dynamic> connList = [];
-      if (await connFile.exists()) {
-        connList = jsonDecode(await connFile.readAsString());
+    // --- Save Connection if there's a previous point (FIXED: save to trips.json) ---
+    if (!_isEditMode && _lastPoint != null) {
+      final tripsFile = File('${appDir.path}/trips.json');
+      List<dynamic> tripsList = [];
+      if (await tripsFile.exists()) {
+        tripsList = jsonDecode(await tripsFile.readAsString());
       }
 
-      connList.add({
-        'fromId': _lastPoint!.id,
-        'toId': pointId,
-        'method': _selectedMethod.toString().split('.').last,
+      tripsList.add({
+        'pointId1': _lastPoint!.id,
+        'pointId2': pointId,
+        'method': _selectedMethod.name,
       });
 
-      await connFile.writeAsString(jsonEncode(connList));
+      await tripsFile.writeAsString(jsonEncode(tripsList));
     }
 
     if (mounted) {
@@ -314,7 +313,6 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
-              // Icon
               Container(
                 padding: const EdgeInsets.all(16),
                 decoration: BoxDecoration(
@@ -328,8 +326,6 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                 ),
               ),
               const SizedBox(height: 20),
-
-              // Title
               const Text(
                 'Discard Changes?',
                 style: TextStyle(
@@ -339,8 +335,6 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                 ),
               ),
               const SizedBox(height: 12),
-
-              // Content
               Text(
                 'Are you sure you want to discard your changes?\n\nThis action cannot be undone.',
                 textAlign: TextAlign.center,
@@ -351,8 +345,6 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                 ),
               ),
               const SizedBox(height: 28),
-
-              // Actions
               Row(
                 children: [
                   Expanded(
@@ -513,10 +505,20 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
 
               // Gallery Section
               Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("Gallery Images", style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey[800])),
-                  IconButton(onPressed: _pickOtherImages, icon: Icon(Icons.add_circle, color: accent_color, size: 32)),
+                  Text(
+                    "Images",
+                    style: TextStyle(
+                      fontWeight: FontWeight.bold,
+                      fontSize: 16,
+                      color: Colors.grey[800],
+                    ),
+                  ),
+                  IconButton(
+                    onPressed: _pickOtherImages,
+                    icon: Icon(Icons.add_circle, color: accent_color, size: 32),
+                  ),
+                  Spacer(), // pushes everything before it to the left
                 ],
               ),
               if (_otherImages.isNotEmpty)
@@ -561,7 +563,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
 
               const SizedBox(height: 24),
 
-              // --- Link to Previous (New UI) ---
+              // --- Link to Previous (FIXED: removed checkbox, always link) ---
               if (!_isEditMode && _lastPoint != null)
                 Container(
                   margin: const EdgeInsets.only(bottom: 24),
@@ -572,6 +574,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                     border: Border.all(color: accent_color.withOpacity(0.2)),
                   ),
                   child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
@@ -581,72 +584,67 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text("Link to Previous Point", style: TextStyle(fontWeight: FontWeight.bold)),
+                                const Text("Linking to Previous Point", style: TextStyle(fontWeight: FontWeight.bold)),
                                 Text("Connect to: ${_lastPoint!.name}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
                               ],
                             ),
                           ),
-                          Switch(
-                            value: _linkToPrevious,
-                            activeColor: accent_color,
-                            onChanged: (val) => setState(() => _linkToPrevious = val),
-                          ),
                         ],
                       ),
-                      if (_linkToPrevious)
-                        Padding(
-                          padding: const EdgeInsets.only(top: 12),
-                          child: InkWell(
-                            onTap: () async {
-                              final result = await TravelMethodDialog.show(
-                                context,
-                                currentMethod: _selectedMethod,
-                              );
-                              if (result != null) {
-                                setState(() => _selectedMethod = result);
-                              }
-                            },
-                            child: Container(
-                              padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                color: accent_color.withOpacity(0.1),
-                                borderRadius: BorderRadius.circular(12),
-                                border: Border.all(color: accent_color.withOpacity(0.3)),
-                              ),
-                              child: Row(
-                                children: [
-                                  Icon(_selectedMethod.icon, color: accent_color),
-                                  const SizedBox(width: 12),
-                                  Expanded(
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        const Text(
-                                          "Travel Method",
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey,
-                                            fontWeight: FontWeight.w500,
-                                          ),
-                                        ),
-                                        const SizedBox(height: 4),
-                                        Text(
-                                          _selectedMethod.label,
-                                          style: TextStyle(
-                                            fontSize: 16,
-                                            color: accent_color,
-                                            fontWeight: FontWeight.bold,
-                                          ),
-                                        ),
-                                      ],
+                      const SizedBox(height: 12),
+                      InkWell(
+                        onTap: () async {
+                          // Unfocus any text field before showing dialog
+                          FocusScope.of(context).unfocus();
+
+                          final result = await TravelMethodDialog.show(
+                            context,
+                            currentMethod: _selectedMethod,
+                          );
+                          if (result != null) {
+                            setState(() => _selectedMethod = result);
+                          }
+                        },
+                        child: Container(
+                          padding: const EdgeInsets.all(16),
+                          decoration: BoxDecoration(
+                            color: accent_color.withOpacity(0.1),
+                            borderRadius: BorderRadius.circular(12),
+                            border: Border.all(color: accent_color.withOpacity(0.3)),
+                          ),
+                          child: Row(
+                            children: [
+                              Icon(_selectedMethod.icon, color: accent_color),
+                              const SizedBox(width: 12),
+                              Expanded(
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text(
+                                      "Travel Method",
+                                      style: TextStyle(
+                                        fontSize: 12,
+                                        color: Colors.grey,
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
-                                  ),
-                                  Icon(Icons.arrow_forward_ios, size: 16, color: accent_color),
-                                ],
+                                    const SizedBox(height: 4),
+                                    Text(
+                                      _selectedMethod.label,
+                                      style: TextStyle(
+                                        fontSize: 16,
+                                        color: accent_color,
+                                        fontWeight: FontWeight.bold,
+                                      ),
+                                    ),
+                                  ],
+                                ),
                               ),
-                            ),
+                              Icon(Icons.arrow_forward_ios, size: 16, color: accent_color),
+                            ],
                           ),
                         ),
+                      ),
                     ],
                   ),
                 ),

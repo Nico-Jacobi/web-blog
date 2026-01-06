@@ -7,8 +7,10 @@ import 'package:path_provider/path_provider.dart';
 
 import '../colors.dart';
 import '../model/interest_point.dart';
+import '../widgets/info_icon.dart';
 import '../widgets/point_with_route_card.dart';
 import '../services/storage_service.dart';
+import '../widgets/travel_method_dialog.dart';
 import 'create_point_page.dart';
 
 class ManagePointsPage extends StatefulWidget {
@@ -103,11 +105,13 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
       for (int i = 0; i < _points.length; i++) {
         if (i > 0) {
           var existingTrip = _tripElements.firstWhere(
-                (t) => t.pointId1 == _points[i - 1].id && t.pointId2 == _points[i].id,
-            orElse: () => TripElement(
-              pointId1: _points[i - 1].id,
-              pointId2: _points[i].id,
-            ),
+                (t) =>
+            t.pointId1 == _points[i - 1].id && t.pointId2 == _points[i].id,
+            orElse: () =>
+                TripElement(
+                  pointId1: _points[i - 1].id,
+                  pointId2: _points[i].id,
+                ),
           );
           newTripElements.add(existingTrip);
         }
@@ -119,80 +123,138 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
   }
 
   Future<void> _changeTripMethod(TripElement trip) async {
-    final result = await showDialog<TripMethod>(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Select Transport Method'),
-        contentPadding: const EdgeInsets.symmetric(vertical: 20),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: TripMethod.values.map((method) {
-            return ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: trip.method == method
-                      ? primary.withOpacity(0.2)
-                      : Colors.grey[100],
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Icon(
-                  method.icon,
-                  color: trip.method == method ? primary : Colors.grey[700],
-                ),
-              ),
-              title: Text(method.label),
-              trailing: trip.method == method
-                  ? const Icon(Icons.check, color: primary)
-                  : null,
-              onTap: () => Navigator.pop(context, method),
-            );
-          }).toList(),
-        ),
-      ),
+    final result = await TravelMethodDialog.show(
+      context,
+      currentMethod: trip.method,
     );
 
-    if (result != null && result != trip.method) {
-      setState(() => trip.method = result);
-      await _saveData();
+    if (result != null) {
+      // Handle the selected method
+      setState(() {
+        trip.method = result;
+      });
     }
   }
+
 
   Future<bool?> _showDeleteDialog(String pointName) {
     return showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: Row(
-          children: [
-            Icon(Icons.warning_amber_rounded, color: Colors.orange[700], size: 28),
-            const SizedBox(width: 12),
-            const Text('Delete Point?'),
-          ],
-        ),
-        content: Text(
-          'Are you sure you want to delete "$pointName"?\n\nThis will also remove the route before this point.',
-          style: const TextStyle(height: 1.5),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text('Cancel', style: TextStyle(color: Colors.grey[700])),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.red[500],
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      builder: (context) =>
+          Dialog(
+            backgroundColor: Colors.transparent,
+            child: Container(
+              decoration: BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [dark, primary],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.circular(28),
+                boxShadow: [
+                  BoxShadow(
+                    color: primary.withOpacity(0.4),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              padding: const EdgeInsets.all(24),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Icon
+                  Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withOpacity(0.2),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.warning_amber_rounded,
+                      color: Colors.white,
+                      size: 48,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Title
+                  const Text(
+                    'Delete Point?',
+                    style: TextStyle(
+                      color: Colors.white,
+                      fontSize: 24,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+
+                  // Content
+                  Text(
+                    'Are you sure you want to delete "$pointName"?\n\nThis will also remove the route before this point.',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(
+                      color: Colors.white.withOpacity(0.95),
+                      fontSize: 15,
+                      height: 1.5,
+                    ),
+                  ),
+                  const SizedBox(height: 28),
+
+                  // Actions
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextButton(
+                          onPressed: () => Navigator.pop(context, false),
+                          style: TextButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            backgroundColor: Colors.white.withOpacity(0.2),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: const Text(
+                            'Cancel',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 16,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 12),
+                      Expanded(
+                        child: ElevatedButton(
+                          onPressed: () => Navigator.pop(context, true),
+                          style: ElevatedButton.styleFrom(
+                            padding: const EdgeInsets.symmetric(vertical: 14),
+                            backgroundColor: Colors.white,
+                            foregroundColor: dark,
+                            elevation: 0,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16),
+                            ),
+                          ),
+                          child: const Text(
+                            'Delete',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-            child: const Text('Delete'),
           ),
-        ],
-      ),
     );
   }
+
 
   void _showErrorSnackBar(String message) {
     if (!mounted) return;
@@ -237,6 +299,11 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
         shape: const RoundedRectangleBorder(
           borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
         ),
+        actions: [
+          InfoIcon(
+            infoText: 'Tap a point to edit it. Hold and drag to reorder. Tap the path icon to change the method of travel',
+          ),
+        ],
       ),
       body: _isLoading
           ? const Center(
@@ -282,6 +349,8 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
     );
   }
 
+  // In _buildPointsList() method, replace the proxyDecorator with this:
+
   Widget _buildPointsList() {
     return ReorderableListView.builder(
       padding: const EdgeInsets.all(16),
@@ -292,7 +361,7 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
           animation: animation,
           builder: (context, child) {
             return Material(
-              elevation: 8,
+              elevation: 0, // Changed from 8 to 0 to remove shadow
               color: Colors.transparent,
               borderRadius: BorderRadius.circular(20),
               child: child,
@@ -335,4 +404,5 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
       },
     );
   }
+
 }

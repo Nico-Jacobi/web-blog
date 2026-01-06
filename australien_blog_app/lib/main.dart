@@ -33,7 +33,3 @@ class MyApp extends StatelessWidget {
 }
 
 
-//todo
-// overflow in manage points
-// drag and drop not working
-// the linking points is broken, just make each point have a method on how we got there, and just drag it with it

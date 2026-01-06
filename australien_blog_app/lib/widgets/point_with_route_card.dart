@@ -107,8 +107,11 @@ class PointWithRouteCard extends StatelessWidget {
       ),
       child: Material(
         color: Colors.transparent,
+
         child: InkWell(
-          onTap: onEdit,
+          splashColor: Colors.transparent,
+          highlightColor: Colors.transparent,
+          onTap: onEdit, // CARD tap still goes to edit
           borderRadius: BorderRadius.circular(20),
           child: Padding(
             padding: const EdgeInsets.all(14),
@@ -119,7 +122,7 @@ class PointWithRouteCard extends StatelessWidget {
                 _buildThumbnail(),
                 const SizedBox(width: 14),
                 Expanded(child: _buildPointInfo()),
-                _buildActionButtons(),
+                _buildActionButtons(), // now only delete button
               ],
             ),
           ),
@@ -127,6 +130,28 @@ class PointWithRouteCard extends StatelessWidget {
       ),
     );
   }
+
+  Widget _buildActionButtons() {
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.red.withOpacity(0.1),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: IconButton(
+            icon: Icon(Icons.delete_outline, size: 20, color: Colors.red[500]),
+            onPressed: onDelete,
+            tooltip: 'Delete',
+            padding: const EdgeInsets.all(8),
+            constraints: const BoxConstraints(),
+          ),
+        ),
+      ],
+    );
+  }
+
 
   Widget _buildOrderBadge() {
     return Container(
@@ -231,38 +256,4 @@ class PointWithRouteCard extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons() {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        Container(
-          decoration: BoxDecoration(
-            color: pale,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: IconButton(
-            icon: const Icon(Icons.edit_outlined, size: 20, color: primary),
-            onPressed: onEdit,
-            tooltip: 'Edit',
-            padding: const EdgeInsets.all(8),
-            constraints: const BoxConstraints(),
-          ),
-        ),
-        const SizedBox(width: 6),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.red.withOpacity(0.1),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: IconButton(
-            icon: Icon(Icons.delete_outline, size: 20, color: Colors.red[500]),
-            onPressed: onDelete,
-            tooltip: 'Delete',
-            padding: const EdgeInsets.all(8),
-            constraints: const BoxConstraints(),
-          ),
-        ),
-      ],
-    );
-  }
 }

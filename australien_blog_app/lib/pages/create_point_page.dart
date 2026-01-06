@@ -8,8 +8,11 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:latlong2/latlong.dart';
 
+import '../colors.dart';
 import '../model/interest_point.dart';
 import '../main.dart'; // Import for accent_color
+import '../widgets/info_icon.dart';
+import '../widgets/travel_method_dialog.dart';
 import 'coordinate_picker.dart';
 
 
@@ -70,10 +73,11 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       if (await file.exists()) {
         final List<dynamic> jsonList = jsonDecode(await file.readAsString());
         if (jsonList.isNotEmpty) {
-          // Sort by ID or custom order to find the actual last one
-          jsonList.sort((a, b) => (a['id'] as int).compareTo(b['id'] as int));
+          // Sort by tripOrder to find the actual last point in the trip sequence
+          final points = jsonList.map((json) => InterestPoint.fromJson(json)).toList();
+          points.sort((a, b) => a.tripOrder.compareTo(b.tripOrder));
           setState(() {
-            _lastPoint = InterestPoint.fromJson(jsonList.last);
+            _lastPoint = points.last;
           });
         }
       }
@@ -286,18 +290,122 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
   }
 
   Future<bool> _onWillPop() async {
-    return await showDialog(
+    return await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text("Discard changes?"),
-        actions: [
-          TextButton(onPressed: () => Navigator.pop(context, false), child: const Text("Cancel")),
-          TextButton(onPressed: () => Navigator.pop(context, true), child: const Text("Discard", style: TextStyle(color: Colors.red))),
-        ],
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: LinearGradient(
+              colors: [dark, primary],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
+            ),
+            borderRadius: BorderRadius.circular(28),
+            boxShadow: [
+              BoxShadow(
+                color: primary.withOpacity(0.4),
+                blurRadius: 20,
+                offset: const Offset(0, 10),
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              // Icon
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.warning_amber_rounded,
+                  color: Colors.white,
+                  size: 48,
+                ),
+              ),
+              const SizedBox(height: 20),
+
+              // Title
+              const Text(
+                'Discard Changes?',
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+
+              // Content
+              Text(
+                'Are you sure you want to discard your changes?\n\nThis action cannot be undone.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.95),
+                  fontSize: 15,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 28),
+
+              // Actions
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: Colors.white.withOpacity(0.2),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        'Cancel',
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: Colors.white,
+                        foregroundColor: dark,
+                        elevation: 0,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        'Discard',
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
-    ) ??
-        false;
+    ) ?? false;
   }
+
 
   Widget _buildField(TextEditingController ctrl, String label, {String? hint, int maxLines = 1, IconData? icon}) {
     return Padding(
@@ -329,6 +437,11 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
           backgroundColor: accent_color,
           foregroundColor: Colors.white,
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(bottom: Radius.circular(24))),
+          actions: [
+            InfoIcon(
+              infoText: 'Date and Location will be automaticly filled from the images added (if they contain a location), you can still change them after.',
+            ),
+          ],
         ),
         body: Form(
           key: _formKey,
@@ -364,21 +477,34 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
               _buildField(_nameCtrl, "Name", icon: Icons.label_outline),
               _buildField(_shortDescCtrl, "Short Description", icon: Icons.description_outlined),
 
-              Row(children: [
-                Expanded(child: _buildField(_latCtrl, "Latitude", hint: "0.0000", icon: Icons.place_outlined)),
-                const SizedBox(width: 12),
-                Expanded(child: _buildField(_lonCtrl, "Longitude", hint: "0.0000", icon: Icons.place_outlined)),
-              ]),
-
-              OutlinedButton.icon(
-                onPressed: _pickCoordinatesOnMap,
-                icon: Icon(Icons.map_outlined, color: accent_color),
-                label: Text("Pick Location", style: TextStyle(color: accent_color)),
-                style: OutlinedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  side: BorderSide(color: accent_color),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                ),
+              Row(
+                children: [
+                  Expanded(
+                    child: _buildField(_latCtrl, "Latitude", hint: "0.0000", icon: Icons.place_outlined),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: _buildField(_lonCtrl, "Longitude", hint: "0.0000", icon: Icons.place_outlined),
+                  ),
+                  const SizedBox(width: 8),
+                  Container(
+                    height: 56,
+                    width: 56,
+                    margin: const EdgeInsets.only(bottom: 16),
+                    child: IconButton(
+                      onPressed: _pickCoordinatesOnMap,
+                      icon: Icon(Icons.map_outlined, color: accent_color, size: 28),
+                      style: IconButton.styleFrom(
+                        backgroundColor: Colors.white,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                          side: BorderSide(color: accent_color.withOpacity(0.3)),
+                        ),
+                      ),
+                      tooltip: 'Pick on Map',
+                    ),
+                  ),
+                ],
               ),
               const SizedBox(height: 16),
 
@@ -470,22 +596,57 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                       if (_linkToPrevious)
                         Padding(
                           padding: const EdgeInsets.only(top: 12),
-                          child: DropdownButtonFormField<TripMethod>(
-                            value: _selectedMethod,
-                            decoration: InputDecoration(
-                              labelText: "Travel Method",
-                              contentPadding: const EdgeInsets.symmetric(horizontal: 12),
-                              border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                            ),
-                            items: TripMethod.values.map((m) {
-                              return DropdownMenuItem(
-                                value: m,
-                                child: Text(m.toString().split('.').last.toUpperCase()),
+                          child: InkWell(
+                            onTap: () async {
+                              final result = await TravelMethodDialog.show(
+                                context,
+                                currentMethod: _selectedMethod,
                               );
-                            }).toList(),
-                            onChanged: (v) => setState(() => _selectedMethod = v!),
+                              if (result != null) {
+                                setState(() => _selectedMethod = result);
+                              }
+                            },
+                            child: Container(
+                              padding: const EdgeInsets.all(16),
+                              decoration: BoxDecoration(
+                                color: accent_color.withOpacity(0.1),
+                                borderRadius: BorderRadius.circular(12),
+                                border: Border.all(color: accent_color.withOpacity(0.3)),
+                              ),
+                              child: Row(
+                                children: [
+                                  Icon(_selectedMethod.icon, color: accent_color),
+                                  const SizedBox(width: 12),
+                                  Expanded(
+                                    child: Column(
+                                      crossAxisAlignment: CrossAxisAlignment.start,
+                                      children: [
+                                        const Text(
+                                          "Travel Method",
+                                          style: TextStyle(
+                                            fontSize: 12,
+                                            color: Colors.grey,
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                        const SizedBox(height: 4),
+                                        Text(
+                                          _selectedMethod.label,
+                                          style: TextStyle(
+                                            fontSize: 16,
+                                            color: accent_color,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                  Icon(Icons.arrow_forward_ios, size: 16, color: accent_color),
+                                ],
+                              ),
+                            ),
                           ),
-                        )
+                        ),
                     ],
                   ),
                 ),

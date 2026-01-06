@@ -1,7 +1,7 @@
 // main.dart
 import 'package:australien_blog_app/pages/create_point_page.dart';
+import 'package:australien_blog_app/pages/manage_points_page.dart';
 
-import 'pages/view_interest_points.dart';
 import 'package:flutter/material.dart';
 import 'pages/start_page.dart';
 import 'pages/browse_files_page.dart';

@@ -1,10 +1,11 @@
 // main.dart
+import 'package:australien_blog_app/pages/create_point_page.dart';
+
 import 'pages/view_interest_points.dart';
 import 'package:flutter/material.dart';
 import 'pages/start_page.dart';
 import 'pages/browse_files_page.dart';
 import 'pages/settings_page.dart';
-import 'pages/interest_point_page.dart';
 
 final accent_color = Colors.blue[500]!;
 
@@ -30,3 +31,9 @@ class MyApp extends StatelessWidget {
     );
   }
 }
+
+
+//todo
+// overflow in manage points
+// drag and drop not working
+// the linking points is broken, just make each point have a method on how we got there, and just drag it with it

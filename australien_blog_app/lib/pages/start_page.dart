@@ -1,6 +1,7 @@
 // pages/start_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import '../colors.dart';
 import '../main.dart';
 import '../widgets/styled_button.dart';
 
@@ -9,35 +10,36 @@ class StartPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    double screenHeight = MediaQuery.of(context).size.height;
-    double screenWidth = MediaQuery.of(context).size.width;
+    final screenHeight = MediaQuery.of(context).size.height;
+    final screenWidth  = MediaQuery.of(context).size.width;
 
     return Scaffold(
       appBar: AppBar(
         systemOverlayStyle: SystemUiOverlayStyle(
-          systemNavigationBarColor: Colors.blue[900],
+          systemNavigationBarColor: dark,
           statusBarColor: Colors.transparent,
           systemNavigationBarIconBrightness: Brightness.light,
           statusBarIconBrightness: Brightness.dark,
         ),
         centerTitle: true,
-        backgroundColor: Colors.blue[100],
+        backgroundColor: pale,
         toolbarHeight: 30,
+        elevation: 0,
       ),
       body: Container(
-        color: Colors.green,
+        color: pale,
         child: Stack(
           children: [
             NonInteractiveButton(
               topPercentage: 0.8,
-              color: Colors.blue[900]!,
+              color: dark,
               text: '',
               screenHeight: screenHeight,
               screenWidth: screenWidth,
             ),
             StyledButton(
               topPercentage: 0.55,
-              color: Colors.blue[700]!,
+              color: accent,
               text: 'Settings',
               icon: Icons.settings,
               onPressed: () {
@@ -48,7 +50,7 @@ class StartPage extends StatelessWidget {
             ),
             StyledButton(
               topPercentage: 0.3,
-              color: accent_color,
+              color: primary,
               text: 'Manage Points',
               icon: Icons.list_alt,
               onPressed: () {
@@ -59,7 +61,7 @@ class StartPage extends StatelessWidget {
             ),
             StyledButton(
               topPercentage: 0.05,
-              color: Colors.blue[300]!,
+              color: light,
               text: 'Add Point',
               icon: Icons.add_location,
               onPressed: () {
@@ -70,7 +72,7 @@ class StartPage extends StatelessWidget {
             ),
             NonInteractiveButton(
               topPercentage: -0.15,
-              color: Colors.blue[100]!,
+              color: pale,
               text: 'File Storage API',
               screenHeight: screenHeight,
               screenWidth: screenWidth,

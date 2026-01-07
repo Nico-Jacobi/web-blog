@@ -163,12 +163,12 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
               ),
               const SizedBox(height: 20),
               const Text(
-                AppStrings.delete_point_title,
+                AppStrings.delete_point_title, textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               Text(
-                '${AppStrings.delete_point_confirm_prefix} "$pointName"?\n\n${AppStrings.delete_point_confirm_suffix}',
+                '${AppStrings.delete_point_confirm_prefix}\n"$pointName"\n${AppStrings.delete_point_confirm_suffix}',
                 textAlign: TextAlign.center,
                 style: TextStyle(color: Colors.white.withOpacity(0.95), fontSize: 15, height: 1.5),
               ),

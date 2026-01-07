@@ -1,84 +1,76 @@
 // lib/strings.dart
 class AppStrings {
-// pages/browse_files_page.dart
+  // pages/browse_files_page.dart
   static const browse_files_appBar_title = "Dateien durchsuchen";
   static const path_prefix = "Pfad: ";
-  static const snackBar_deleted = "Gelöscht";
+  static const snackBar_deleted = "Erfolgreich gelöscht";
   static const snackBar_error = "Fehler: ";
   static const button_retry = "Erneut versuchen";
-  static const noData_text = "Keine Daten";
+  static const noData_text = "Keine Dateien gefunden";
   static const parent_folder = "..";
   static const modified_prefix = "Geändert: ";
   static const size_prefix = "Größe: ";
 
-
-
-// pages/coordinate_picker_page.dart
-  static const coordinate_picker_appBar_title = "Pick Coordinates";
-  static const search_hint = "Search for a place...";
-  static const button_cancel = "Cancel";
-  static const button_confirm = "Confirm";
-
+  // pages/coordinate_picker_page.dart
+  static const coordinate_picker_appBar_title = "Koordinaten wählen";
+  static const search_hint = "Ort suchen...";
+  static const button_cancel = "Abbrechen";
+  static const button_confirm = "Bestätigen";
 
   // pages/add_interest_point_page.dart
-  static const add_point_title_new = "New Point";
-  static const add_point_title_edit = "Edit Point";
-  static const add_point_title_image = "Add Title Image";
+  static const add_point_title_new = "Neuer Wegpunkt";
+  static const add_point_title_edit = "Wegpunkt bearbeiten";
+  static const add_point_title_image = "Titelbild hinzufügen";
   static const field_name = "Name";
-  static const field_short_description = "Short Description";
-  static const field_latitude = "Latitude";
-  static const field_longitude = "Longitude";
-  static const field_date = "Date";
-  static const field_full_description = "Full Description";
-  static const tooltip_pick_on_map = "Pick on Map";
-  static const gallery_title = "Images";
-  static const link_previous_title = "Linking to Previous Point";
-  static const link_previous_connect_to = "Connect to: ";
-  static const travel_method_title = "Travel Method";
-  static const button_save_point = "Save Point";
-  static const button_update_point = "Update Point";
-  static const discard_changes_title = "Discard Changes?";
-  static const discard_changes_message = "Are you sure you want to discard your changes?\n\nThis action cannot be undone.";
-  static const button_discard = "Discard";
-  static const error_title_image_required = "Title image required";
-  static const info_date_location = "Date and Location will be automaticly filled from the images added (if they contain a location), you can still change them after.";
+  static const field_short_description = "Kurzbeschreibung";
+  static const field_latitude = "Breitengrad";
+  static const field_longitude = "Längengrad";
+  static const field_date = "Datum";
+  static const field_full_description = "Vollständige Beschreibung";
+  static const tooltip_pick_on_map = "Auf Karte wählen";
+  static const gallery_title = "Bildergalerie";
+  static const link_previous_title = "Verbindung zum vorherigen Punkt";
+  static const link_previous_connect_to = "Verbinden mit: ";
+  static const travel_method_title = "Reiseart";
+  static const button_save_point = "Punkt speichern";
+  static const button_update_point = "Änderungen speichern";
+  static const discard_changes_title = "Änderungen verwerfen?";
+  static const discard_changes_message = "Möchtest du die Änderungen wirklich verwerfen? Ungepeicherte Daten gehen verloren.";
+  static const button_discard = "Verwerfen";
+  static const error_title_image_required = "Ein Titelbild ist erforderlich";
+  static const info_date_location = "Datum und Standort werden automatisch aus den Metadaten deiner Bilder extrahiert, können aber jederzeit manuell angepasst werden.";
 
   // pages/manage_points_page.dart
-  static const manage_points_title = "Manage Points";
-  static const info_manage_points = "Tap a point to edit it. Hold and drag to reorder. Tap the path icon to change the method of travel";
-  static const empty_points_title = "No points yet";
-  static const empty_points_subtitle = "Create your first interest point!";
-  static const delete_point_title = "Delete Point?";
-  static const delete_point_confirm_prefix = "Are you sure you want to delete";
-  static const delete_point_confirm_suffix = "This will also remove the route before this point.";
-  static const button_delete = "Delete";
-  static const error_loading_points = "Error loading points:";
-  static const snack_deleted = "Deleted";
-  static const snack_method_updated = "Travel method updated";
-  static const snack_error = "Error:";
+  static const manage_points_title = "Wegpunkte verwalten";
+  static const info_manage_points = "Tippen zum Bearbeiten. Halten und Ziehen zum Sortieren. Tippe auf das Routen-Icon, um das Verkehrsmittel zu ändern.";
+  static const empty_points_title = "Noch keine Punkte";
+  static const empty_points_subtitle = "Erstelle deinen ersten Wegpunkt!";
+  static const delete_point_title = "Punkt löschen?";
+  static const delete_point_confirm_prefix = "Möchtest du";
+  static const delete_point_confirm_suffix = "wirklich löschen? Dabei wird auch die Route zu diesem Punkt entfernt.";
+  static const button_delete = "Löschen";
+  static const error_loading_points = "Fehler beim Laden:";
+  static const snack_deleted = "Punkt gelöscht";
+  static const snack_method_updated = "Reiseart aktualisiert";
+  static const snack_error = "Fehler:";
 
-
-// pages/settings_page.dart
-  static const settings_title = "Settings";
-  static const field_server_url = "Server URL";
-  static const hint_server_url = "http://localhost:3000";
-  static const field_auth_token = "Auth Token";
-  static const button_save_settings = "Save Settings";
-  static const snack_settings_saved = "Settings saved";
-
+  // pages/settings_page.dart
+  static const settings_title = "Einstellungen";
+  static const field_server_url = "Server-URL";
+  static const hint_server_url = "https://dein-server.de";
+  static const field_auth_token = "Authentifizierungs-Token";
+  static const button_save_settings = "Einstellungen speichern";
+  static const snack_settings_saved = "Einstellungen erfolgreich gespeichert";
 
   // pages/start_page.dart
-  static const app_hero_title = "File Storage API";
-  static const add_point_button = "Add Point";
-
+  static const app_hero_title = "Australien Blog";
+  static const add_point_button = "Punkt hinzufügen";
 
   // widgets/info_icon.dart
-  static const info_dialog_title = "Info";
-  static const button_close = "Close";
-  static const info_tooltip = "Info";
+  static const info_dialog_title = "Information";
+  static const button_close = "Schließen";
+  static const info_tooltip = "Info anzeigen";
 
   // widgets/travel_method_dialog.dart
-  static const travel_method_dialog_title = "Select Transport Method";
-  }
-
-
+  static const travel_method_dialog_title = "Verkehrsmittel wählen";
+}

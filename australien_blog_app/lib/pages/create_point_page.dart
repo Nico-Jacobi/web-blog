@@ -268,7 +268,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                 child: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 48),
               ),
               const SizedBox(height: 20),
-              const Text(AppStrings.discard_changes_title, style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
+              const Text(AppStrings.discard_changes_title, textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, )),
               const SizedBox(height: 12),
               Text(AppStrings.discard_changes_message, textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withOpacity(0.95), fontSize: 15, height: 1.5)),
               const SizedBox(height: 28),

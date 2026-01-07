@@ -1,9 +1,11 @@
 // main.dart
 import 'package:australien_blog_app/pages/create_point_page.dart';
 import 'package:australien_blog_app/pages/manage_points_page.dart';
+import 'package:australien_blog_app/services/storage_service.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'pages/start_page.dart';
 import 'pages/browse_files_page.dart';
 import 'pages/settings_page.dart';
@@ -21,8 +23,13 @@ void main() {
   // This enables edge-to-edge mode for Android
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-  runApp(const MyApp());
+  runApp(
+
+      const MyApp(),
+
+  );
 }
+
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
@@ -44,3 +51,4 @@ class MyApp extends StatelessWidget {
 }
 
 
+//todo when drag and dropping points the the list view, the adjacent travel methods reset

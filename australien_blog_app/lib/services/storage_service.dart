@@ -5,6 +5,15 @@ import 'package:path_provider/path_provider.dart';
 import '../model/interest_point.dart';
 
 class StorageService {
+
+
+
+  static final StorageService _instance = StorageService._internal();
+  factory StorageService() {
+    return _instance;
+  }
+  StorageService._internal();
+
   Future<Map<String, dynamic>> loadPointsAndTrips() async {
     final appDir = await getApplicationDocumentsDirectory();
     final pointsFile = File('${appDir.path}/points.json');

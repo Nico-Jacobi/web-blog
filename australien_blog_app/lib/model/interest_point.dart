@@ -1,6 +1,8 @@
 // --- Updated Model ---
 import 'package:flutter/material.dart';
 
+import '../strings.dart';
+
 class InterestPoint {
   int id;
   String name;
@@ -72,13 +74,13 @@ enum TripMethod {
       case TripMethod.car:
         return Icons.directions_car;
       case TripMethod.rv:
-        return Icons.rv_hookup;
+        return Icons.local_car_wash_rounded;
       case TripMethod.plane:
         return Icons.flight;
       case TripMethod.foot:
         return Icons.directions_walk;
       case TripMethod.misc:
-        return Icons.more_horiz;
+        return Icons.scuba_diving;
       case TripMethod.bus:
         return Icons.directions_bus;
     }
@@ -87,19 +89,19 @@ enum TripMethod {
   String get label {
     switch (this) {
       case TripMethod.boat:
-        return 'Boat';
+        return AppStrings.tripMethod_boat;
       case TripMethod.car:
-        return 'Car';
+        return AppStrings.tripMethod_car;
       case TripMethod.rv:
-        return 'RV';
+        return AppStrings.tripMethod_rv;
       case TripMethod.plane:
-        return 'Plane';
+        return AppStrings.tripMethod_plane;
       case TripMethod.foot:
-        return 'Walking';
+        return AppStrings.tripMethod_foot;
       case TripMethod.misc:
-        return 'Other';
+        return AppStrings.tripMethod_misc;
       case TripMethod.bus:
-        return 'Bus';
+        return AppStrings.tripMethod_bus;
     }
   }
 }

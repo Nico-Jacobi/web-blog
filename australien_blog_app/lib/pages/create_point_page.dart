@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -8,9 +7,9 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:latlong2/latlong.dart';
 
-import '../colors.dart'; // Ensure this is used for all blues
+import '../colors.dart';
 import '../model/interest_point.dart';
-import '../main.dart'; // Using for accent_color
+import '../services/storage_service.dart'; // Import the service
 import '../strings.dart';
 import '../widgets/info_icon.dart';
 import '../widgets/travel_method_dialog.dart';
@@ -26,6 +25,9 @@ class AddInterestPointPage extends StatefulWidget {
 }
 
 class _AddInterestPointPageState extends State<AddInterestPointPage> {
+  // Use the Singleton instance directly
+  final StorageService _storage = StorageService();
+
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
 
@@ -63,15 +65,14 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
 
   Future<void> _loadLastPoint() async {
     try {
-      final appDir = await getApplicationDocumentsDirectory();
-      final file = File('${appDir.path}/points.json');
-      if (await file.exists()) {
-        final List<dynamic> jsonList = jsonDecode(await file.readAsString());
-        if (jsonList.isNotEmpty) {
-          final points = jsonList.map((json) => InterestPoint.fromJson(json)).toList();
-          points.sort((a, b) => a.tripOrder.compareTo(b.tripOrder));
-          setState(() => _lastPoint = points.last);
-        }
+      // Use StorageService to load data
+      final data = await _storage.loadPointsAndTrips();
+      final points = data['points'] as List<InterestPoint>;
+
+      if (points.isNotEmpty) {
+        // Sort by tripOrder to ensure we get the actual last point
+        points.sort((a, b) => a.tripOrder.compareTo(b.tripOrder));
+        setState(() => _lastPoint = points.last);
       }
     } catch (e) {
       debugPrint("Error loading last point: $e");
@@ -195,19 +196,26 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       return;
     }
 
+    // 1. Get Directory (Still needed for image copying)
     final appDir = await getApplicationDocumentsDirectory();
-    final file = File('${appDir.path}/points.json');
-    List<dynamic> currentList = [];
-    if (await file.exists()) currentList = jsonDecode(await file.readAsString());
 
+    // 2. Load existing data via Service
+    final data = await _storage.loadPointsAndTrips();
+    List<InterestPoint> points = data['points'];
+    List<TripElement> trips = data['trips'];
+
+    // 3. Logic for ID generation (unchanged)
     int pointId;
     if (_isEditMode && widget.existingPoint != null) {
       pointId = widget.existingPoint!.id;
-      currentList.removeWhere((item) => item['id'] == pointId);
+      // We will replace the object in the list later
     } else {
-      pointId = currentList.isEmpty ? 1 : (currentList.map((e) => e['id'] as int).reduce((a, b) => a > b ? a : b)) + 1;
+      pointId = points.isEmpty
+          ? 1
+          : (points.map((e) => e.id).reduce((a, b) => a > b ? a : b)) + 1;
     }
 
+    // 4. Image Copying Logic (unchanged)
     String newTitlePath = _titleImage!.path.startsWith(appDir.path)
         ? _titleImage!.path
         : '${appDir.path}/img_${pointId}_title${path.extension(_titleImage!.path)}';
@@ -222,6 +230,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       newOtherPaths.add(imagePath);
     }
 
+    // 5. Create Object
     InterestPoint point = InterestPoint(
       id: pointId,
       name: _nameCtrl.text,
@@ -235,15 +244,27 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       tripOrder: _isEditMode && widget.existingPoint != null ? widget.existingPoint!.tripOrder : pointId,
     );
 
-    currentList.add(point.toJson());
-    await file.writeAsString(jsonEncode(currentList));
+    // 6. Update Lists
+    if (_isEditMode) {
+      final index = points.indexWhere((p) => p.id == pointId);
+      if (index != -1) {
+        points[index] = point;
+      }
+    } else {
+      points.add(point);
 
-    if (!_isEditMode && _lastPoint != null) {
-      final tripsFile = File('${appDir.path}/trips.json');
-      List<dynamic> tripsList = await tripsFile.exists() ? jsonDecode(await tripsFile.readAsString()) : [];
-      tripsList.add({'pointId1': _lastPoint!.id, 'pointId2': pointId, 'method': _selectedMethod.name});
-      await tripsFile.writeAsString(jsonEncode(tripsList));
+      // Add Trip connection if applicable
+      if (_lastPoint != null) {
+        trips.add(TripElement(
+            pointId1: _lastPoint!.id,
+            pointId2: pointId,
+            method: _selectedMethod
+        ));
+      }
     }
+
+    // 7. Save via Service
+    await _storage.savePointsAndTrips(points, trips);
 
     if (mounted) Navigator.pop(context, true);
   }
@@ -316,10 +337,10 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
         decoration: InputDecoration(
           labelText: label,
           hintText: hint,
-          prefixIcon: icon != null ? Icon(icon, color: primary) : null, // Refactored to primary
+          prefixIcon: icon != null ? Icon(icon, color: primary) : null,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(16)),
           filled: true,
-          fillColor: Colors.grey[50], // Standard background
+          fillColor: Colors.grey[50],
         ),
       ),
     );
@@ -333,14 +354,14 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
         backgroundColor: Colors.grey[50],
         appBar: AppBar(
           title: Text(_isEditMode ? AppStrings.add_point_title_edit : AppStrings.add_point_title_new),
-          systemOverlayStyle: SystemUiOverlayStyle(
+          systemOverlayStyle: const SystemUiOverlayStyle(
             systemNavigationBarColor: Colors.transparent,
             statusBarColor: Colors.transparent,
             systemNavigationBarIconBrightness: Brightness.light,
             statusBarIconBrightness: Brightness.dark,
           ),
           centerTitle: true,
-          backgroundColor: accent, // Refactored to accent
+          backgroundColor: accent,
           foregroundColor: Colors.white,
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(bottom: Radius.circular(24))),
           actions: [InfoIcon(infoText: AppStrings.info_date_location)],
@@ -357,7 +378,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(20),
-                    border: Border.all(color: pale, width: 2), // Refactored to pale
+                    border: Border.all(color: pale, width: 2),
                   ),
                   child: _titleImage != null
                       ? ClipRRect(
@@ -367,7 +388,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                       : Column(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(Icons.add_photo_alternate_outlined, size: 64, color: primary), // Refactored to primary
+                      const Icon(Icons.add_photo_alternate_outlined, size: 64, color: primary),
                       Text(AppStrings.add_point_title_image, style: const TextStyle(color: primary, fontWeight: FontWeight.bold)),
                     ],
                   ),
@@ -387,12 +408,12 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                     margin: const EdgeInsets.only(bottom: 16),
                     child: IconButton(
                       onPressed: _pickCoordinatesOnMap,
-                      icon: const Icon(Icons.map_outlined, color: primary, size: 28), // Refactored
+                      icon: const Icon(Icons.map_outlined, color: primary, size: 28),
                       style: IconButton.styleFrom(
                         backgroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(16),
-                          side: const BorderSide(color: pale), // Refactored
+                          side: const BorderSide(color: pale),
                         ),
                       ),
                       tooltip: AppStrings.tooltip_pick_on_map,
@@ -406,7 +427,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
               Row(
                 children: [
                   Text(AppStrings.gallery_title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey[800])),
-                  IconButton(onPressed: _pickOtherImages, icon: const Icon(Icons.add_circle, color: primary, size: 32)), // Refactored
+                  IconButton(onPressed: _pickOtherImages, icon: const Icon(Icons.add_circle, color: primary, size: 32)),
                 ],
               ),
               if (_otherImages.isNotEmpty)
@@ -452,14 +473,14 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                   decoration: BoxDecoration(
                     color: Colors.white,
                     borderRadius: BorderRadius.circular(16),
-                    border: Border.all(color: pale), // Refactored
+                    border: Border.all(color: pale),
                   ),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       Row(
                         children: [
-                          const Icon(Icons.link, color: primary), // Refactored
+                          const Icon(Icons.link, color: primary),
                           const SizedBox(width: 12),
                           Expanded(
                             child: Column(
@@ -482,13 +503,13 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                         child: Container(
                           padding: const EdgeInsets.all(16),
                           decoration: BoxDecoration(
-                            color: pale.withOpacity(0.2), // Refactored
+                            color: pale.withOpacity(0.2),
                             borderRadius: BorderRadius.circular(12),
-                            border: Border.all(color: pale), // Refactored
+                            border: Border.all(color: pale),
                           ),
                           child: Row(
                             children: [
-                              Icon(_selectedMethod.icon, color: primary), // Refactored
+                              Icon(_selectedMethod.icon, color: primary),
                               const SizedBox(width: 12),
                               Expanded(
                                 child: Column(
@@ -496,11 +517,11 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                                   children: [
                                     const Text(AppStrings.travel_method_title, style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
                                     const SizedBox(height: 4),
-                                    Text(_selectedMethod.label, style: const TextStyle(fontSize: 16, color: primary, fontWeight: FontWeight.bold)), // Refactored
+                                    Text(_selectedMethod.label, style: const TextStyle(fontSize: 16, color: primary, fontWeight: FontWeight.bold)),
                                   ],
                                 ),
                               ),
-                              const Icon(Icons.arrow_forward_ios, size: 16, color: primary), // Refactored
+                              const Icon(Icons.arrow_forward_ios, size: 16, color: primary),
                             ],
                           ),
                         ),
@@ -513,7 +534,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                 child: ElevatedButton(
                   onPressed: _saveData,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: accent, // Refactored
+                    backgroundColor: accent,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
                   child: Text(_isEditMode ? AppStrings.button_update_point : AppStrings.button_save_point, style: const TextStyle(fontSize: 16, color: Colors.white)),

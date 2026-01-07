@@ -73,4 +73,13 @@ class AppStrings {
 
   // widgets/travel_method_dialog.dart
   static const travel_method_dialog_title = "Verkehrsmittel wählen";
+
+  // TripMethod labels
+  static const tripMethod_boat = "Boot";
+  static const tripMethod_car = "Auto";
+  static const tripMethod_rv = "Wohnmobil";
+  static const tripMethod_plane = "Flugzeug";
+  static const tripMethod_foot = "Zu Fuß";
+  static const tripMethod_misc = "Sonstiges";
+  static const tripMethod_bus = "Bus";
 }

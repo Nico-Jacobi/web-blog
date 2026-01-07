@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+
 class ImageTile extends StatelessWidget {
   final File file;
   final VoidCallback onRemove;
@@ -33,7 +34,10 @@ class ImageTile extends StatelessWidget {
             onTap: onRemove,
             child: Container(
               padding: EdgeInsets.all(2),
-              decoration: BoxDecoration(color: Colors.white70, shape: BoxShape.circle),
+              decoration: BoxDecoration(
+                color: Colors.white70,
+                shape: BoxShape.circle,
+              ),
               child: Icon(Icons.close, color: Colors.black, size: 18),
             ),
           ),

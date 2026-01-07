@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../api_keys.dart';
 import '../main.dart';
 import '../strings.dart';
+import '../colors.dart'; // Added colors import
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -15,11 +16,20 @@ class _SettingsPageState extends State<SettingsPage> {
   final _tokenController = TextEditingController(text: authToken);
 
   @override
+  void dispose() {
+    _urlController.dispose();
+    _tokenController.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text(AppStrings.settings_title),
-        backgroundColor: accent_color,
+        backgroundColor: accent, // Refactored from accent_color
+        foregroundColor: Colors.white,
         elevation: 4,
       ),
       body: SingleChildScrollView(
@@ -37,9 +47,14 @@ class _SettingsPageState extends State<SettingsPage> {
                       controller: _urlController,
                       decoration: InputDecoration(
                         labelText: AppStrings.field_server_url,
+                        labelStyle: const TextStyle(color: dark),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: primary, width: 2),
+                        ),
                         hintText: AppStrings.hint_server_url,
-                        prefixIcon: const Icon(Icons.link),
+                        prefixIcon: const Icon(Icons.link, color: primary),
                       ),
                     ),
                     const SizedBox(height: 16),
@@ -48,8 +63,13 @@ class _SettingsPageState extends State<SettingsPage> {
                       obscureText: true,
                       decoration: InputDecoration(
                         labelText: AppStrings.field_auth_token,
+                        labelStyle: const TextStyle(color: dark),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        prefixIcon: const Icon(Icons.lock),
+                        focusedBorder: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(12),
+                          borderSide: const BorderSide(color: primary, width: 2),
+                        ),
+                        prefixIcon: const Icon(Icons.lock, color: primary),
                       ),
                     ),
                   ],
@@ -64,13 +84,16 @@ class _SettingsPageState extends State<SettingsPage> {
                   baseUrl = _urlController.text;
                   authToken = _tokenController.text;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text(AppStrings.snack_settings_saved)),
+                    const SnackBar(
+                      content: Text(AppStrings.snack_settings_saved),
+                      backgroundColor: accent,
+                    ),
                   );
                 },
                 icon: const Icon(Icons.save),
                 label: const Text(AppStrings.button_save_settings),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor: accent_color,
+                  backgroundColor: primary, // Refactored to primary
                   foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -87,8 +110,8 @@ class _SettingsPageState extends State<SettingsPage> {
                 icon: const Icon(Icons.folder_open),
                 label: const Text(AppStrings.browse_files_appBar_title),
                 style: OutlinedButton.styleFrom(
-                  side: BorderSide(color: accent_color),
-                  foregroundColor: accent_color,
+                  side: const BorderSide(color: primary), // Refactored to primary
+                  foregroundColor: primary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),

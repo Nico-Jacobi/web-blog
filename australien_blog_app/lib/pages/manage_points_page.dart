@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 
-import '../colors.dart';
+import '../colors.dart'; // Using the theme colors
 import '../model/interest_point.dart';
 import '../widgets/info_icon.dart';
 import '../widgets/point_with_route_card.dart';
@@ -142,8 +142,8 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
         backgroundColor: Colors.transparent,
         child: Container(
           decoration: BoxDecoration(
-            gradient: LinearGradient(
-              colors: [dark, primary],
+            gradient: const LinearGradient(
+              colors: [dark, primary], // Correctly using theme variables
               begin: Alignment.topLeft,
               end: Alignment.bottomRight,
             ),
@@ -213,7 +213,7 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(message),
-        backgroundColor: Colors.red[400],
+        backgroundColor: Colors.red, // Functional red stays red
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -231,7 +231,7 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
             Text(message),
           ],
         ),
-        backgroundColor: primary,
+        backgroundColor: accent, // Refactored to theme accent
         behavior: SnackBarBehavior.floating,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
@@ -245,7 +245,7 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
       appBar: AppBar(
         title: const Text(AppStrings.manage_points_title),
         centerTitle: true,
-        backgroundColor: primary,
+        backgroundColor: accent, // Refactored to theme accent
         foregroundColor: Colors.white,
         shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(bottom: Radius.circular(24))),
         actions: const [
@@ -267,8 +267,8 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
         children: [
           Container(
             padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(color: pale, shape: BoxShape.circle),
-            child: const Icon(Icons.place_outlined, size: 80, color: primary),
+            decoration: const BoxDecoration(color: pale, shape: BoxShape.circle), // Refactored to theme pale
+            child: const Icon(Icons.place_outlined, size: 80, color: primary), // Refactored to theme primary
           ),
           const SizedBox(height: 24),
           const Text(AppStrings.empty_points_title, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),

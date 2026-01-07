@@ -1,7 +1,7 @@
-// pages/browse_files_page.dart
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
 import '../strings.dart';
+import '../colors.dart'; // Added colors import
 
 class BrowseFilesPage extends StatefulWidget {
   const BrowseFilesPage({super.key});
@@ -64,14 +64,15 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppStrings.coordinate_picker_appBar_title),
-        backgroundColor: Colors.blue[700],
+        title: Text(AppStrings.browse_files_appBar_title),
+        backgroundColor: accent, // Refactored from blue[700]
+        foregroundColor: Colors.white,
       ),
       body: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            color: Colors.blue[100],
+            color: pale, // Refactored from blue[100]
             child: Row(
               children: [
                 Expanded(
@@ -89,16 +90,18 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
           ),
           Expanded(
             child: isLoading
-                ? const Center(child: CircularProgressIndicator())
+                ? const Center(child: CircularProgressIndicator(color: primary))
                 : error != null
                 ? Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text('${AppStrings.snackBar_error}$error'),
+                  const SizedBox(height: 8),
                   ElevatedButton(
                     onPressed: _loadFiles,
-                    child: const Text(AppStrings.button_retry),
+                    style: ElevatedButton.styleFrom(backgroundColor: primary),
+                    child: const Text(AppStrings.button_retry, style: TextStyle(color: Colors.white)),
                   ),
                 ],
               ),
@@ -120,7 +123,7 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
       children: [
         if (currentPath != '/')
           ListTile(
-            leading: const Icon(Icons.arrow_upward),
+            leading: const Icon(Icons.arrow_upward, color: dark),
             title: Text(AppStrings.parent_folder),
             onTap: () {
               setState(() {
@@ -131,11 +134,11 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
             },
           ),
         ...folders.map((folder) => ListTile(
-          leading: const Icon(Icons.folder, color: Colors.amber),
+          leading: const Icon(Icons.folder, color: light), // Refactored from amber
           title: Text(folder['name']),
           subtitle: Text('${AppStrings.modified_prefix}${folder['modified']}'),
           trailing: IconButton(
-            icon: const Icon(Icons.delete, color: Colors.red),
+            icon: const Icon(Icons.delete, color: Colors.red), // Red stays red as per instructions
             onPressed: () => _deleteItem(folder['path']),
           ),
           onTap: () {
@@ -146,7 +149,7 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
           },
         )),
         ...files.map((file) => ListTile(
-          leading: const Icon(Icons.insert_drive_file, color: Colors.blue),
+          leading: const Icon(Icons.insert_drive_file, color: primary), // Refactored from blue
           title: Text(file['name']),
           subtitle: Text(
               '${AppStrings.size_prefix}${file['size']} bytes\n${AppStrings.modified_prefix}${file['modified']}'),

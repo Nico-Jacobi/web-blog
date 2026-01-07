@@ -4,8 +4,9 @@ import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import '../strings.dart';
+import '../colors.dart'; // Added colors import
 
-LatLng initialLocation = LatLng(-25.2744, 133.7751); // Center of Australia
+LatLng initialLocation = const LatLng(-25.2744, 133.7751);  //center of australia
 
 class CoordinatePickerPage extends StatefulWidget {
   const CoordinatePickerPage({super.key});
@@ -23,24 +24,16 @@ class _CoordinatePickerPageState extends State<CoordinatePickerPage> {
 
   Future<void> _searchLocation(String query) async {
     if (query.isEmpty) {
-      setState(() {
-        _searchResults = [];
-      });
+      setState(() => _searchResults = []);
       return;
     }
 
-    setState(() {
-      _isSearching = true;
-    });
+    setState(() => _isSearching = true);
 
     try {
       final response = await http.get(
-        Uri.parse(
-          'https://nominatim.openstreetmap.org/search?q=$query&format=json&limit=5',
-        ),
-        headers: {
-          'User-Agent': 'de.retriever_web.interestpoints',
-        },
+        Uri.parse('https://nominatim.openstreetmap.org/search?q=$query&format=json&limit=5'),
+        headers: {'User-Agent': 'de.retriever_web.interestpoints'},
       );
 
       if (response.statusCode == 200) {
@@ -50,9 +43,7 @@ class _CoordinatePickerPageState extends State<CoordinatePickerPage> {
         });
       }
     } catch (e) {
-      setState(() {
-        _isSearching = false;
-      });
+      setState(() => _isSearching = false);
     }
   }
 
@@ -73,13 +64,18 @@ class _CoordinatePickerPageState extends State<CoordinatePickerPage> {
   @override
   void dispose() {
     _searchController.dispose();
+    _mapController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: Text(AppStrings.coordinate_picker_appBar_title)),
+      appBar: AppBar(
+        title: Text(AppStrings.coordinate_picker_appBar_title),
+        backgroundColor: accent, // Refactored
+        foregroundColor: Colors.white,
+      ),
       body: Stack(
         children: [
           FlutterMap(
@@ -87,11 +83,7 @@ class _CoordinatePickerPageState extends State<CoordinatePickerPage> {
             options: MapOptions(
               initialCenter: initialLocation,
               initialZoom: 2,
-              onTap: (tapPosition, point) {
-                setState(() {
-                  pickedLocation = point;
-                });
-              },
+              onTap: (tapPosition, point) => setState(() => pickedLocation = point),
             ),
             children: [
               TileLayer(
@@ -105,17 +97,12 @@ class _CoordinatePickerPageState extends State<CoordinatePickerPage> {
                       point: pickedLocation!,
                       width: 40,
                       height: 40,
-                      child: const Icon(
-                        Icons.location_on,
-                        color: Colors.red,
-                        size: 40,
-                      ),
+                      child: const Icon(Icons.location_on, color: Colors.red, size: 40),
                     ),
                   ],
                 ),
             ],
           ),
-
           Positioned(
             top: 10,
             left: 10,
@@ -129,15 +116,13 @@ class _CoordinatePickerPageState extends State<CoordinatePickerPage> {
                     controller: _searchController,
                     decoration: InputDecoration(
                       hintText: AppStrings.search_hint,
-                      prefixIcon: const Icon(Icons.search),
+                      prefixIcon: const Icon(Icons.search, color: primary), // Refactored
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
                         icon: const Icon(Icons.clear),
                         onPressed: () {
                           _searchController.clear();
-                          setState(() {
-                            _searchResults = [];
-                          });
+                          setState(() => _searchResults = []);
                         },
                       )
                           : null,
@@ -149,9 +134,7 @@ class _CoordinatePickerPageState extends State<CoordinatePickerPage> {
                       fillColor: Colors.white,
                       contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                     ),
-                    onChanged: (value) {
-                      _searchLocation(value);
-                    },
+                    onChanged: _searchLocation,
                   ),
                 ),
                 if (_searchResults.isNotEmpty)
@@ -180,30 +163,36 @@ class _CoordinatePickerPageState extends State<CoordinatePickerPage> {
                 if (_isSearching)
                   const Material(
                     elevation: 4,
-                    child: LinearProgressIndicator(),
+                    child: LinearProgressIndicator(backgroundColor: pale, color: primary), // Refactored
                   ),
               ],
             ),
           ),
         ],
       ),
-      bottomNavigationBar: Padding(
-        padding: const EdgeInsets.all(8.0),
+      bottomNavigationBar: Container(
+        color: Colors.white,
+        padding: const EdgeInsets.all(12.0),
         child: Row(
           children: [
             Expanded(
               child: ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(),
-                style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.grey[300],
+                  foregroundColor: dark, // Refactored
+                ),
                 child: Text(AppStrings.button_cancel),
               ),
             ),
-            const SizedBox(width: 10),
+            const SizedBox(width: 12),
             Expanded(
               child: ElevatedButton(
-                onPressed: pickedLocation == null
-                    ? null
-                    : () => Navigator.of(context).pop(pickedLocation),
+                onPressed: pickedLocation == null ? null : () => Navigator.of(context).pop(pickedLocation),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: primary, // Refactored
+                  foregroundColor: Colors.white,
+                ),
                 child: Text(AppStrings.button_confirm),
               ),
             ),

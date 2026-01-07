@@ -38,7 +38,7 @@ class AppStrings {
   static const discard_changes_message = "Möchtest du die Änderungen wirklich verwerfen? Ungepeicherte Daten gehen verloren.";
   static const button_discard = "Verwerfen";
   static const error_title_image_required = "Ein Titelbild ist erforderlich";
-  static const info_date_location = "Datum und Standort werden automatisch aus den Metadaten deiner Bilder extrahiert, können aber jederzeit manuell angepasst werden.";
+  static const info_date_location = "Datum und Standort werden automatisch aus den deinen Bilder ermittelt, können aber jederzeit geändert werden. (Standort nur wenn GPS beim Fotografieren aktiv war) ";
 
   // pages/manage_points_page.dart
   static const manage_points_title = "Wegpunkte verwalten";

@@ -3,6 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import '../strings.dart';
 
 LatLng initialLocation = LatLng(-25.2744, 133.7751); // Center of Australia
 
@@ -78,7 +79,7 @@ class _CoordinatePickerPageState extends State<CoordinatePickerPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text('Pick Coordinates')),
+      appBar: AppBar(title: Text(AppStrings.coordinate_picker_appBar_title)),
       body: Stack(
         children: [
           FlutterMap(
@@ -127,7 +128,7 @@ class _CoordinatePickerPageState extends State<CoordinatePickerPage> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: 'Search for a place...',
+                      hintText: AppStrings.search_hint,
                       prefixIcon: const Icon(Icons.search),
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
@@ -194,7 +195,7 @@ class _CoordinatePickerPageState extends State<CoordinatePickerPage> {
               child: ElevatedButton(
                 onPressed: () => Navigator.of(context).pop(),
                 style: ElevatedButton.styleFrom(backgroundColor: Colors.grey),
-                child: const Text('Cancel'),
+                child: Text(AppStrings.button_cancel),
               ),
             ),
             const SizedBox(width: 10),
@@ -203,7 +204,7 @@ class _CoordinatePickerPageState extends State<CoordinatePickerPage> {
                 onPressed: pickedLocation == null
                     ? null
                     : () => Navigator.of(context).pop(pickedLocation),
-                child: const Text('Confirm'),
+                child: Text(AppStrings.button_confirm),
               ),
             ),
           ],

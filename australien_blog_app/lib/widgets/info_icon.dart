@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../colors.dart';
+import '../strings.dart';
 
 class InfoIcon extends StatelessWidget {
   final String infoText;
@@ -20,7 +21,7 @@ class InfoIcon extends StatelessWidget {
               children: [
                 Icon(Icons.info_outline, color: accent, size: 28),
                 const SizedBox(width: 12),
-                const Text('Info'),
+                const Text(AppStrings.info_dialog_title),
               ],
             ),
             content: Text(
@@ -30,13 +31,13 @@ class InfoIcon extends StatelessWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text('Close', style: TextStyle(color: accent)),
+                child: Text(AppStrings.button_close, style: TextStyle(color: accent)),
               ),
             ],
           ),
         );
       },
-      tooltip: 'Info',
+      tooltip: AppStrings.info_tooltip,
     );
   }
 }

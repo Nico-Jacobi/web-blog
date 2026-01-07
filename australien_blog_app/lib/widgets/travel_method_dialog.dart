@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../model/interest_point.dart';
 import '../colors.dart';
+import '../strings.dart';
 
 class TravelMethodDialog extends StatelessWidget {
   final TripMethod? currentMethod;
@@ -44,9 +45,8 @@ class TravelMethodDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            // Title
             const Text(
-              'Select Transport Method',
+              AppStrings.travel_method_dialog_title,
               style: TextStyle(
                 color: Colors.white,
                 fontSize: 20,
@@ -55,7 +55,6 @@ class TravelMethodDialog extends StatelessWidget {
             ),
             const SizedBox(height: 20),
 
-            // Transport options
             ...TripMethod.values.map((method) {
               final isSelected = currentMethod == method;
               return Padding(

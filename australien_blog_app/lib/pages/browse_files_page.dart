@@ -1,6 +1,7 @@
 // pages/browse_files_page.dart
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../strings.dart';
 
 class BrowseFilesPage extends StatefulWidget {
   const BrowseFilesPage({super.key});
@@ -47,13 +48,13 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
       _loadFiles();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Gelöscht')),
+          SnackBar(content: Text(AppStrings.snackBar_deleted)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Fehler: $e')),
+          SnackBar(content: Text('${AppStrings.snackBar_error}$e')),
         );
       }
     }
@@ -63,7 +64,7 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Dateien durchsuchen'),
+        title: Text(AppStrings.coordinate_picker_appBar_title),
         backgroundColor: Colors.blue[700],
       ),
       body: Column(
@@ -75,7 +76,7 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
               children: [
                 Expanded(
                   child: Text(
-                    'Pfad: $currentPath',
+                    '${AppStrings.path_prefix}$currentPath',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -94,10 +95,10 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('Fehler: $error'),
+                  Text('${AppStrings.snackBar_error}$error'),
                   ElevatedButton(
                     onPressed: _loadFiles,
-                    child: const Text('Erneut versuchen'),
+                    child: const Text(AppStrings.button_retry),
                   ),
                 ],
               ),
@@ -110,7 +111,7 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
   }
 
   Widget _buildFileList() {
-    if (fileData == null) return const Center(child: Text('Keine Daten'));
+    if (fileData == null) return Center(child: Text(AppStrings.noData_text));
 
     final folders = fileData!['folders'] as List? ?? [];
     final files = fileData!['files'] as List? ?? [];
@@ -120,7 +121,7 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
         if (currentPath != '/')
           ListTile(
             leading: const Icon(Icons.arrow_upward),
-            title: const Text('..'),
+            title: Text(AppStrings.parent_folder),
             onTap: () {
               setState(() {
                 currentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
@@ -132,7 +133,7 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
         ...folders.map((folder) => ListTile(
           leading: const Icon(Icons.folder, color: Colors.amber),
           title: Text(folder['name']),
-          subtitle: Text('Geändert: ${folder['modified']}'),
+          subtitle: Text('${AppStrings.modified_prefix}${folder['modified']}'),
           trailing: IconButton(
             icon: const Icon(Icons.delete, color: Colors.red),
             onPressed: () => _deleteItem(folder['path']),
@@ -147,7 +148,8 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
         ...files.map((file) => ListTile(
           leading: const Icon(Icons.insert_drive_file, color: Colors.blue),
           title: Text(file['name']),
-          subtitle: Text('Größe: ${file['size']} bytes\nGeändert: ${file['modified']}'),
+          subtitle: Text(
+              '${AppStrings.size_prefix}${file['size']} bytes\n${AppStrings.modified_prefix}${file['modified']}'),
           trailing: IconButton(
             icon: const Icon(Icons.delete, color: Colors.red),
             onPressed: () => _deleteItem(file['path']),

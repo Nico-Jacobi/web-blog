@@ -1,7 +1,7 @@
-// pages/settings_page.dart
 import 'package:flutter/material.dart';
 import '../api_keys.dart';
-import '../main.dart'; // to get accentColor
+import '../main.dart';
+import '../strings.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -18,7 +18,7 @@ class _SettingsPageState extends State<SettingsPage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: const Text(AppStrings.settings_title),
         backgroundColor: accent_color,
         elevation: 4,
       ),
@@ -36,9 +36,9 @@ class _SettingsPageState extends State<SettingsPage> {
                     TextField(
                       controller: _urlController,
                       decoration: InputDecoration(
-                        labelText: 'Server URL',
+                        labelText: AppStrings.field_server_url,
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-                        hintText: 'http://localhost:3000',
+                        hintText: AppStrings.hint_server_url,
                         prefixIcon: const Icon(Icons.link),
                       ),
                     ),
@@ -47,7 +47,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       controller: _tokenController,
                       obscureText: true,
                       decoration: InputDecoration(
-                        labelText: 'Auth Token',
+                        labelText: AppStrings.field_auth_token,
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         prefixIcon: const Icon(Icons.lock),
                       ),
@@ -64,13 +64,14 @@ class _SettingsPageState extends State<SettingsPage> {
                   baseUrl = _urlController.text;
                   authToken = _tokenController.text;
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Settings saved')),
+                    const SnackBar(content: Text(AppStrings.snack_settings_saved)),
                   );
                 },
                 icon: const Icon(Icons.save),
-                label: const Text('Save Settings'),
+                label: const Text(AppStrings.button_save_settings),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: accent_color,
+                  foregroundColor: Colors.white,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
@@ -84,9 +85,10 @@ class _SettingsPageState extends State<SettingsPage> {
                   Navigator.pushNamed(context, '/browse_files');
                 },
                 icon: const Icon(Icons.folder_open),
-                label: const Text('Browse Files'),
+                label: const Text(AppStrings.browse_files_appBar_title),
                 style: OutlinedButton.styleFrom(
                   side: BorderSide(color: accent_color),
+                  foregroundColor: accent_color,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),

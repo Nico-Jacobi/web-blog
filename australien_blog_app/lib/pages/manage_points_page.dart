@@ -1,4 +1,3 @@
-// pages/manage_points_page.dart
 import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
@@ -11,6 +10,7 @@ import '../widgets/info_icon.dart';
 import '../widgets/point_with_route_card.dart';
 import '../services/storage_service.dart';
 import '../widgets/travel_method_dialog.dart';
+import '../strings.dart';
 import 'create_point_page.dart';
 
 class ManagePointsPage extends StatefulWidget {
@@ -47,7 +47,7 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
         _tripElements = data['trips'] as List<TripElement>;
       });
     } catch (e) {
-      _showErrorSnackBar('Error loading points: $e');
+      _showErrorSnackBar('${AppStrings.error_loading_points} $e');
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -74,9 +74,9 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
 
       await _saveData();
       await _loadPoints();
-      _showSuccessSnackBar('Deleted "${point.name}"');
+      _showSuccessSnackBar('${AppStrings.snack_deleted} "${point.name}"');
     } catch (e) {
-      _showErrorSnackBar('Error deleting point: $e');
+      _showErrorSnackBar('${AppStrings.snack_error} $e');
     }
   }
 
@@ -130,9 +130,8 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
       setState(() {
         trip.method = result;
       });
-      // IMPORTANT: Save the data after changing the trip method
       await _saveData();
-      _showSuccessSnackBar('Travel method updated');
+      _showSuccessSnackBar(AppStrings.snack_method_updated);
     }
   }
 
@@ -149,13 +148,6 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
               end: Alignment.bottomRight,
             ),
             borderRadius: BorderRadius.circular(28),
-            boxShadow: [
-              BoxShadow(
-                color: primary.withOpacity(0.4),
-                blurRadius: 20,
-                offset: const Offset(0, 10),
-              ),
-            ],
           ),
           padding: const EdgeInsets.all(24),
           child: Column(
@@ -167,30 +159,18 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
                   color: Colors.white.withOpacity(0.2),
                   shape: BoxShape.circle,
                 ),
-                child: const Icon(
-                  Icons.warning_amber_rounded,
-                  color: Colors.white,
-                  size: 48,
-                ),
+                child: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 48),
               ),
               const SizedBox(height: 20),
               const Text(
-                'Delete Point?',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
+                AppStrings.delete_point_title,
+                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
               ),
               const SizedBox(height: 12),
               Text(
-                'Are you sure you want to delete "$pointName"?\n\nThis will also remove the route before this point.',
+                '${AppStrings.delete_point_confirm_prefix} "$pointName"?\n\n${AppStrings.delete_point_confirm_suffix}',
                 textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.95),
-                  fontSize: 15,
-                  height: 1.5,
-                ),
+                style: TextStyle(color: Colors.white.withOpacity(0.95), fontSize: 15, height: 1.5),
               ),
               const SizedBox(height: 28),
               Row(
@@ -201,18 +181,9 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
                       style: TextButton.styleFrom(
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         backgroundColor: Colors.white.withOpacity(0.2),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
-                      child: const Text(
-                        'Cancel',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
+                      child: const Text(AppStrings.button_cancel, style: TextStyle(color: Colors.white, fontSize: 16)),
                     ),
                   ),
                   const SizedBox(width: 12),
@@ -223,18 +194,9 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
                         padding: const EdgeInsets.symmetric(vertical: 14),
                         backgroundColor: Colors.white,
                         foregroundColor: dark,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       ),
-                      child: const Text(
-                        'Delete',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
+                      child: const Text(AppStrings.button_delete, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
                     ),
                   ),
                 ],
@@ -281,26 +243,17 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('Manage Points'),
+        title: const Text(AppStrings.manage_points_title),
         centerTitle: true,
-        elevation: 0,
         backgroundColor: primary,
         foregroundColor: Colors.white,
-        shape: const RoundedRectangleBorder(
-          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
-        ),
-        actions: [
-          InfoIcon(
-            infoText: 'Tap a point to edit it. Hold and drag to reorder. Tap the path icon to change the method of travel',
-          ),
+        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(bottom: Radius.circular(24))),
+        actions: const [
+          InfoIcon(infoText: AppStrings.info_manage_points),
         ],
       ),
       body: _isLoading
-          ? const Center(
-        child: CircularProgressIndicator(
-          valueColor: AlwaysStoppedAnimation<Color>(primary),
-        ),
-      )
+          ? const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(primary)))
           : _points.isEmpty
           ? _buildEmptyState()
           : _buildPointsList(),
@@ -314,26 +267,13 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
         children: [
           Container(
             padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(
-              color: pale,
-              shape: BoxShape.circle,
-            ),
-            child: const Icon(
-              Icons.place_outlined,
-              size: 80,
-              color: primary,
-            ),
+            decoration: const BoxDecoration(color: pale, shape: BoxShape.circle),
+            child: const Icon(Icons.place_outlined, size: 80, color: primary),
           ),
           const SizedBox(height: 24),
-          const Text(
-            'No points yet',
-            style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-          ),
+          const Text(AppStrings.empty_points_title, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          Text(
-            'Create your first interest point!',
-            style: TextStyle(fontSize: 15, color: Colors.grey[600]),
-          ),
+          Text(AppStrings.empty_points_subtitle, style: TextStyle(fontSize: 15, color: Colors.grey[600])),
         ],
       ),
     );
@@ -344,20 +284,6 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
       padding: const EdgeInsets.all(16),
       onReorder: _reorderPointsWithRoutes,
       itemCount: _points.length,
-      proxyDecorator: (child, index, animation) {
-        return AnimatedBuilder(
-          animation: animation,
-          builder: (context, child) {
-            return Material(
-              elevation: 0,
-              color: Colors.transparent,
-              borderRadius: BorderRadius.circular(20),
-              child: child,
-            );
-          },
-          child: child,
-        );
-      },
       itemBuilder: (context, index) {
         final point = _points[index];
         TripElement? tripBefore;
@@ -367,10 +293,7 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
           tripBefore = _tripElements.firstWhere(
                 (t) => t.pointId1 == prevPoint.id && t.pointId2 == point.id,
             orElse: () {
-              final newTrip = TripElement(
-                pointId1: prevPoint.id,
-                pointId2: point.id,
-              );
+              final newTrip = TripElement(pointId1: prevPoint.id, pointId2: point.id);
               _tripElements.add(newTrip);
               _saveData();
               return newTrip;
@@ -385,9 +308,7 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
           tripBefore: tripBefore,
           onEdit: () => _editPoint(point),
           onDelete: () => _deletePoint(point),
-          onChangeTripMethod: tripBefore != null
-              ? () => _changeTripMethod(tripBefore!)
-              : null,
+          onChangeTripMethod: tripBefore != null ? () => _changeTripMethod(tripBefore!) : null,
         );
       },
     );

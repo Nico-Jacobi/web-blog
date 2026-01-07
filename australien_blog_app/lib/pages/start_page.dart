@@ -1,8 +1,8 @@
-// pages/start_page.dart
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../colors.dart';
 import '../main.dart';
+import '../strings.dart';
 import '../widgets/styled_button.dart';
 
 class StartPage extends StatelessWidget {
@@ -40,7 +40,7 @@ class StartPage extends StatelessWidget {
             StyledButton(
               topPercentage: 0.55,
               color: accent,
-              text: 'Settings',
+              text: AppStrings.settings_title,
               icon: Icons.settings,
               onPressed: () {
                 Navigator.pushNamed(context, '/settings');
@@ -51,7 +51,7 @@ class StartPage extends StatelessWidget {
             StyledButton(
               topPercentage: 0.3,
               color: primary,
-              text: 'Manage Points',
+              text: AppStrings.manage_points_title,
               icon: Icons.list_alt,
               onPressed: () {
                 Navigator.pushNamed(context, '/manage_points');
@@ -62,7 +62,7 @@ class StartPage extends StatelessWidget {
             StyledButton(
               topPercentage: 0.05,
               color: light,
-              text: 'Add Point',
+              text: AppStrings.add_point_button,
               icon: Icons.add_location,
               onPressed: () {
                 Navigator.pushNamed(context, '/upload_point');
@@ -73,7 +73,7 @@ class StartPage extends StatelessWidget {
             NonInteractiveButton(
               topPercentage: -0.15,
               color: pale,
-              text: 'File Storage API',
+              text: AppStrings.app_hero_title,
               screenHeight: screenHeight,
               screenWidth: screenWidth,
             ),

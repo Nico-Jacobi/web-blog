@@ -3,6 +3,7 @@ import 'package:australien_blog_app/pages/create_point_page.dart';
 import 'package:australien_blog_app/pages/manage_points_page.dart';
 
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'pages/start_page.dart';
 import 'pages/browse_files_page.dart';
 import 'pages/settings_page.dart';
@@ -10,6 +11,16 @@ import 'pages/settings_page.dart';
 final accent_color = Colors.blue[500]!;
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
+    systemNavigationBarColor: Colors.transparent,
+    systemNavigationBarDividerColor: Colors.transparent,
+    systemNavigationBarIconBrightness: Brightness.dark,
+  ));
+
+  // This enables edge-to-edge mode for Android
+  SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
+
   runApp(const MyApp());
 }
 

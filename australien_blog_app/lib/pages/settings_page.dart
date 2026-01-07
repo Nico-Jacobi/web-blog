@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../api_keys.dart';
 import '../main.dart';
 import '../strings.dart';
@@ -28,6 +29,12 @@ class _SettingsPageState extends State<SettingsPage> {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text(AppStrings.settings_title),
+        systemOverlayStyle: SystemUiOverlayStyle(
+          systemNavigationBarColor: Colors.transparent,
+          statusBarColor: Colors.transparent,
+          systemNavigationBarIconBrightness: Brightness.light,
+          statusBarIconBrightness: Brightness.dark,
+        ),
         backgroundColor: accent, // Refactored from accent_color
         foregroundColor: Colors.white,
         elevation: 4,

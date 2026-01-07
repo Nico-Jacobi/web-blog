@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/api_service.dart';
 import '../strings.dart';
 import '../colors.dart'; // Added colors import
@@ -67,6 +68,12 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
         title: Text(AppStrings.browse_files_appBar_title),
         backgroundColor: accent, // Refactored from blue[700]
         foregroundColor: Colors.white,
+        systemOverlayStyle: SystemUiOverlayStyle(
+          systemNavigationBarColor: Colors.transparent,
+          statusBarColor: Colors.transparent,
+          systemNavigationBarIconBrightness: Brightness.light,
+          statusBarIconBrightness: Brightness.dark,
+        ),
       ),
       body: Column(
         children: [

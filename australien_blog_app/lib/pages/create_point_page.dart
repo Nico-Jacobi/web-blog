@@ -333,6 +333,12 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
         backgroundColor: Colors.grey[50],
         appBar: AppBar(
           title: Text(_isEditMode ? AppStrings.add_point_title_edit : AppStrings.add_point_title_new),
+          systemOverlayStyle: SystemUiOverlayStyle(
+            systemNavigationBarColor: Colors.transparent,
+            statusBarColor: Colors.transparent,
+            systemNavigationBarIconBrightness: Brightness.light,
+            statusBarIconBrightness: Brightness.dark,
+          ),
           centerTitle: true,
           backgroundColor: accent, // Refactored to accent
           foregroundColor: Colors.white,

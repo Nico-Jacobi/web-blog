@@ -244,6 +244,12 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text(AppStrings.manage_points_title),
+        systemOverlayStyle: SystemUiOverlayStyle(
+          systemNavigationBarColor: Colors.transparent,
+          statusBarColor: Colors.transparent,
+          systemNavigationBarIconBrightness: Brightness.light,
+          statusBarIconBrightness: Brightness.dark,
+        ),
         centerTitle: true,
         backgroundColor: accent, // Refactored to theme accent
         foregroundColor: Colors.white,

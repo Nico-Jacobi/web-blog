@@ -93,25 +93,42 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
   void _reorderPointsWithRoutes(int oldIndex, int newIndex) {
     if (oldIndex < newIndex) newIndex -= 1;
 
+
     setState(() {
+      // Create a map to store each point's incoming route (route TO this point)
+      // Key: pointId2 (destination), Value: TripElement
+      Map<int, TripElement> incomingRoutes = {};
+      for (var trip in _tripElements) {
+        incomingRoutes[trip.pointId2] = trip;
+      }
+
+      // Remove and reinsert the point
       final point = _points.removeAt(oldIndex);
       _points.insert(newIndex, point);
 
+      // Update trip orders
       for (int i = 0; i < _points.length; i++) {
         _points[i].tripOrder = i;
       }
 
+      // Rebuild trip elements while preserving the travel method attached to each point
       List<TripElement> newTripElements = [];
       for (int i = 0; i < _points.length; i++) {
         if (i > 0) {
-          var existingTrip = _tripElements.firstWhere(
-                (t) => t.pointId1 == _points[i - 1].id && t.pointId2 == _points[i].id,
-            orElse: () => TripElement(
+          // Get the route that was originally attached to this point (coming INTO it)
+          var existingRoute = incomingRoutes[_points[i].id];
+
+          if (existingRoute != null) {
+            // Update only pointId1 (the previous point), keep pointId2 and method
+            existingRoute.pointId1 = _points[i - 1].id;
+            newTripElements.add(existingRoute);
+          } else {
+            // Create new route if none existed
+            newTripElements.add(TripElement(
               pointId1: _points[i - 1].id,
               pointId2: _points[i].id,
-            ),
-          );
-          newTripElements.add(existingTrip);
+            ));
+          }
         }
       }
       _tripElements = newTripElements;

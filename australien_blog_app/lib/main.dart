@@ -113,3 +113,4 @@ class MyApp extends StatelessWidget {
 
 
 //todo when drag and dropping points the the list view, the adjacent travel methods reset
+// treat as if each route is attached to the next point, when dragin and dropping reattach to how it was aranged (only p1 for a rount can change)

@@ -1,6 +1,7 @@
 // main.dart
 import 'package:australien_blog_app/pages/create_point_page.dart';
 import 'package:australien_blog_app/pages/manage_points_page.dart';
+import 'package:australien_blog_app/pages/sync_status_page.dart';
 import 'package:australien_blog_app/services/storage_service.dart';
 
 import 'package:flutter/material.dart';
@@ -106,6 +107,7 @@ class MyApp extends StatelessWidget {
         '/manage_points': (context) => const ManagePointsPage(),
         '/browse_files': (context) => const BrowseFilesPage(),
         '/settings': (context) => const SettingsPage(),
+        '/sync_files': (context) => const SyncStatusPage(),
       },
     );
   }

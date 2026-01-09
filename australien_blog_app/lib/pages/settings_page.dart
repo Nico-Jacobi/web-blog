@@ -124,6 +124,24 @@ class _SettingsPageState extends State<SettingsPage> {
                 ),
               ),
             ),
+
+            const SizedBox(height: 16),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton.icon(
+                onPressed: () {
+                  Navigator.pushNamed(context, '/sync_files');
+                },
+                icon: const Icon(Icons.sync),
+                label: const Text(AppStrings.sync_files_appBar_title),
+                style: OutlinedButton.styleFrom(
+                  side: const BorderSide(color: primary), // Refactored to primary
+                  foregroundColor: primary,
+                  padding: const EdgeInsets.symmetric(vertical: 16),
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+              ),
+            ),
           ],
         ),
       ),

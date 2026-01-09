@@ -82,4 +82,6 @@ class AppStrings {
   static const tripMethod_foot = "Zu Fuß";
   static const tripMethod_misc = "Sonstiges";
   static const tripMethod_bus = "Bus";
+
+  static const sync_files_appBar_title = "sync files page";
 }

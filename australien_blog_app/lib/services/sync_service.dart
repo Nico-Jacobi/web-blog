@@ -5,12 +5,16 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../api_keys.dart';
 import '../model/interest_point.dart';
+import 'storage_service.dart';
 
 class SyncService {
-
   // STATE TRACKING - Now stores server-verified info
   File? _syncStateFile;
   Map<String, int> _syncedFilesWithSize = {}; // path -> file size
+
+  // SYNC LOCK - Prevents concurrent syncs
+  bool _isSyncing = false;
+  final StorageService _storageService = StorageService();
 
   Future<void> _init() async {
     if (_syncStateFile != null) return;
@@ -52,6 +56,36 @@ class SyncService {
   Future<Set<String>> getSyncedFiles() async {
     await _init();
     return _syncedFilesWithSize.keys.toSet();
+  }
+
+  /// Check if a sync is currently in progress
+  bool get isSyncing => _isSyncing;
+
+  /// Public method to trigger sync from anywhere in the app
+  /// Automatically loads current points and trips from storage
+  /// Returns null if sync is already in progress
+  Future<SyncResult?> syncFromStorage() async {
+    // Check if already syncing
+    if (_isSyncing) {
+      print('[SYNC] ⚠️ Sync already in progress, ignoring request');
+      return null;
+    }
+
+    try {
+      _isSyncing = true;
+      print('[SYNC] 🔒 Sync lock acquired');
+
+      // Load current data from storage
+      final points = await _storageService.loadPoints();
+      final trips = await _storageService.loadTrips();
+
+      // Perform sync
+      final result = await sync(points, trips);
+      return result;
+    } finally {
+      _isSyncing = false;
+      print('[SYNC] 🔓 Sync lock released');
+    }
   }
 
   // --- SERVER VERIFICATION ---

@@ -25,11 +25,15 @@ void main() {
   // This enables edge-to-edge mode for Android
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
 
-  runApp(
 
-      const MyApp(),
 
-  );
+  SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,   // portrait only
+    // DeviceOrientation.portraitDown, // optional: allow upside-down
+  ]).then((_) {
+    runApp(MyApp());
+  });
+
 }
 
 

@@ -502,7 +502,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                       const SizedBox(height: 12),
                       InkWell(
                         onTap: () async {
-                          FocusScope.of(context).unfocus();
+                          FocusScope.of(context).unfocus(); // unfocus before dialog
                           final result = await TravelMethodDialog.show(context, currentMethod: _selectedMethod);
                           if (result != null) setState(() => _selectedMethod = result);
                         },

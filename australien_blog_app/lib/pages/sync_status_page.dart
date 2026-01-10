@@ -99,10 +99,18 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
     });
 
     try {
-      final points = await _storageService.loadPoints();
-      final trips = await _storageService.loadTrips();
+      // Use the new syncFromStorage method
+      final result = await _syncService.syncFromStorage();
 
-      final result = await _syncService.sync(points, trips);
+      if (result == null) {
+        // Sync was already in progress
+        setState(() {
+          _statusMessage = 'Sync already in progress';
+          _isSyncing = false;
+        });
+        _showSuccessSnackBar('Sync already in progress');
+        return;
+      }
 
       setState(() {
         _statusMessage = result.message;

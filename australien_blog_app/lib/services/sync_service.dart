@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
@@ -218,21 +219,30 @@ class SyncService {
 
     print('[SYNC] Need to upload ${imagesToUpload.length} images');
 
+    // Update the main sync loop to handle failures better
+// Replace the upload loop in your sync() method with this:
     for (int i = 0; i < imagesToUpload.length; i++) {
       final imagePath = imagesToUpload[i];
       print('[SYNC] Uploading image ${i + 1}/${imagesToUpload.length}: ${p.basename(imagePath)}');
 
       final result = await _uploadFile(imagePath);
+
       if (result['success']) {
         await _markAsSynced(imagePath, result['size']);
         successCount++;
         print('[SYNC] ✓ Upload successful');
+
+// Adaptive delay: shorter for small files, longer for large files
+        final size = result['size'] as int;
+        final delayMs = size > 5 * 1024 * 1024 ? 2000 : 500; // 2s for >5MB, 500ms otherwise
+        await Future.delayed(Duration(milliseconds: delayMs));
       } else {
         failCount++;
-        print('[SYNC] ✗ Upload failed: ${result['error']}');
+        print('[SYNC] ✗ Upload failed after retries: ${result['error']}');
+// Longer delay after failure
+        await Future.delayed(Duration(seconds: 3));
       }
     }
-
     skippedCount = allImages.length - imagesToUpload.length;
 
     // 4. Sync Data JSONs
@@ -546,6 +556,194 @@ class SyncService {
       print('[SYNC] Download file error: $e');
       return 0;
     }
+  }
+}
+
+
+// Add these improvements to your SyncService class
+
+// Add this method to replace _uploadFile
+Future<Map<String, dynamic>> _uploadFile(String localPath, {int retryCount = 0}) async {
+  final file = File(localPath);
+  if (!await file.exists()) {
+    print('[SYNC] File not found locally, skipping: $localPath');
+    return {'success': true, 'size': 0};
+  }
+
+  const maxRetries = 3;
+  const timeoutDuration = Duration(minutes: 5); // 5 minutes per upload
+
+  try {
+    final filename = p.basename(localPath);
+    final serverPath = 'images/$filename';
+    final fileSize = await file.length();
+
+    print('[SYNC] Uploading to server path: $serverPath (${fileSize} bytes)');
+
+    var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/upload'));
+    request.headers['x-auth-token'] = authToken;
+    request.fields['path'] = serverPath;
+    request.files.add(await http.MultipartFile.fromPath('file', file.path));
+
+    // Send with timeout
+    final response = await request.send().timeout(
+      timeoutDuration,
+      onTimeout: () {
+        throw TimeoutException('Upload timeout after ${timeoutDuration.inSeconds}s');
+      },
+    );
+
+    print('[SYNC] Upload response status: ${response.statusCode}');
+
+    if (response.statusCode == 200) {
+      // Verify the upload succeeded by checking file exists on server
+      await Future.delayed(Duration(milliseconds: 500));
+      final verified = await _verifyOnServer(localPath);
+
+      if (verified) {
+        return {'success': true, 'size': fileSize};
+      } else {
+        print('[SYNC] Upload returned 200 but verification failed');
+        throw Exception('Upload verification failed');
+      }
+    } else {
+      final body = await response.stream.bytesToString();
+      throw Exception('HTTP ${response.statusCode}: $body');
+    }
+  } catch (e) {
+    print('[SYNC] Upload error (attempt ${retryCount + 1}/$maxRetries): $e');
+
+    // Retry logic
+    if (retryCount < maxRetries - 1) {
+      final waitTime = Duration(seconds: (retryCount + 1) * 2); // 2s, 4s, 6s
+      print('[SYNC] Retrying in ${waitTime.inSeconds}s...');
+      await Future.delayed(waitTime);
+      return _uploadFile(localPath, retryCount: retryCount + 1);
+    }
+
+    return {'success': false, 'error': e.toString()};
+  }
+}
+
+// Update the batch verify to handle timeouts better
+Future<Map<String, bool>> _batchVerifyOnServer(List<String> localPaths) async {
+  const timeoutDuration = Duration(seconds: 30);
+
+  try {
+    final pathMap = <String, String>{};
+    final serverPaths = <String>[];
+
+    for (final localPath in localPaths) {
+      final filename = p.basename(localPath);
+      final serverPath = 'images/$filename';
+      pathMap[serverPath] = localPath;
+      serverPaths.add(serverPath);
+    }
+
+    print('[SYNC] Batch verifying ${serverPaths.length} files...');
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/verify-batch'),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-auth-token': authToken,
+      },
+      body: jsonEncode({'paths': serverPaths}),
+    ).timeout(timeoutDuration);
+
+    if (response.statusCode == 200) {
+      final results = jsonDecode(response.body) as Map<String, dynamic>;
+      final verifiedMap = <String, bool>{};
+
+      for (final entry in results.entries) {
+        final serverPath = entry.key;
+        final localPath = pathMap[serverPath]!;
+        final data = entry.value;
+
+        if (data['exists'] == true) {
+          final file = File(localPath);
+          if (await file.exists()) {
+            final localSize = await file.length();
+            final serverSize = data['size'];
+            verifiedMap[localPath] = (localSize == serverSize);
+          } else {
+            verifiedMap[localPath] = false;
+          }
+        } else {
+          verifiedMap[localPath] = false;
+        }
+      }
+
+      final verified = verifiedMap.values.where((v) => v).length;
+      print('[SYNC] Batch verify complete: $verified/${verifiedMap.length} verified');
+      return verifiedMap;
+    }
+  } on TimeoutException {
+    print('[SYNC] Batch verify timeout - falling back to individual checks');
+    // Fall through to individual verification
+  } catch (e) {
+    print('[SYNC] Batch verify error: $e');
+  }
+
+  // Fallback: verify individually with smaller batches
+  return await _fallbackIndividualVerify(localPaths);
+}
+
+// Add this new method for fallback verification
+Future<Map<String, bool>> _fallbackIndividualVerify(List<String> localPaths) async {
+  print('[SYNC] Using individual verification for ${localPaths.length} files');
+  final results = <String, bool>{};
+
+  for (final localPath in localPaths) {
+    try {
+      final verified = await _verifyOnServer(localPath);
+      results[localPath] = verified;
+    } catch (e) {
+      print('[SYNC] Individual verify failed for $localPath: $e');
+      results[localPath] = false;
+    }
+
+    // Small delay between verifications
+    await Future.delayed(Duration(milliseconds: 100));
+  }
+
+  return results;
+}
+
+
+/// Verify a single file exists on server with correct size
+Future<bool> _verifyOnServer(String localPath) async {
+  try {
+    final file = File(localPath);
+    if (!await file.exists()) return false;
+
+    final localSize = await file.length();
+    final filename = p.basename(localPath);
+    final serverPath = 'images/$filename';
+
+    final response = await http.post(
+      Uri.parse('$baseUrl/verify'),
+      headers: {
+        'Content-Type': 'application/json',
+        'x-auth-token': authToken,
+      },
+      body: jsonEncode({'path': serverPath}),
+    );
+
+    if (response.statusCode == 200) {
+      final data = jsonDecode(response.body);
+      if (data['exists'] == true) {
+        final serverSize = data['size'];
+        final match = serverSize == localSize;
+        print('[SYNC] Verify $filename: ${match ? "✓ MATCH" : "✗ SIZE MISMATCH"} (local: $localSize, server: $serverSize)');
+        return match;
+      }
+    }
+    print('[SYNC] Verify $filename: NOT ON SERVER');
+    return false;
+  } catch (e) {
+    print('[SYNC] Verify error: $e');
+    return false;
   }
 }
 

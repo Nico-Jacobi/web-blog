@@ -45,6 +45,8 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
   InterestPoint? _lastPoint;
   TripMethod _selectedMethod = TripMethod.car;
 
+  get FlutterImageCompress => null;
+
   @override
   void initState() {
     super.initState();
@@ -221,20 +223,25 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
           : (points.map((e) => e.id).reduce((a, b) => a > b ? a : b)) + 1;
     }
 
-    // 4. Image Copying Logic - using unique filenames
+// 4. Image Copying Logic - using unique filenames
     String newTitlePath = _titleImage!.path.startsWith(appDir.path)
         ? _titleImage!.path
         : '${appDir.path}/${_generateImageFilename(path.extension(_titleImage!.path))}';
-    if (!_titleImage!.path.startsWith(appDir.path)) await _titleImage!.copy(newTitlePath);
+    if (!_titleImage!.path.startsWith(appDir.path)) {
+      newTitlePath = await _compressOnly(_titleImage!, newTitlePath);
+    }
 
     List<String> newOtherPaths = [];
     for (int i = 0; i < _otherImages.length; i++) {
       String imagePath = _otherImages[i].path.startsWith(appDir.path)
           ? _otherImages[i].path
           : '${appDir.path}/${_generateImageFilename(path.extension(_otherImages[i].path))}';
-      if (!_otherImages[i].path.startsWith(appDir.path)) await _otherImages[i].copy(imagePath);
+      if (!_otherImages[i].path.startsWith(appDir.path)) {
+        imagePath = await _compressOnly(_otherImages[i], imagePath);
+      }
       newOtherPaths.add(imagePath);
     }
+
 
     // 5. Create Object
     InterestPoint point = InterestPoint(
@@ -274,6 +281,19 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
 
     if (mounted) Navigator.pop(context, true);
   }
+
+  Future<String> _compressOnly(File file, String targetDir) async {
+    final newFileName = '${targetDir}/${_generateImageFilename(path.extension(file.path))}';
+
+    final compressed = await FlutterImageCompress.compressAndGetFile(
+      file.path,
+      newFileName,
+      quality: 80, // keeps detail but reduces file size
+    );
+
+    return compressed!.path;
+  }
+
 
   Future<bool> _onWillPop() async {
     return await showDialog<bool>(

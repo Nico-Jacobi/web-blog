@@ -188,6 +188,12 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     }
   }
 
+  String _generateImageFilename(String extension) {
+    final timestamp = DateTime.now().millisecondsSinceEpoch;
+    final random = (DateTime.now().microsecondsSinceEpoch % 10000);
+    return 'img_${timestamp}_${random}$extension';
+  }
+
   Future<void> _saveData() async {
     if (_titleImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -215,17 +221,17 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
           : (points.map((e) => e.id).reduce((a, b) => a > b ? a : b)) + 1;
     }
 
-    // 4. Image Copying Logic (unchanged)
+    // 4. Image Copying Logic - using unique filenames
     String newTitlePath = _titleImage!.path.startsWith(appDir.path)
         ? _titleImage!.path
-        : '${appDir.path}/img_${pointId}_title${path.extension(_titleImage!.path)}';
+        : '${appDir.path}/${_generateImageFilename(path.extension(_titleImage!.path))}';
     if (!_titleImage!.path.startsWith(appDir.path)) await _titleImage!.copy(newTitlePath);
 
     List<String> newOtherPaths = [];
     for (int i = 0; i < _otherImages.length; i++) {
       String imagePath = _otherImages[i].path.startsWith(appDir.path)
           ? _otherImages[i].path
-          : '${appDir.path}/img_${pointId}_other_$i${path.extension(_otherImages[i].path)}';
+          : '${appDir.path}/${_generateImageFilename(path.extension(_otherImages[i].path))}';
       if (!_otherImages[i].path.startsWith(appDir.path)) await _otherImages[i].copy(imagePath);
       newOtherPaths.add(imagePath);
     }

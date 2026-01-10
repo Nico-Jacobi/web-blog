@@ -307,6 +307,19 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
       padding: const EdgeInsets.all(16),
       onReorder: _reorderPointsWithRoutes,
       itemCount: _points.length,
+      proxyDecorator: (child, index, animation) {
+        return AnimatedBuilder(
+          animation: animation,
+          builder: (context, child) {
+            return Material(
+              color: Colors.transparent,
+              elevation: 0,
+              child: child,
+            );
+          },
+          child: child,
+        );
+      },
       itemBuilder: (context, index) {
         final point = _points[index];
         TripElement? tripBefore;

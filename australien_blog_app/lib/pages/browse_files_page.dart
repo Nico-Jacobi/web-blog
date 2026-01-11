@@ -134,8 +134,12 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
             title: Text(AppStrings.parent_folder),
             onTap: () {
               setState(() {
-                currentPath = currentPath.substring(0, currentPath.lastIndexOf('/'));
-                if (currentPath.isEmpty) currentPath = '/';
+                // Split path into segments, remove the last one, and rejoin
+                List<String> segments = currentPath.split('/');
+                segments.removeWhere((s) => s.isEmpty);
+                if (segments.isNotEmpty) segments.removeLast();
+
+                currentPath = '/${segments.join('/')}';
               });
               _loadFiles();
             },

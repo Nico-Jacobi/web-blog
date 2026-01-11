@@ -416,28 +416,28 @@ class SyncService {
 
     try {
       final filename = p.basename(localPath);
+      // FORCE server directory to images/
       final serverPath = 'images/$filename';
       final fileSize = await file.length();
 
       print('[SYNC] Uploading to server path: $serverPath (${fileSize} bytes)');
 
       var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/upload'));
-      request.headers['x-auth-token'] = authToken;
+      request.headers.addAll({
+        'x-auth-token': authToken,
+        'Connection': 'close', // Clean up socket after each file
+      });
+
+      // This tells the server the target filename/path
       request.fields['path'] = serverPath;
       request.files.add(await http.MultipartFile.fromPath('file', file.path));
 
-      final streamedResponse = await request.send().timeout(
-        timeoutDuration,
-        onTimeout: () {
-          throw TimeoutException('Upload timeout after ${timeoutDuration.inSeconds}s');
-        },
-      );
-
+      final streamedResponse = await request.send().timeout(timeoutDuration);
       final response = await http.Response.fromStream(streamedResponse);
-      print('[SYNC] Upload response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
-        await Future.delayed(Duration(seconds: 1));
+        // Small pause to let the Raspberry Pi SD card finish writing
+        await Future.delayed(const Duration(milliseconds: 500));
         return {'success': true, 'size': fileSize};
       } else {
         throw Exception('HTTP ${response.statusCode}: ${response.body}');
@@ -446,12 +446,9 @@ class SyncService {
       print('[SYNC] Upload error (attempt ${retryCount + 1}/$maxRetries): $e');
 
       if (retryCount < maxRetries - 1) {
-        final waitTime = Duration(seconds: (retryCount + 1) * 3);
-        print('[SYNC] Retrying in ${waitTime.inSeconds}s...');
-        await Future.delayed(waitTime);
+        await Future.delayed(Duration(seconds: (retryCount + 1) * 2));
         return _uploadFile(localPath, retryCount: retryCount + 1);
       }
-
       return {'success': false, 'error': e.toString()};
     }
   }

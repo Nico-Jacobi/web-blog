@@ -73,6 +73,11 @@ class SyncService {
       return null;
     }
 
+    if (!await _hasInternet()) {
+      print('[SYNC] 📶 No internet connection, skipping sync');
+      return SyncResult(success: false, message: 'No internet connection');
+    }
+
     try {
       syncProgress.value = true; // Notifies listeners
       _isSyncing = true;
@@ -618,6 +623,15 @@ class SyncService {
     } catch (e) {
       print('[SYNC] Download file error: $e');
       return 0;
+    }
+  }
+
+  Future<bool> _hasInternet() async {
+    try {
+      final result = await InternetAddress.lookup('google.com'); // or your baseUrl
+      return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
+    } on SocketException catch (_) {
+      return false;
     }
   }
 }

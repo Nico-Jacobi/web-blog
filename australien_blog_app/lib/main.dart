@@ -5,24 +5,56 @@ import 'package:australien_blog_app/pages/sync_status_page.dart';
 import 'package:australien_blog_app/services/storage_service.dart';
 import 'package:australien_blog_app/services/sync_service.dart';
 import 'package:australien_blog_app/strings.dart';
+import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
+import 'package:workmanager/workmanager.dart';
 import 'colors.dart';
 import 'pages/start_page.dart';
 import 'pages/browse_files_page.dart';
 import 'pages/settings_page.dart';
 
-final accent_color = Colors.blue[500]!;
 
-void main() {
+final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
+FlutterLocalNotificationsPlugin();
+
+
+void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  const AndroidInitializationSettings initializationSettingsAndroid =
+  AndroidInitializationSettings('@mipmap/ic_launcher');
+
+  const InitializationSettings initializationSettings =
+  InitializationSettings(android: initializationSettingsAndroid);
+
+  await flutterLocalNotificationsPlugin.initialize(initializationSettings);
+
+
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     systemNavigationBarColor: Colors.transparent,
     systemNavigationBarDividerColor: Colors.transparent,
     systemNavigationBarIconBrightness: Brightness.dark,
   ));
+
+
+  await Workmanager().initialize(
+      callbackDispatcher,
+      isInDebugMode: true // Set to false for release
+  );
+
+  // Register a periodic task (runs roughly every 15-30 mins depending on OS)
+  await Workmanager().registerPeriodicTask(
+    "1",
+    "syncTask",
+    frequency: const Duration(minutes: 180), // once per 3 hour
+    constraints: Constraints(
+      networkType: NetworkType.connected, // Only run if internet is on
+      requiresBatteryNotLow: true,
+    ),
+  );
 
   // This enables edge-to-edge mode for Android
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -168,5 +200,30 @@ class MyApp extends StatelessWidget {
 }
 
 
-//todo when drag and dropping points the the list view, the adjacent travel methods reset
-// treat as if each route is attached to the next point, when dragin and dropping reattach to how it was aranged (only p1 for a rount can change)
+@pragma('vm:entry-point')
+void callbackDispatcher() {
+  Workmanager().executeTask((task, inputData) async {
+    // do your sync
+    bool success = await SyncService().syncFromStorage() != null;
+
+    // Send notification
+    const AndroidNotificationDetails androidPlatformChannelSpecifics =
+    AndroidNotificationDetails(
+        'sync_channel', 'Sync Notifications',
+        channelDescription: 'Notifies when sync completes',
+        importance: Importance.max,
+        priority: Priority.high,
+        ticker: 'ticker');
+    const NotificationDetails platformChannelSpecifics =
+    NotificationDetails(android: androidPlatformChannelSpecifics);
+
+    await flutterLocalNotificationsPlugin.show(
+      0,
+      'Sync complete',
+      success ? 'All files synced' : 'Sync failed',
+      platformChannelSpecifics,
+    );
+
+    return Future.value(true);
+  });
+}

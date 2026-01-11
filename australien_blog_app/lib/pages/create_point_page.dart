@@ -271,6 +271,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
 
       if (mounted) Navigator.pop(context); // close loading
       if (mounted) Navigator.pop(context, true); // close page
+
     } catch (e) {
       if (mounted) Navigator.pop(context);
       debugPrint("Error saving data: $e");

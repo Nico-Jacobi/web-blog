@@ -84,4 +84,6 @@ class AppStrings {
   static const tripMethod_bus = "Bus";
 
   static const sync_files_appBar_title = "Datein synchronisieren";
+
+  static const sync_spinner_text = "Syncing...";
 }

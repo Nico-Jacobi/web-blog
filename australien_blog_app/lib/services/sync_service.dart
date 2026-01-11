@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
@@ -9,7 +10,14 @@ import '../model/interest_point.dart';
 import 'storage_service.dart';
 
 class SyncService {
-  // STATE TRACKING - Now stores server-verified info
+  // singleton
+  SyncService._internal();
+  static final SyncService _instance = SyncService._internal();
+  factory SyncService() => _instance;
+
+  final ValueNotifier<bool> syncProgress = ValueNotifier<bool>(false);
+
+
   File? _syncStateFile;
   Map<String, int> _syncedFilesWithSize = {}; // path -> file size
 
@@ -66,6 +74,7 @@ class SyncService {
     }
 
     try {
+      syncProgress.value = true; // Notifies listeners
       _isSyncing = true;
       print('[SYNC] 🔒 Sync lock acquired');
 
@@ -76,6 +85,7 @@ class SyncService {
       return result;
     } finally {
       _isSyncing = false;
+      syncProgress.value = false; // Notifies listeners
       print('[SYNC] 🔓 Sync lock released');
     }
   }

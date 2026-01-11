@@ -1,6 +1,7 @@
 // services/storage_service.dart
 import 'dart:convert';
 import 'dart:io';
+import 'package:australien_blog_app/services/sync_service.dart';
 import 'package:path_provider/path_provider.dart';
 import '../model/interest_point.dart';
 
@@ -62,6 +63,7 @@ class StorageService {
     final tripsFile = File('${appDir.path}/trips.json');
     await tripsFile.writeAsString(
         jsonEncode(trips.map((t) => t.toJson()).toList()));
+    SyncService().syncFromStorage();
   }
 
   Future<void> deletePointImages(InterestPoint point) async {
@@ -73,6 +75,7 @@ class StorageService {
       final imgFile = File(imgPath);
       if (await imgFile.exists()) await imgFile.delete();
     }
+    SyncService().syncFromStorage();
   }
 
   Future<void> resetApp({bool deleteImages = true}) async {

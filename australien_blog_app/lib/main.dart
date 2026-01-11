@@ -3,6 +3,8 @@ import 'package:australien_blog_app/pages/create_point_page.dart';
 import 'package:australien_blog_app/pages/manage_points_page.dart';
 import 'package:australien_blog_app/pages/sync_status_page.dart';
 import 'package:australien_blog_app/services/storage_service.dart';
+import 'package:australien_blog_app/services/sync_service.dart';
+import 'package:australien_blog_app/strings.dart';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -104,6 +106,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
+      builder: _buildGlobalSyncOverlay,
       home: const StartPage(),
       routes: {
         '/start': (context) => const StartPage(),
@@ -113,6 +116,53 @@ class MyApp extends StatelessWidget {
         '/settings': (context) => const SettingsPage(),
         '/sync_files': (context) => const SyncStatusPage(),
       },
+    );
+  }
+
+  // Extracted Global Overlay Method
+  Widget _buildGlobalSyncOverlay(BuildContext context, Widget? child) {
+    return Stack(
+      children: [
+        if (child != null) child,
+        ValueListenableBuilder<bool>(
+          valueListenable: SyncService().syncProgress,
+          builder: (context, isSyncing, _) {
+            if (!isSyncing) return const SizedBox.shrink();
+            return Positioned(
+              bottom: 20,
+              right: 20,
+              child: Material(
+                color: Colors.transparent,
+                child: Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                  decoration: BoxDecoration(
+                    color: Colors.black87, // Slightly darker for text legibility
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text(
+                        AppStrings.sync_spinner_text,
+                        style: const TextStyle(color: Colors.white, fontSize: 12),
+                      ),
+                      const SizedBox(width: 8),
+                      const SizedBox(
+                        width: 12,
+                        height: 12,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 1.5,
+                          color: Colors.white,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          },
+        ),
+      ],
     );
   }
 }

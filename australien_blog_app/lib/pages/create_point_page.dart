@@ -6,6 +6,7 @@ import 'package:exif/exif.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:latlong2/latlong.dart';
+import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 import '../colors.dart';
 import '../model/interest_point.dart';
@@ -45,7 +46,6 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
   InterestPoint? _lastPoint;
   TripMethod _selectedMethod = TripMethod.car;
 
-  get FlutterImageCompress => null;
 
   @override
   void initState() {
@@ -204,94 +204,102 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       return;
     }
 
-    // 1. Get Directory (Still needed for image copying)
-    final appDir = await getApplicationDocumentsDirectory();
-
-    // 2. Load existing data via Service
-    final data = await _storage.loadPointsAndTrips();
-    List<InterestPoint> points = data['points'];
-    List<TripElement> trips = data['trips'];
-
-    // 3. Logic for ID generation (unchanged)
-    int pointId;
-    if (_isEditMode && widget.existingPoint != null) {
-      pointId = widget.existingPoint!.id;
-      // We will replace the object in the list later
-    } else {
-      pointId = points.isEmpty
-          ? 1
-          : (points.map((e) => e.id).reduce((a, b) => a > b ? a : b)) + 1;
-    }
-
-// 4. Image Copying Logic - using unique filenames
-    String newTitlePath = _titleImage!.path.startsWith(appDir.path)
-        ? _titleImage!.path
-        : '${appDir.path}/${_generateImageFilename(path.extension(_titleImage!.path))}';
-    if (!_titleImage!.path.startsWith(appDir.path)) {
-      newTitlePath = await _compressOnly(_titleImage!, newTitlePath);
-    }
-
-    List<String> newOtherPaths = [];
-    for (int i = 0; i < _otherImages.length; i++) {
-      String imagePath = _otherImages[i].path.startsWith(appDir.path)
-          ? _otherImages[i].path
-          : '${appDir.path}/${_generateImageFilename(path.extension(_otherImages[i].path))}';
-      if (!_otherImages[i].path.startsWith(appDir.path)) {
-        imagePath = await _compressOnly(_otherImages[i], imagePath);
-      }
-      newOtherPaths.add(imagePath);
-    }
-
-
-    // 5. Create Object
-    InterestPoint point = InterestPoint(
-      id: pointId,
-      name: _nameCtrl.text,
-      shortDescription: _shortDescCtrl.text,
-      titleImagePath: newTitlePath,
-      otherImagePaths: newOtherPaths,
-      lat: double.tryParse(_latCtrl.text),
-      lon: double.tryParse(_lonCtrl.text),
-      date: _dateCtrl.text,
-      description: _descCtrl.text,
-      tripOrder: _isEditMode && widget.existingPoint != null ? widget.existingPoint!.tripOrder : pointId,
+    // Show loading
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
-    // 6. Update Lists
-    if (_isEditMode) {
-      final index = points.indexWhere((p) => p.id == pointId);
-      if (index != -1) {
-        points[index] = point;
-      }
-    } else {
-      points.add(point);
+    try {
+      final appDir = await getApplicationDocumentsDirectory();
+      final data = await _storage.loadPointsAndTrips();
+      List<InterestPoint> points = data['points'];
+      List<TripElement> trips = data['trips'];
 
-      // Add Trip connection if applicable
-      if (_lastPoint != null) {
-        trips.add(TripElement(
+      int pointId = _isEditMode && widget.existingPoint != null
+          ? widget.existingPoint!.id
+          : (points.isEmpty ? 1 : points.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1);
+
+      // Compress & copy images asynchronously
+      String newTitlePath = _titleImage!.path.startsWith(appDir.path)
+          ? _titleImage!.path
+          : '${appDir.path}/${_generateImageFilename(path.extension(_titleImage!.path))}';
+      if (!_titleImage!.path.startsWith(appDir.path)) {
+        newTitlePath = await _compressOnly(_titleImage!, newTitlePath);
+      }
+
+      List<String> newOtherPaths = [];
+      for (var img in _otherImages) {
+        String imagePath = img.path.startsWith(appDir.path)
+            ? img.path
+            : '${appDir.path}/${_generateImageFilename(path.extension(img.path))}';
+        if (!img.path.startsWith(appDir.path)) {
+          imagePath = await _compressOnly(img, imagePath);
+        }
+        newOtherPaths.add(imagePath);
+      }
+
+      InterestPoint point = InterestPoint(
+        id: pointId,
+        name: _nameCtrl.text,
+        shortDescription: _shortDescCtrl.text,
+        titleImagePath: newTitlePath,
+        otherImagePaths: newOtherPaths,
+        lat: double.tryParse(_latCtrl.text),
+        lon: double.tryParse(_lonCtrl.text),
+        date: _dateCtrl.text,
+        description: _descCtrl.text,
+        tripOrder: _isEditMode && widget.existingPoint != null ? widget.existingPoint!.tripOrder : pointId,
+      );
+
+      if (_isEditMode) {
+        final index = points.indexWhere((p) => p.id == pointId);
+        if (index != -1) points[index] = point;
+      } else {
+        points.add(point);
+        if (_lastPoint != null) {
+          trips.add(TripElement(
             pointId1: _lastPoint!.id,
             pointId2: pointId,
-            method: _selectedMethod
-        ));
+            method: _selectedMethod,
+          ));
+        }
       }
+
+      await _storage.savePointsAndTrips(points, trips);
+
+      if (mounted) Navigator.pop(context); // close loading
+      if (mounted) Navigator.pop(context, true); // close page
+    } catch (e) {
+      if (mounted) Navigator.pop(context);
+      debugPrint("Error saving data: $e");
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text("Error saving data")),
+      );
     }
-
-    // 7. Save via Service
-    await _storage.savePointsAndTrips(points, trips);
-
-    if (mounted) Navigator.pop(context, true);
   }
 
-  Future<String> _compressOnly(File file, String targetDir) async {
-    final newFileName = '${targetDir}/${_generateImageFilename(path.extension(file.path))}';
+
+  Future<String> _compressOnly(File file, String targetPath) async {
+    // targetPath is already the full path (dir + filename)
+    // No need to generate a new filename here
 
     final compressed = await FlutterImageCompress.compressAndGetFile(
       file.path,
-      newFileName,
-      quality: 80, // keeps detail but reduces file size
+      targetPath,
+      quality: 80,
+      format: CompressFormat.jpeg, // Ensure a standard format
     );
 
-    return compressed!.path;
+    if (compressed == null) {
+      print("compression failed");
+      // Fallback: If compression fails, just copy the original file
+      await file.copy(targetPath);
+      return targetPath;
+    }
+
+    return compressed.path;
   }
 
 

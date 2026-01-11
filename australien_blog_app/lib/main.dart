@@ -42,14 +42,14 @@ void main() async {
 
   await Workmanager().initialize(
       callbackDispatcher,
-      isInDebugMode: true // Set to false for release
+      isInDebugMode: false // Set to false for release
   );
 
   // Register a periodic task (runs roughly every 15-30 mins depending on OS)
   await Workmanager().registerPeriodicTask(
     "1",
     "syncTask",
-    frequency: const Duration(minutes: 180), // once per 3 hour
+    frequency: const Duration(minutes: 120), // once per 2 hour
     constraints: Constraints(
       networkType: NetworkType.connected, // Only run if internet is on
       requiresBatteryNotLow: true,
@@ -204,25 +204,29 @@ class MyApp extends StatelessWidget {
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
     // do your sync
-    bool success = await SyncService().syncFromStorage() != null;
 
-    // Send notification
-    const AndroidNotificationDetails androidPlatformChannelSpecifics =
-    AndroidNotificationDetails(
-        'sync_channel', 'Sync Notifications',
-        channelDescription: 'Notifies when sync completes',
-        importance: Importance.max,
-        priority: Priority.high,
-        ticker: 'ticker');
-    const NotificationDetails platformChannelSpecifics =
-    NotificationDetails(android: androidPlatformChannelSpecifics);
+    if (await SyncService().hasUnsyncedChanges()) {
+      bool success = await SyncService().syncFromStorage() != null;
 
-    await flutterLocalNotificationsPlugin.show(
-      0,
-      'Sync complete',
-      success ? 'All files synced' : 'Sync failed',
-      platformChannelSpecifics,
-    );
+
+      // Send notification
+      const AndroidNotificationDetails androidPlatformChannelSpecifics =
+      AndroidNotificationDetails(
+          'sync_channel', 'Sync Notifications',
+          channelDescription: 'Notifies when sync completes',
+          importance: Importance.max,
+          priority: Priority.high,
+          ticker: 'ticker');
+      const NotificationDetails platformChannelSpecifics =
+      NotificationDetails(android: androidPlatformChannelSpecifics);
+
+      await flutterLocalNotificationsPlugin.show(
+        0,
+        'Sync complete',
+        success ? 'All files synced' : 'Sync failed',
+        platformChannelSpecifics,
+      );
+    }
 
     return Future.value(true);
   });

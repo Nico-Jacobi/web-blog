@@ -192,6 +192,36 @@ class SyncService {
     return await _fallbackIndividualVerify(localPaths);
   }
 
+  Future<bool> hasUnsyncedChanges() async {
+    await _init();
+
+    if (isSyncing){
+      return false;
+    }
+
+    final points = await _storageService.loadPoints();
+    final trips = await _storageService.loadTrips();
+
+    // 1. Check if JSON data has changed via hash
+    final pointsJson = jsonEncode(points.map((e) => e.toJson()).toList());
+    final tripsJson = jsonEncode(trips.map((e) => e.toJson()).toList());
+
+    if (await _hasContentChanged('data/points.json', pointsJson)) return true;
+    if (await _hasContentChanged('data/trips.json', tripsJson)) return true;
+
+    // 2. Check if any image path is missing from the sync state
+    for (var point in points) {
+      if (point.titleImagePath.isNotEmpty && !_syncedFilesWithSize.containsKey(point.titleImagePath)) {
+        return true;
+      }
+      for (var path in point.otherImagePaths) {
+        if (!_syncedFilesWithSize.containsKey(path)) return true;
+      }
+    }
+
+    return false;
+  }
+
   Future<Map<String, bool>> _fallbackIndividualVerify(List<String> localPaths) async {
     print('[SYNC] Using individual verification for ${localPaths.length} files');
     final results = <String, bool>{};

@@ -7,8 +7,11 @@ const helmet = require('helmet');
 const fs = require('fs').promises;
 const { existsSync } = require('fs');
 const rateLimit = require('express-rate-limit');
-
+const busboy = require('busboy');
+const fsSync = require('fs');
 const app = express();
+app.set('trust proxy', 1); // 1 = trust first proxy
+
 
 // --- CONFIGURATION (Use Environment Variables) ---
 const PORT = process.env.PORT || 3000;
@@ -31,7 +34,7 @@ app.use((req, res, next) => {
 // Rate limiting to prevent brute force
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, 
-    max: 100,
+    max: 1000,
     message: { error: "Too many requests, please try again later." }
 });
 app.use(limiter);
@@ -55,22 +58,28 @@ const checkAuth = (req, res, next) => {
 
     if (!token) {
         console.log(`❌ AUTH FAILED: No token provided`);
+        console.log(`   Expected READ_PASS: ${READ_PASS}`);
+        console.log(`   Expected WRITE_PASS: ${WRITE_PASS}`);
         return res.status(401).json({ error: "Unauthorized" });
     }
 
+    let decoded;
     try {
-        token = Buffer.from(token, 'base64').toString('utf8');
+        decoded = Buffer.from(token, 'base64').toString('utf8');
     } catch (err) {
         console.log(`❌ AUTH FAILED: Invalid token encoding - ${err.message}`);
+        console.log(`   Provided token: ${token}`);
+        console.log(`   Expected READ_PASS: ${READ_PASS}`);
+        console.log(`   Expected WRITE_PASS: ${WRITE_PASS}`);
         return res.status(400).json({ error: "Invalid token encoding" });
     }
 
-    if (token === WRITE_PASS) {
+    if (decoded === WRITE_PASS) {
         req.isAdmin = true;
         console.log(`✅ AUTH SUCCESS: Admin access granted`);
         return next();
     }
-    if (token === READ_PASS) {
+    if (decoded === READ_PASS) {
         req.isAdmin = false;
         if (req.method !== 'GET') {
             console.log(`❌ AUTH FAILED: Read-only user attempted ${req.method}`);
@@ -79,9 +88,14 @@ const checkAuth = (req, res, next) => {
         console.log(`✅ AUTH SUCCESS: Read-only access granted`);
         return next();
     }
+
     console.log(`❌ AUTH FAILED: Invalid credentials`);
+    console.log(`   Provided token: ${decoded}`);
+    console.log(`   Expected READ_PASS: ${READ_PASS}`);
+    console.log(`   Expected WRITE_PASS: ${WRITE_PASS}`);
     res.status(401).json({ error: "Unauthorized" });
 };
+
 
 // --- MULTER STORAGE ---
 const storage = multer.diskStorage({
@@ -127,21 +141,143 @@ app.get('/list', checkAuth, async (req, res) => {
     }
 });
 
-app.post('/upload', checkAuth, (req, res) => {
-    if (!req.isAdmin) {
-        console.log(`❌ UPLOAD FAILED: Admin access required`);
-        return res.status(403).json({ error: "Admin only" });
-    }
-    upload.single('file')(req, res, (err) => {
-        if (err) {
-            console.log(`❌ UPLOAD FAILED: ${err.message}`);
-            return res.status(400).json({ error: err.message });
+// Single file verification
+app.post('/verify', checkAuth, async (req, res) => {
+    const { path: filePath } = req.body;
+    try {
+        const fullPath = sanitizePath(filePath);
+        
+        if (existsSync(fullPath)) {
+            const stats = await fs.stat(fullPath);
+            console.log(`✅ VERIFY: "${filePath}" exists (${stats.size} bytes)`);
+            res.json({ 
+                exists: true, 
+                size: stats.size,
+                path: filePath 
+            });
+        } else {
+            console.log(`❌ VERIFY: "${filePath}" not found`);
+            res.json({ exists: false, path: filePath });
         }
-        const relativePath = path.relative(UPLOAD_DIR, req.file.path);
-        console.log(`✅ UPLOAD SUCCESS: "${relativePath}" (${req.file.size} bytes)`);
-        res.json({ message: "Uploaded", path: relativePath });
-    });
+    } catch (err) {
+        console.log(`❌ VERIFY ERROR: "${filePath}" - ${err.message}`);
+        res.status(500).json({ error: "Verify failed" });
+    }
 });
+
+// Batch verification
+app.post('/verify-batch', checkAuth, async (req, res) => {
+    const { paths } = req.body;
+    
+    if (!Array.isArray(paths)) {
+        return res.status(400).json({ error: "paths must be an array" });
+    }
+    
+    console.log(`📋 Batch verifying ${paths.length} files...`);
+    
+    const results = {};
+    
+    for (const filePath of paths) {
+        try {
+            const fullPath = sanitizePath(filePath);
+            
+            if (existsSync(fullPath)) {
+                const stats = await fs.stat(fullPath);
+                results[filePath] = { 
+                    exists: true, 
+                    size: stats.size 
+                };
+            } else {
+                results[filePath] = { exists: false };
+            }
+        } catch (err) {
+            console.log(`❌ Verify error for "${filePath}": ${err.message}`);
+            results[filePath] = { exists: false, error: err.message };
+        }
+    }
+    
+    const verified = Object.values(results).filter(r => r.exists).length;
+    console.log(`✅ Batch verify complete: ${verified}/${paths.length} verified`);
+    
+    res.json(results);
+});
+
+app.post('/upload', checkAuth, (req, res) => {
+    if (!req.isAdmin) return res.status(403).json({ error: "Admin only" });
+
+    const bb = busboy({ headers: req.headers, limits: { fileSize: 50 * 1024 * 1024 } });
+    let uploadPath = null;
+    let writeStream = null;
+    let totalBytes = 0;
+    let responseSent = false;
+
+    // 1. Capture the path from the form fields
+    bb.on('field', (name, val) => {
+        if (name === 'path') {
+            try {
+                // Use sanitizePath to handle subdirectories like 'images/file.jpg'
+                uploadPath = sanitizePath(val);
+            } catch (err) {
+                console.error(`❌ Invalid path provided: ${val}`);
+            }
+        }
+    });
+
+    bb.on('file', (fieldname, file, info) => {
+        // 2. Fallback to filename if no path field was provided yet
+        if (!uploadPath) {
+            uploadPath = sanitizePath(info.filename);
+        }
+        
+        console.log(`📥 Receiving: ${uploadPath.replace(UPLOAD_DIR, '')}`);
+        
+        // 3. Ensure subdirectories exist (e.g., 'storage/images/')
+        const dir = path.dirname(uploadPath);
+        if (!existsSync(dir)) {
+            fsSync.mkdirSync(dir, { recursive: true });
+        }
+        
+        writeStream = fsSync.createWriteStream(uploadPath);
+        
+        file.on('data', (chunk) => {
+            totalBytes += chunk.length;
+        });
+        
+        file.pipe(writeStream);
+
+        writeStream.on('finish', () => {
+            console.log(`✅ Upload complete: ${uploadPath.replace(UPLOAD_DIR, '')} (${totalBytes} bytes)`);
+            if (!responseSent && !res.headersSent) {
+                responseSent = true;
+                res.json({ message: 'Uploaded', size: totalBytes });
+            }
+        });
+
+        writeStream.on('error', (err) => {
+            console.error(`❌ Write error: ${err.message}`);
+            if (!responseSent && !res.headersSent) {
+                responseSent = true;
+                res.status(500).json({ error: 'Write failed' });
+            }
+        });
+    });
+
+    bb.on('error', (err) => {
+        console.error(`❌ Busboy error: ${err.message}`);
+        if (!responseSent && !res.headersSent) {
+            responseSent = true;
+            res.status(500).json({ error: 'Upload failed' });
+        }
+    });
+
+    req.on('close', () => {
+        if (!responseSent) console.log(`⚠️ Client disconnected during upload`);
+    });
+
+    req.pipe(bb);
+});
+
+
 
 app.post('/write', checkAuth, async (req, res) => {
     if (!req.isAdmin) {
@@ -187,4 +323,5 @@ app.delete('/delete', checkAuth, async (req, res) => {
     }
 });
 
-app.listen(PORT, () => console.log(`Server on ${PORT}`));
+const server = app.listen(PORT, () => console.log(`Server on ${PORT}`));
+server.setTimeout(600000); // 10 minutes

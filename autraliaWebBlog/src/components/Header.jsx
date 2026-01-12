@@ -9,8 +9,8 @@ export default function Header() {
                     <Globe size={20} />
                 </div>
                 <span className="font-bold text-xl">
-                    Aussie<span className="text-orange-600">Quest</span>
-                </span>
+          Aussie<span className="text-orange-600">Quest</span>
+        </span>
             </div>
             <nav className="hidden md:flex items-center gap-6 text-sm font-medium text-slate-500">
                 <a href="#" className="text-orange-600">Explorer</a>

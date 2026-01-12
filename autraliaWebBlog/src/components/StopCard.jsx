@@ -1,5 +1,6 @@
 import React from 'react';
 import { Calendar } from 'lucide-react';
+import SecureImage from './SecureImage';
 
 export default function StopCard({ stop, isActive, onClick }) {
     return (
@@ -12,14 +13,13 @@ export default function StopCard({ stop, isActive, onClick }) {
             }`}
         >
             <div className="flex gap-3">
-                <img
+                {/* USE SECUREIMAGE INSTEAD OF IMG */}
+                <SecureImage
                     src={stop.image}
                     alt={stop.title}
                     className="w-20 h-20 rounded-xl object-cover transition-transform group-hover:scale-105"
-                    onError={(e) => {
-                        e.target.src = 'data:image/svg+xml,%3Csvg xmlns="http://www.w3.org/2000/svg" width="80" height="80"%3E%3Crect fill="%23f97316" width="80" height="80"/%3E%3C/svg%3E';
-                    }}
                 />
+
                 <div className="flex-1">
                     {stop.date && (
                         <div className="flex items-center gap-2 text-xs font-bold text-orange-600 mb-1">

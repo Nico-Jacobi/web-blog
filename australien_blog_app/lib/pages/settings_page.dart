@@ -16,6 +16,7 @@ class _SettingsPageState extends State<SettingsPage> {
   final _urlController = TextEditingController(text: baseUrl);
   final _tokenController = TextEditingController(text: authToken);
 
+
   @override
   void dispose() {
     _urlController.dispose();

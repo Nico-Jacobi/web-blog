@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'dart:io';
 import '../model/interest_point.dart';
 import '../services/storage_service.dart';
@@ -66,15 +67,20 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
         allImages.addAll(point.otherImagePaths);
       }
 
-      for (final imagePath in allImages) {
-        final file = File(imagePath);
+      final appDir = await getApplicationDocumentsDirectory();
+
+      for (final imageName in allImages) {
+        // Construct the full path using the filename from JSON
+        final fullPath = '${appDir.path}/$imageName';
+        final file = File(fullPath);
+
         final exists = await file.exists();
         final size = exists ? await file.length() : 0;
 
         fileStatuses.add(FileStatus(
-          path: imagePath,
+          path: fullPath, // Use full path for the UI/File object
           type: FileType.image,
-          isSynced: _syncedFiles.contains(imagePath),
+          isSynced: _syncedFiles.contains(imageName), // Sync check usually uses name
           size: size,
           exists: exists,
         ));

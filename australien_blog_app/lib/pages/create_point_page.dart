@@ -92,7 +92,9 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     super.dispose();
   }
 
-  void _loadExistingPoint(InterestPoint point) {
+  Future<void> _loadExistingPoint(InterestPoint point) async {
+    final appDir = await getApplicationDocumentsDirectory();
+
     _nameCtrl.text = point.name;
     _shortDescCtrl.text = point.shortDescription;
     _descCtrl.text = point.description ?? '';
@@ -100,8 +102,15 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     _lonCtrl.text = point.lon?.toStringAsFixed(6) ?? '';
     _dateCtrl.text = point.date ?? '';
 
-    if (point.titleImagePath.isNotEmpty) _titleImage = File(point.titleImagePath);
-    _otherImages = point.otherImagePaths.map((p) => File(p)).toList();
+    if (point.titleImagePath.isNotEmpty) {
+      _titleImage = File(path.join(appDir.path, point.titleImagePath));
+    }
+
+    _otherImages = point.otherImagePaths
+        .map((name) => File(path.join(appDir.path, name)))
+        .toList();
+
+    setState(() {}); // Ensure UI updates with files
   }
 
   String? _formatExifDate(String? exifDate) {
@@ -244,8 +253,8 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
         id: pointId,
         name: _nameCtrl.text,
         shortDescription: _shortDescCtrl.text,
-        titleImagePath: newTitlePath,
-        otherImagePaths: newOtherPaths,
+        titleImagePath: path.basename(newTitlePath),
+        otherImagePaths: newOtherPaths.map((p) => path.basename(p)).toList(),
         lat: double.tryParse(_latCtrl.text),
         lon: double.tryParse(_lonCtrl.text),
         date: _dateCtrl.text,

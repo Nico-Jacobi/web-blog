@@ -48,9 +48,9 @@ class SyncService {
   }
 
   Future<void> _markAsSynced(String filePath, int fileSize) async {
-    _syncedFilesWithSize[filePath] = fileSize;
+    final fileName = p.basename(filePath); // Store only 'img_123.jpg'
+    _syncedFilesWithSize[fileName] = fileSize;
     await _saveSyncState();
-    print('[SYNC] Marked as synced: $filePath ($fileSize bytes)');
   }
 
   Future<void> _saveSyncState() async {
@@ -210,12 +210,20 @@ class SyncService {
     if (await _hasContentChanged('data/trips.json', tripsJson)) return true;
 
     // 2. Check if any image path is missing from the sync state
+    final appDir = await getApplicationDocumentsDirectory();
+
     for (var point in points) {
-      if (point.titleImagePath.isNotEmpty && !_syncedFilesWithSize.containsKey(point.titleImagePath)) {
+      // Construct the full path because that's what File() needs and
+      // likely what _syncedFilesWithSize is currently using as a key.
+      final fullTitlePath = p.join(appDir.path, point.titleImagePath);
+
+      if (point.titleImagePath.isNotEmpty && !_syncedFilesWithSize.containsKey(fullTitlePath)) {
         return true;
       }
-      for (var path in point.otherImagePaths) {
-        if (!_syncedFilesWithSize.containsKey(path)) return true;
+
+      for (var name in point.otherImagePaths) {
+        final fullOtherPath = p.join(appDir.path, name);
+        if (!_syncedFilesWithSize.containsKey(fullOtherPath)) return true;
       }
     }
 
@@ -253,65 +261,73 @@ class SyncService {
 
     // 1. Collect all images
     print('[SYNC] --- Phase 1: Image Sync ---');
-    final allImages = <String>{};
+    // Collect all images (these are names from JSON)
+    // 1. Collect all image NAMES from JSON
+    final imageNames = <String>{};
     for (var point in points) {
-      if (point.titleImagePath.isNotEmpty) allImages.add(point.titleImagePath);
-      allImages.addAll(point.otherImagePaths);
+      if (point.titleImagePath.isNotEmpty) imageNames.add(point.titleImagePath);
+      imageNames.addAll(point.otherImagePaths);
     }
-    print('[SYNC] Found ${allImages.length} total images in points');
 
-    // 2. Batch verify what's actually on the server
-    final verificationResults = await _batchVerifyOnServer(allImages.toList());
+    final appDir = await getApplicationDocumentsDirectory();
+    // Create a Map to link Absolute Path -> Filename
+    final absToName = {for (var name in imageNames) p.join(appDir.path, name): name};
+    final absolutePaths = absToName.keys.toList();
 
-    // 3. Upload only what's needed
-    final imagesToUpload = allImages.where((img) {
-      final verified = verificationResults[img] ?? false;
+    // 2. Batch verify using ABSOLUTE paths
+    final verificationResults = await _batchVerifyOnServer(absolutePaths);
+
+    // 3. Filter using the same absolute keys used in verificationResults
+    final imagesToUploadNames = imageNames.where((name) {
+      final absPath = p.join(appDir.path, name);
+      final verified = verificationResults[absPath] ?? false;
       if (verified) {
-        print('[SYNC] Skipping $img (verified on server)');
+        print('[SYNC] Skipping $name (verified on server)');
         return false;
       }
       return true;
     }).toList();
 
-    print('[SYNC] Need to upload ${imagesToUpload.length} images');
-    skippedCount = allImages.length - imagesToUpload.length;
+    print('[SYNC] Need to upload ${imagesToUploadNames.length} images');
+    skippedCount = imageNames.length - imagesToUploadNames.length;
 
-    // 4. Upload images
-    for (int i = 0; i < imagesToUpload.length; i++) {
-      final imagePath = imagesToUpload[i];
-      print('[SYNC] Uploading image ${i + 1}/${imagesToUpload.length}: ${p.basename(imagePath)}');
+    // 4. Upload images using filenames
+    for (int i = 0; i < imagesToUploadNames.length; i++) {
+      final name = imagesToUploadNames[i];
+      print('[SYNC] Uploading image ${i + 1}/${imagesToUploadNames.length}: $name');
 
-      final result = await _uploadFile(imagePath);
-
+      final result = await _uploadFile(name);
       if (result['success']) {
         print('[SYNC] ✓ Upload request completed');
-        await Future.delayed(Duration(milliseconds: 500));
       } else {
-        print('[SYNC] ✗ Upload request failed: ${result['error']}');
-        await Future.delayed(Duration(seconds: 2));
+        print('[SYNC] ✗ Upload request failed');
       }
     }
 
-    // 5. Verify everything and count actual successes
-    print('[SYNC] Verifying ${imagesToUpload.length} uploads...');
-    final verifyResults = await _batchVerifyOnServer(imagesToUpload);
+// 5. Verify everything and count actual successes
+    print('[SYNC] Verifying ${imagesToUploadNames.length} uploads...');
+    final absPathsToVerify = imagesToUploadNames.map((n) => p.join(appDir.path, n)).toList();
+    final verifyResults = await _batchVerifyOnServer(absPathsToVerify);
 
     int verifiedCount = 0;
     for (final entry in verifyResults.entries) {
-      if (entry.value) {
+      if (entry.value) { // entry.key is the absolute path
         verifiedCount++;
         final file = File(entry.key);
         final size = await file.length();
+        // Mark as synced using filename to keep state clean
         await _markAsSynced(entry.key, size);
       }
     }
 
     successCount += verifiedCount;
-    failCount += (imagesToUpload.length - verifiedCount);
+    // Calculate failures based on what was supposed to upload vs what was verified
+    int currentBatchFailures = imagesToUploadNames.length - verifiedCount;
+    failCount += currentBatchFailures;
 
-    print('[SYNC] Verification: $verifiedCount/${imagesToUpload.length} confirmed on server');
-    if (failCount > 0) {
-      print('[SYNC] ⚠️ ${failCount} images failed to upload or verify');
+    print('[SYNC] Verification: $verifiedCount/${imagesToUploadNames.length} confirmed on server');
+    if (currentBatchFailures > 0) {
+      print('[SYNC] ⚠️ $currentBatchFailures images failed to upload or verify');
     }
 
     // 6. Sync Data JSONs
@@ -450,12 +466,15 @@ class SyncService {
   // --- API CALLS ---
 
   Future<Map<String, dynamic>> _uploadFile(String localPath, {int retryCount = 0}) async {
-    final file = File(localPath);
+    final appDir = await getApplicationDocumentsDirectory();
+    final fullPath = p.join(appDir.path, localPath);
+
+    final file = File(fullPath);
+
     if (!await file.exists()) {
-      print('[SYNC] File not found locally, skipping: $localPath');
+      print('[SYNC] File not found locally, skipping: $fullPath');
       return {'success': true, 'size': 0};
     }
-
     const maxRetries = 3;
     const timeoutDuration = Duration(minutes: 3);
 

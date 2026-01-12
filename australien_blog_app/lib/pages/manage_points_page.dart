@@ -42,8 +42,24 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
     setState(() => _isLoading = true);
     try {
       final data = await _storage.loadPointsAndTrips();
+      final appDir = await getApplicationDocumentsDirectory();
+
+      List<InterestPoint> points = data['points'] as List<InterestPoint>;
+
+      // Reconstruct full paths for UI display
+      for (var p in points) {
+        if (p.titleImagePath.isNotEmpty && !p.titleImagePath.contains('/')) {
+          p.titleImagePath = '${appDir.path}/${p.titleImagePath}';
+        }
+        p.otherImagePaths = p.otherImagePaths.map((name) {
+          return (name.isNotEmpty && !name.contains('/'))
+              ? '${appDir.path}/$name'
+              : name;
+        }).toList();
+      }
+
       setState(() {
-        _points = data['points'] as List<InterestPoint>;
+        _points = points;
         _tripElements = data['trips'] as List<TripElement>;
       });
     } catch (e) {

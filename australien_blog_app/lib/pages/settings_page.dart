@@ -82,10 +82,9 @@ class _SettingsPageState extends State<SettingsPage> {
                         prefixIcon: const Icon(Icons.lock, color: primary),
                       ),
                     ),
-                    const SizedBox(height: 16),
+                    const SizedBox(height: 8),
                     SwitchListTile(
-                      title: const Text("Syncing data"), // Add to AppStrings if needed
-                      subtitle: const Text("Disabling locks all file synchronization"),
+                      title: const Text("Synchronisierung"),
                       value: _noSync,
                       activeColor: primary,
                       onChanged: (bool value) {
@@ -94,7 +93,7 @@ class _SettingsPageState extends State<SettingsPage> {
                         });
                       },
                     ),
-                    const SizedBox(height: 24),
+                    const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(

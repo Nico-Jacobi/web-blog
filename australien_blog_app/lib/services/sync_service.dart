@@ -23,6 +23,7 @@ class SyncService {
 
   // SYNC LOCK - Prevents concurrent syncs
   bool _isSyncing = false;
+  bool syncData = true;
   final StorageService _storageService = StorageService();
 
   Future<void> _init() async {
@@ -68,6 +69,12 @@ class SyncService {
   bool get isSyncing => _isSyncing;
 
   Future<SyncResult?> syncFromStorage() async {
+
+    if (!syncData) {
+      print('[SYNC] ⚠️ Syncing disabled');
+      return null;
+    }
+
     if (_isSyncing) {
       print('[SYNC] ⚠️ Sync already in progress, ignoring request');
       return null;
@@ -195,6 +202,11 @@ class SyncService {
   Future<bool> hasUnsyncedChanges() async {
     await _init();
 
+    if (!syncData) {
+      print('[SYNC] ⚠️ Syncing disabled');
+      return false;
+    }
+
     if (isSyncing){
       return false;
     }
@@ -251,6 +263,14 @@ class SyncService {
 
   // --- MAIN SYNC FUNCTION ---
   Future<SyncResult> sync(List<InterestPoint> points, List<TripElement> trips) async {
+
+    if (!syncData) {
+      return SyncResult(
+        success: false,
+        message: '[SYNC] ⚠️ Syncing disabled',
+      );
+    }
+
     print('[SYNC] ========== Starting Sync ==========');
     print('[SYNC] Points: ${points.length}, Trips: ${trips.length}');
 

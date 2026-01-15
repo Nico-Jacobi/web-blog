@@ -3,7 +3,8 @@ import 'package:flutter/services.dart';
 import '../api_keys.dart';
 import '../main.dart';
 import '../strings.dart';
-import '../colors.dart'; // Added colors import
+import '../colors.dart';
+import '../services/sync_service.dart'; // Ensure this import exists
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -15,7 +16,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final _urlController = TextEditingController(text: baseUrl);
   final _tokenController = TextEditingController(text: authToken);
-
+  bool _noSync =  SyncService().syncData; // Initialize with current value
 
   @override
   void dispose() {
@@ -30,13 +31,13 @@ class _SettingsPageState extends State<SettingsPage> {
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
         title: const Text(AppStrings.settings_title),
-        systemOverlayStyle: SystemUiOverlayStyle(
+        systemOverlayStyle: const SystemUiOverlayStyle(
           systemNavigationBarColor: Colors.transparent,
           statusBarColor: Colors.transparent,
           systemNavigationBarIconBrightness: Brightness.light,
           statusBarIconBrightness: Brightness.dark,
         ),
-        backgroundColor: accent, // Refactored from accent_color
+        backgroundColor: accent,
         foregroundColor: Colors.white,
         elevation: 4,
       ),
@@ -45,6 +46,7 @@ class _SettingsPageState extends State<SettingsPage> {
         child: Column(
           children: [
             Card(
+              color: Colors.grey[50],
               shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
               elevation: 6,
               child: Padding(
@@ -80,31 +82,45 @@ class _SettingsPageState extends State<SettingsPage> {
                         prefixIcon: const Icon(Icons.lock, color: primary),
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton.icon(
-                onPressed: () {
-                  baseUrl = _urlController.text;
-                  authToken = _tokenController.text;
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(AppStrings.snack_settings_saved),
-                      backgroundColor: accent,
+                    const SizedBox(height: 16),
+                    SwitchListTile(
+                      title: const Text("Syncing data"), // Add to AppStrings if needed
+                      subtitle: const Text("Disabling locks all file synchronization"),
+                      value: _noSync,
+                      activeColor: primary,
+                      onChanged: (bool value) {
+                        setState(() {
+                          _noSync = value;
+                        });
+                      },
                     ),
-                  );
-                },
-                icon: const Icon(Icons.save),
-                label: const Text(AppStrings.button_save_settings),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: primary, // Refactored to primary
-                  foregroundColor: Colors.white,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                    const SizedBox(height: 24),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton.icon(
+                        onPressed: () {
+                          baseUrl = _urlController.text;
+                          authToken = _tokenController.text;
+                          SyncService().syncData = _noSync; // Save sync state
+
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            const SnackBar(
+                              content: Text(AppStrings.snack_settings_saved),
+                              backgroundColor: accent,
+                            ),
+                          );
+                        },
+                        icon: const Icon(Icons.save),
+                        label: const Text(AppStrings.button_save_settings),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: primary,
+                          foregroundColor: Colors.white,
+                          padding: const EdgeInsets.symmetric(vertical: 16),
+                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ),
@@ -118,14 +134,13 @@ class _SettingsPageState extends State<SettingsPage> {
                 icon: const Icon(Icons.folder_open),
                 label: const Text(AppStrings.browse_files_appBar_title),
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: primary), // Refactored to primary
+                  side: const BorderSide(color: primary),
                   foregroundColor: primary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
                 ),
               ),
             ),
-
             const SizedBox(height: 16),
             SizedBox(
               width: double.infinity,
@@ -136,7 +151,7 @@ class _SettingsPageState extends State<SettingsPage> {
                 icon: const Icon(Icons.sync),
                 label: const Text(AppStrings.sync_files_appBar_title),
                 style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: primary), // Refactored to primary
+                  side: const BorderSide(color: primary),
                   foregroundColor: primary,
                   padding: const EdgeInsets.symmetric(vertical: 16),
                   shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),

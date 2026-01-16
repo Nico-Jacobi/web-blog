@@ -15,6 +15,8 @@ import 'colors.dart';
 import 'pages/start_page.dart';
 import 'pages/browse_files_page.dart';
 import 'pages/settings_page.dart';
+import 'package:shared_preferences/shared_preferences.dart';
+import '../api_keys.dart';
 
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
@@ -49,7 +51,7 @@ void main() async {
   await Workmanager().registerPeriodicTask(
     "1",
     "syncTask",
-    frequency: const Duration(minutes: 120), // once per 2 hour
+    frequency: const Duration(minutes: 30), // once per
     constraints: Constraints(
       networkType: NetworkType.connected, // Only run if internet is on
       requiresBatteryNotLow: true,
@@ -64,7 +66,13 @@ void main() async {
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,   // portrait only
     // DeviceOrientation.portraitDown, // optional: allow upside-down
-  ]).then((_) {
+  ]).then((_) async {
+
+    final prefs = await SharedPreferences.getInstance();
+    baseUrl = prefs.getString('base_url') ?? baseUrl;
+    authToken = prefs.getString('auth_token') ?? authToken;
+    SyncService().syncData = prefs.getBool('sync_data') ?? SyncService().syncData;
+
     runApp(MyApp());
   });
 

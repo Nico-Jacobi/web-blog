@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../api_keys.dart';
 import '../main.dart';
 import '../strings.dart';
 import '../colors.dart';
-import '../services/sync_service.dart'; // Ensure this import exists
+import '../services/sync_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -14,9 +15,48 @@ class SettingsPage extends StatefulWidget {
 }
 
 class _SettingsPageState extends State<SettingsPage> {
-  final _urlController = TextEditingController(text: baseUrl);
-  final _tokenController = TextEditingController(text: authToken);
-  bool _noSync =  SyncService().syncData; // Initialize with current value
+  final _urlController = TextEditingController();
+  final _tokenController = TextEditingController();
+  bool _noSync = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadSettings();
+  }
+
+  Future<void> _loadSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+    setState(() {
+      // Load saved values or fallback to global defaults
+      _urlController.text = prefs.getString('base_url') ?? baseUrl;
+      _tokenController.text = prefs.getString('auth_token') ?? authToken;
+      _noSync = prefs.getBool('sync_data') ?? SyncService().syncData;
+    });
+  }
+
+  Future<void> _saveSettings() async {
+    final prefs = await SharedPreferences.getInstance();
+
+    // Update global variables
+    baseUrl = _urlController.text;
+    authToken = _tokenController.text;
+    SyncService().syncData = _noSync;
+
+    // Persist to local storage
+    await prefs.setString('base_url', baseUrl);
+    await prefs.setString('auth_token', authToken);
+    await prefs.setBool('sync_data', _noSync);
+
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text(AppStrings.snack_settings_saved),
+          backgroundColor: accent,
+        ),
+      );
+    }
+  }
 
   @override
   void dispose() {
@@ -97,18 +137,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
-                        onPressed: () {
-                          baseUrl = _urlController.text;
-                          authToken = _tokenController.text;
-                          SyncService().syncData = _noSync; // Save sync state
-
-                          ScaffoldMessenger.of(context).showSnackBar(
-                            const SnackBar(
-                              content: Text(AppStrings.snack_settings_saved),
-                              backgroundColor: accent,
-                            ),
-                          );
-                        },
+                        onPressed: _saveSettings,
                         icon: const Icon(Icons.save),
                         label: const Text(AppStrings.button_save_settings),
                         style: ElevatedButton.styleFrom(
@@ -124,40 +153,37 @@ class _SettingsPageState extends State<SettingsPage> {
               ),
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/browse_files');
-                },
-                icon: const Icon(Icons.folder_open),
-                label: const Text(AppStrings.browse_files_appBar_title),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: primary),
-                  foregroundColor: primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
+            _buildNavButton(
+                context,
+                '/browse_files',
+                Icons.folder_open,
+                AppStrings.browse_files_appBar_title
             ),
             const SizedBox(height: 16),
-            SizedBox(
-              width: double.infinity,
-              child: OutlinedButton.icon(
-                onPressed: () {
-                  Navigator.pushNamed(context, '/sync_files');
-                },
-                icon: const Icon(Icons.sync),
-                label: const Text(AppStrings.sync_files_appBar_title),
-                style: OutlinedButton.styleFrom(
-                  side: const BorderSide(color: primary),
-                  foregroundColor: primary,
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-              ),
+            _buildNavButton(
+                context,
+                '/sync_files',
+                Icons.sync,
+                AppStrings.sync_files_appBar_title
             ),
           ],
+        ),
+      ),
+    );
+  }
+
+  Widget _buildNavButton(BuildContext context, String route, IconData icon, String label) {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        onPressed: () => Navigator.pushNamed(context, route),
+        icon: Icon(icon),
+        label: Text(label),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: primary),
+          foregroundColor: primary,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
       ),
     );

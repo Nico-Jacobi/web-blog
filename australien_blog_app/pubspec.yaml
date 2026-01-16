@@ -42,7 +42,7 @@ dependencies:
   workmanager: ^0.7.0
   flutter_local_notifications: ^17.0.0
   flutter_launcher_icons: ^0.13.1
-
+  shared_preferences: ^2.3.5
 
 flutter_icons:
   android: true

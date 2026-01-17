@@ -3,10 +3,13 @@ import { X } from 'lucide-react';
 import {ROUTE_STYLES} from "../model/routeStyles.js";
 
 
-export default function MapView({ activeId, onClearActive, onOpenDetail, leafletReady, trip }) { // NEW: add onOpenDetail prop
+export default function MapView({ activeId, onOpenDetail, leafletReady, trip }) { // NEW: add onOpenDetail prop
     const mapRef = useRef(null);
     const mapInstance = useRef(null);
     const markersRef = useRef({});
+
+    const usedModes = trip ? [...new Set(trip.routes.map(r => r.mode))] : [];
+
 
     useEffect(() => {
         if (!leafletReady || !mapRef.current || mapInstance.current || !trip) return;
@@ -72,14 +75,37 @@ export default function MapView({ activeId, onClearActive, onOpenDetail, leaflet
     }, [activeId, trip]);
 
     return (
-        <div className="flex-1 relative bg-slate-100 p-4 h-full">
-            <div className="w-full h-full rounded-3xl overflow-hidden relative shadow-lg">
+        <div className="flex-1 relative bg-slate-100 p-4 h-full flex flex-col">
+            <div className="flex-1 rounded-3xl overflow-hidden relative shadow-lg">
                 <div ref={mapRef} className="w-full h-full z-10" />
-                {activeId && (
-                    <button onClick={onClearActive} className="absolute bottom-4 right-4 z-[1000] bg-black text-white p-3 rounded-full">
-                        <X size={20} />
-                    </button>
-                )}
+
+            </div>
+
+            {/* Transport Legend */}
+            <div className="mt-4 bg-white rounded-2xl shadow-sm p-4 flex flex-wrap gap-4 items-center justify-center">
+                {usedModes.map(mode => {
+                    const style = ROUTE_STYLES[mode];
+                    if (!style) return null;
+
+                    const Icon = style.icon;
+
+                    return (
+                        <div key={mode} className="flex items-center gap-2 text-xs text-slate-600">
+                            {Icon && <Icon size={16} style={{ color: style.color }} />}
+                            {!Icon && (
+                                <div
+                                    className="w-6 h-0.5"
+                                    style={{
+                                        backgroundColor: style.color,
+                                        opacity: style.opacity,
+                                        borderStyle: style.dashArray ? 'dashed' : 'solid'
+                                    }}
+                                />
+                            )}
+                            <span>{style.label || mode}</span>
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );
@@ -90,7 +116,6 @@ export default function MapView({ activeId, onClearActive, onOpenDetail, leaflet
 const createPopupContent = (point, img, onOpenDetail) => {
     const calendarIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>`;
 
-    // CHANGED: create DOM element instead of HTML string
     const popupDiv = document.createElement('div');
     popupDiv.style.cssText = 'width:200px; font-family: ui-sans-serif, system-ui, sans-serif; padding: 2px;';
 
@@ -99,7 +124,7 @@ const createPopupContent = (point, img, onOpenDetail) => {
         <div style="display:flex; flex-direction:column; gap:2px;">
             <strong style="color:#0f172a; font-size:14px; font-weight: 800; display:block;">${point.title}</strong>
             
-            <div style="display:flex; align-items:center; gap:5px; color:#f97316; font-size:11px; font-weight: 600; margin-top:2px;">
+            <div style="display:flex; align-items:center; gap:5px; color:#94a3b8; font-size:10px; margin-top:2px;">
                 ${calendarIcon}
                 <span>${point.date || 'No date'}</span>
             </div>
@@ -118,7 +143,6 @@ const createPopupContent = (point, img, onOpenDetail) => {
             </button>
         </div>`;
 
-    // NEW: add click handler to button
     setTimeout(() => {
         const btn = popupDiv.querySelector(`#detail-btn-${point.id}`);
         if (btn) {

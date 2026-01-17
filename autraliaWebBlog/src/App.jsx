@@ -43,7 +43,6 @@ export default function App() {
                 <main className="flex-1 relative h-full">
                     <MapView
                         activeId={activeId}
-                        onClearActive={() => setActiveId(null)}
                         onOpenDetail={setDetailId} // NEW: pass detail handler
                         leafletReady={leafletReady}
                         trip={trip}

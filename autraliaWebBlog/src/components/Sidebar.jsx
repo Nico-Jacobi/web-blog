@@ -1,5 +1,5 @@
 import React from 'react';
-import { Navigation, Car, Plane, Bus, Ship } from 'lucide-react';
+import { Navigation } from 'lucide-react';
 import StopCard from './StopCard';
 
 export default function Sidebar({ activeId, onSelectStop, trip }) {
@@ -24,20 +24,7 @@ export default function Sidebar({ activeId, onSelectStop, trip }) {
                         onClick={() => onSelectStop(point.id)}
                     />
                 ))}
-
-                <div className="p-4 bg-slate-50 rounded-2xl flex flex-wrap gap-4 items-center mt-4">
-                    <TransportLabel Icon={Car} label="Auto" color="text-orange-500" />
-                    <TransportLabel Icon={Plane} label="Flugzeug" color="text-green-500" />
-                    <TransportLabel Icon={Bus} label="Bus" color="text-purple-500" />
-                    <TransportLabel Icon={Ship} label="Boot" color="text-blue-500" />
-                </div>
             </div>
         </aside>
     );
 }
-
-const TransportLabel = ({Icon, label, color }) => (
-    <div className="flex items-center gap-2 text-xs text-slate-600">
-        <Icon size={14} className={color} /> {label}
-    </div>
-);

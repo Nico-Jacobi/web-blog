@@ -11,11 +11,11 @@ export default function App() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeId, setActiveId] = useState(null);
+    const [detailId, setDetailId] = useState(null); // NEW: separate state for detail view
 
     const leafletReady = useLeaflet();
 
     useEffect(() => {
-        // Initializes singleton (fetches JSONs once)
         Trip.getInstance()
             .then(setTrip)
             .catch(err => setError(err.message))
@@ -24,7 +24,7 @@ export default function App() {
         return () => trip?.destroy();
     }, []);
 
-    const activePoint = activeId ? trip?.getPoint(activeId) : null;
+    const activePoint = detailId ? trip?.getPoint(detailId) : null; // CHANGED: use detailId instead of activeId
 
     if (loading) return <div className="h-screen flex items-center justify-center">Laden...</div>;
     if (error) return <div className="h-screen flex items-center justify-center text-red-500">{error}</div>;
@@ -44,6 +44,7 @@ export default function App() {
                     <MapView
                         activeId={activeId}
                         onClearActive={() => setActiveId(null)}
+                        onOpenDetail={setDetailId} // NEW: pass detail handler
                         leafletReady={leafletReady}
                         trip={trip}
                     />
@@ -53,7 +54,7 @@ export default function App() {
             {activePoint && (
                 <PointDetail
                     point={activePoint}
-                    onClose={() => setActiveId(null)}
+                    onClose={() => setDetailId(null)} // CHANGED: close detailId
                 />
             )}
         </div>

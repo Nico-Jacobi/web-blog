@@ -1,6 +1,7 @@
 import React from 'react';
 import { Navigation } from 'lucide-react';
 import StopCard from './StopCard';
+import RouteSegment from './RouteSegment';
 
 export default function Sidebar({ activeId, onSelectStop, trip }) {
     if (!trip) return null;
@@ -15,14 +16,24 @@ export default function Sidebar({ activeId, onSelectStop, trip }) {
                 </p>
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 pb-6 space-y-3">
-                {trip.points.map((point) => (
-                    <StopCard
-                        key={point.id}
-                        point={point}
-                        isActive={activeId === point.id}
-                        onClick={() => onSelectStop(point.id)}
-                    />
+            <div className="flex-1 overflow-y-auto px-4 pb-6">
+                {trip.points.map((point, index) => (
+                    <React.Fragment key={point.id}>
+                        <StopCard
+                            point={point}
+                            isActive={activeId === point.id}
+                            onClick={() => onSelectStop(point.id)}
+                        />
+
+                        {/* Show route segment between this point and the next */}
+                        {index < trip.points.length - 1 && (
+                            <RouteSegment
+                                trip={trip}
+                                fromPoint={point}
+                                toPoint={trip.points[index + 1]}
+                            />
+                        )}
+                    </React.Fragment>
                 ))}
             </div>
         </aside>

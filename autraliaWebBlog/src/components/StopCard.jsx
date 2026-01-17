@@ -11,7 +11,7 @@ export default function StopCard({ point, isActive, onClick }) {
     return (
         <div
             onClick={onClick}
-            className={`cursor-pointer p-4 rounded-2xl transition-all border-2 ${
+            className={`cursor-pointer p-4 rounded-2xl transition-all border-2 mb-0 ${
                 isActive
                     ? 'bg-orange-50 border-orange-200 shadow-sm'
                     : 'bg-white border-transparent hover:bg-slate-50'
@@ -31,7 +31,6 @@ export default function StopCard({ point, isActive, onClick }) {
                         {point.title}
                     </h3>
 
-                    {/* Date Section */}
                     {point.date && (
                         <div className="flex items-center gap-1 text-slate-400 text-[10px] mt-0.5">
                             <Calendar size={12} />
@@ -39,7 +38,6 @@ export default function StopCard({ point, isActive, onClick }) {
                         </div>
                     )}
 
-                    {/* Short Description */}
                     <p className="text-slate-500 text-xs mt-1 line-clamp-2 leading-relaxed">
                         {point.desc}
                     </p>

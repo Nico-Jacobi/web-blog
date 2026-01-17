@@ -1,24 +1,36 @@
-// Point.js
-
 import {apiService} from "../controller/apiService.js";
 
 export class Point {
     constructor(data) {
         this.id = data.id;
-        this.title = data.name || 'Untitled'; // JSON uses "name"
+        this.title = data.name || 'Untitled';
         this.desc = data.shortDescription || '';
         this.description = data.description || '';
         this.date = data.date || '';
-        this.lat = parseFloat(data.lat) || 0; // JSON uses "lat"
-        this.lng = parseFloat(data.lon) || 0; // JSON uses "lon"
+        this.lat = parseFloat(data.lat) || 0;
+        this.lng = parseFloat(data.lon) || 0;
         this.order = data.tripOrder || 0;
 
-        // JSON already includes "assets/images/", apiService handles the rest
         this.imagePath = data.titleImagePath || null;
         this.otherPaths = data.otherImagePaths || [];
 
         this._titleBlob = null;
         this._otherBlobs = null;
+    }
+
+    // NEW: Parse date string to Date object
+    getParsedDate() {
+        if (!this.date) return null;
+
+        // Format: DD/MM/YYYY (e.g., "16/01/2026")
+        const parts = this.date.match(/(\d+)\/(\d+)\/(\d+)/);
+        if (!parts) return null;
+
+        const day = parseInt(parts[1]);
+        const month = parseInt(parts[2]) - 1; // JavaScript months are 0-indexed!
+        const year = parseInt(parts[3]);
+
+        return new Date(year, month, day);
     }
 
     async getTitleImage() {

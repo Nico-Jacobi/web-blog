@@ -11,7 +11,7 @@ export default function App() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
     const [activeId, setActiveId] = useState(null);
-    const [detailId, setDetailId] = useState(null); // NEW: separate state for detail view
+    const [detailId, setDetailId] = useState(null);
 
     const leafletReady = useLeaflet();
 
@@ -24,14 +24,14 @@ export default function App() {
         return () => trip?.destroy();
     }, []);
 
-    const activePoint = detailId ? trip?.getPoint(detailId) : null; // CHANGED: use detailId instead of activeId
+    const activePoint = detailId ? trip?.getPoint(detailId) : null;
 
     if (loading) return <div className="h-screen flex items-center justify-center">Laden...</div>;
     if (error) return <div className="h-screen flex items-center justify-center text-red-500">{error}</div>;
 
     return (
         <div className="flex flex-col h-screen w-screen bg-slate-50 overflow-hidden">
-            <Header title={trip?.title} />
+            <Header trip={trip} /> {/* CHANGED: pass trip instead of title */}
 
             <div className="flex flex-1 min-h-0 w-full overflow-hidden">
                 <Sidebar
@@ -43,7 +43,7 @@ export default function App() {
                 <main className="flex-1 relative h-full">
                     <MapView
                         activeId={activeId}
-                        onOpenDetail={setDetailId} // NEW: pass detail handler
+                        onOpenDetail={setDetailId}
                         leafletReady={leafletReady}
                         trip={trip}
                     />
@@ -53,7 +53,7 @@ export default function App() {
             {activePoint && (
                 <PointDetail
                     point={activePoint}
-                    onClose={() => setDetailId(null)} // CHANGED: close detailId
+                    onClose={() => setDetailId(null)}
                 />
             )}
         </div>

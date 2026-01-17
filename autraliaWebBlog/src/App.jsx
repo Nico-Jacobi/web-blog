@@ -1,70 +1,61 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import MapView from './components/MapView';
-import { useAppData } from './hooks/useAppData';
-import { useLeaflet } from './hooks/useLeaflet';
+import PointDetail from './components/PointDetail';
+import { Trip } from './model/Trip';
+import { useLeaflet } from './controller/useLeaflet.js';
 
-
-
-// ========================================
-// MAIN APP COMPONENT
-// ========================================
 export default function App() {
+    const [trip, setTrip] = useState(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState(null);
     const [activeId, setActiveId] = useState(null);
-    const leafletReady = useLeaflet();
-    const { stops, routes, loading, error } = useAppData();
 
-    if (error) {
-        return (
-            <div className="flex items-center justify-center h-screen bg-slate-50">
-                <div className="text-center">
-                    <div className="text-red-500 text-lg font-bold mb-2">Fehler beim Laden der Daten</div>
-                    <div className="text-slate-600 text-sm">{error}</div>
-                    <button
-                        onClick={() => window.location.reload()}
-                        className="mt-4 px-4 py-2 bg-orange-500 text-white rounded-lg hover:bg-orange-600"
-                    >
-                        Erneut versuchen
-                    </button>
-                </div>
-            </div>
-        );
-    }
+    const leafletReady = useLeaflet();
+
+    useEffect(() => {
+        // Initializes singleton (fetches JSONs once)
+        Trip.getInstance()
+            .then(setTrip)
+            .catch(err => setError(err.message))
+            .finally(() => setLoading(false));
+
+        return () => trip?.destroy();
+    }, []);
+
+    const activePoint = activeId ? trip?.getPoint(activeId) : null;
+
+    if (loading) return <div className="h-screen flex items-center justify-center">Laden...</div>;
+    if (error) return <div className="h-screen flex items-center justify-center text-red-500">{error}</div>;
 
     return (
-        <div className="flex flex-col h-screen w-screen bg-gradient-to-br from-slate-50 to-orange-50 overflow-hidden">
-            <style>{`
-        .leaflet-container {
-          width: 100% !important;
-          height: 100% !important;
-          display: block;
-        }
-        #root { height: 100vh; width: 100vw; }
-      `}</style>
+        <div className="flex flex-col h-screen w-screen bg-slate-50 overflow-hidden">
+            <Header title={trip?.title} />
 
-            <Header />
+            <div className="flex flex-1 min-h-0 w-full overflow-hidden">
+                <Sidebar
+                    activeId={activeId}
+                    onSelectStop={setActiveId}
+                    trip={trip}
+                />
 
-            <main className="flex-1 flex min-h-0 w-full overflow-hidden">
-                <div className="flex shrink-0 min-w-0">
-                    <Sidebar
-                        activeId={activeId}
-                        onSelectStop={setActiveId}
-                        stops={stops}
-                        loading={loading}
-                    />
-                </div>
-
-                <div className="flex-1 flex min-w-0 h-full">
+                <main className="flex-1 relative h-full">
                     <MapView
                         activeId={activeId}
                         onClearActive={() => setActiveId(null)}
                         leafletReady={leafletReady}
-                        stops={stops}
-                        routes={routes}
+                        trip={trip}
                     />
-                </div>
-            </main>
+                </main>
+            </div>
+
+            {activePoint && (
+                <PointDetail
+                    point={activePoint}
+                    onClose={() => setActiveId(null)}
+                />
+            )}
         </div>
     );
 }

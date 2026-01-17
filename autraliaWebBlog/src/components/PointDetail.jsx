@@ -1,58 +1,49 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { Calendar } from 'lucide-react';
 
-export default function PointDetail({ stop }) {
-    if (!stop) return null;
+export default function StopCard({ point, isActive, onClick }) {
+    const [image, setImage] = useState(null);
+
+    useEffect(() => {
+        point.getTitleImage().then(setImage);
+    }, [point]);
 
     return (
-        <div className="w-full bg-white border-t border-orange-100 p-6">
-            <div className="max-w-4xl mx-auto">
-                <div className="mb-6">
-                    <h2 className="text-3xl font-black text-slate-900 mb-2">{stop.title}</h2>
-                    {stop.date && (
-                        <p className="text-slate-500 text-sm">{stop.date}</p>
+        <div
+            onClick={onClick}
+            className={`cursor-pointer p-4 rounded-2xl transition-all border-2 ${
+                isActive
+                    ? 'bg-orange-50 border-orange-200 shadow-sm'
+                    : 'bg-white border-transparent hover:bg-slate-50'
+            }`}
+        >
+            <div className="flex gap-4">
+                {/* Image */}
+                <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0">
+                    {image ? (
+                        <img src={image} alt={point.title} className="w-full h-full object-cover" />
+                    ) : (
+                        <div className="w-full h-full animate-pulse bg-slate-200" />
                     )}
                 </div>
 
-                {/* Title Image */}
-                <div className="mb-6">
-                    <img
-                        src={stop.image}
-                        alt={stop.title}
-                        className="w-full h-96 object-cover rounded-2xl shadow-lg"
-                        onError={(e) => {
-                            console.error('Failed to load image:', stop.image);
-                            e.target.style.display = 'none';
-                        }}
-                    />
-                </div>
+                {/* Info */}
+                <div className="flex flex-col justify-center overflow-hidden">
+                    <h3 className={`font-bold truncate ${isActive ? 'text-orange-900' : 'text-slate-800'}`}>
+                        {point.title}
+                    </h3>
 
-                {/* Description */}
-                <div className="prose prose-slate max-w-none mb-8">
-                    <p className="text-slate-700 leading-relaxed whitespace-pre-wrap">
-                        {stop.description}
+                    {/* Date with Icon */}
+                    <div className="flex items-center gap-1 text-slate-400 text-[10px] mt-0.5">
+                        <Calendar size={12} />
+                        <span>{point.date}</span>
+                    </div>
+
+                    {/* Short Description */}
+                    <p className="text-slate-500 text-xs mt-1 line-clamp-2 leading-relaxed">
+                        {point.desc}
                     </p>
                 </div>
-
-                {/* Other Images */}
-                {stop.otherImages && stop.otherImages.length > 0 && (
-                    <div>
-                        <h3 className="text-xl font-bold text-slate-900 mb-4">Weitere Bilder</h3>
-                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-                            {stop.otherImages.map((img, idx) => (
-                                <img
-                                    key={idx}
-                                    src={img}
-                                    alt={`${stop.title} - Bild ${idx + 1}`}
-                                    className="w-full h-48 object-cover rounded-xl shadow hover:shadow-lg transition"
-                                    onError={(e) => {
-                                        console.error('Failed to load image:', img);
-                                        e.target.style.display = 'none';
-                                    }}
-                                />
-                            ))}
-                        </div>
-                    </div>
-                )}
             </div>
         </div>
     );

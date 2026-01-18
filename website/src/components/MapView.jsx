@@ -7,6 +7,7 @@ export default function MapView({ activeId, onOpenDetail, onSelectStop, leafletR
     const mapRef = useRef(null);
     const mapInstance = useRef(null);
     const markersRef = useRef({});
+    const userClickedMarkerRef = useRef(false);
 
     const usedModes = trip ? [...new Set(trip.routes.map(r => r.mode))] : [];
 
@@ -45,6 +46,10 @@ export default function MapView({ activeId, onOpenDetail, onSelectStop, leafletR
                 })
             }).addTo(map);
 
+            marker.on('click', () => {
+                userClickedMarkerRef.current = true;
+            });
+
             marker.on('popupopen', () => {
                 onSelectStop(point.id);
             });
@@ -76,6 +81,13 @@ export default function MapView({ activeId, onOpenDetail, onSelectStop, leafletR
         const point = trip?.getPoint(activeId);
 
         if (mapInstance.current && marker && point) {
+            // If user clicked the marker directly, just open popup without flying
+            if (userClickedMarkerRef.current) {
+                marker.openPopup();
+                userClickedMarkerRef.current = false;
+                return;
+            }
+
             const map = mapInstance.current;
             const L = window.L;
 

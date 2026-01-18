@@ -82,24 +82,24 @@ export default function PointDetail({ point, onClose }) {
                                     />
                                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
 
-                                    <div className="absolute bottom-0 left-0 right-0 p-4 md:p-8 text-white">
-                                        <h2 className="text-2xl md:text-5xl font-black mb-2 md:mb-4 drop-shadow-lg">{point.title}</h2>
-                                        <div className="flex flex-wrap items-center gap-2 md:gap-3 text-xs md:text-sm font-medium">
-                                            <span className="flex items-center gap-1.5 md:gap-2 bg-white/20 backdrop-blur-sm px-2.5 md:px-4 py-1.5 md:py-2 rounded-full">
-                                                <Calendar size={12} className="md:hidden" />
+                                    <div className="absolute bottom-0 left-0 right-0 p-3 md:p-8 text-white">
+                                        <h2 className="text-xl md:text-5xl font-black mb-1.5 md:mb-4 drop-shadow-lg">{point.title}</h2>
+                                        <div className="flex flex-wrap items-center gap-1.5 md:gap-3 text-[10px] md:text-sm font-medium">
+                                            <span className="flex items-center gap-1 md:gap-2 bg-white/20 backdrop-blur-sm px-2 md:px-4 py-1 md:py-2 rounded-full">
+                                                <Calendar size={10} className="md:hidden" />
                                                 <Calendar size={14} className="hidden md:block" />
-                                                {point.date}
+                                                <span className="text-[10px] md:text-sm">{point.date}</span>
                                             </span>
                                             {point.lat && point.lng && (
-                                                <span className="flex items-center gap-1.5 md:gap-2 bg-white/20 backdrop-blur-sm px-2.5 md:px-4 py-1.5 md:py-2 rounded-full">
-                                                    <MapPin size={12} className="md:hidden" />
+                                                <span className="flex items-center gap-1 md:gap-2 bg-white/20 backdrop-blur-sm px-2 md:px-4 py-1 md:py-2 rounded-full">
+                                                    <MapPin size={10} className="md:hidden" />
                                                     <MapPin size={14} className="hidden md:block" />
-                                                    {point.lat.toFixed(4)}°, {point.lng.toFixed(4)}°
+                                                    <span className="text-[10px] md:text-sm">{point.lat.toFixed(4)}°, {point.lng.toFixed(4)}°</span>
                                                 </span>
                                             )}
                                         </div>
                                         {point.desc && (
-                                            <p className="mt-2 md:mt-4 text-white/90 text-sm md:text-lg font-medium max-w-2xl leading-relaxed">
+                                            <p className="mt-1.5 md:mt-4 text-white/90 text-xs md:text-lg font-medium max-w-2xl leading-relaxed">
                                                 {point.desc}
                                             </p>
                                         )}

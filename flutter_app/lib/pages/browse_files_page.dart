@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path_provider/path_provider.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'dart:io';
 import '../services/api_service.dart';
 import '../strings.dart';
-import '../colors.dart'; // Added colors import
+import '../colors.dart';
 
 class BrowseFilesPage extends StatefulWidget {
   const BrowseFilesPage({super.key});
@@ -15,6 +18,7 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
   String currentPath = '/';
   Map<String, dynamic>? fileData;
   bool isLoading = false;
+  bool isDownloading = false;
   String? error;
 
   @override
@@ -61,12 +65,81 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
     }
   }
 
+  Future<void> _downloadAll() async {
+    setState(() => isDownloading = true);
+
+    try {
+      String? downloadsPath;
+
+      if (Platform.isAndroid) {
+        // Gets /storage/emulated/0/Android/data/your.package/files
+        final externalDirs = await getExternalStorageDirectories(type: StorageDirectory.downloads);
+        if (externalDirs != null && externalDirs.isNotEmpty) {
+          // Extract the root path to get to the public /Download folder
+          String path = externalDirs.first.path;
+          downloadsPath = path.split('/Android')[0] + '/Download';
+        }
+      } else {
+        final dir = await getApplicationDocumentsDirectory();
+        downloadsPath = dir.path;
+      }
+
+      if (downloadsPath == null) throw Exception("Could not find path");
+
+      final backupDir = Directory('$downloadsPath/Backup_${DateTime.now().millisecondsSinceEpoch}');
+      await backupDir.create(recursive: true);
+
+      await _downloadDirectory('/', backupDir.path);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('✅ Saved to: $downloadsPath')),
+        );
+      }
+    } catch (e) {
+      debugPrint('Error: $e');
+    } finally {
+      setState(() => isDownloading = false);
+    }
+  }
+
+  Future<void> _downloadDirectory(String remotePath, String localPath) async {
+    final data = await ApiService.listFiles(remotePath);
+    final folders = data['folders'] as List? ?? [];
+    final files = data['files'] as List? ?? [];
+
+    // Download all files in current directory
+    for (final file in files) {
+      try {
+        final filePath = file['path'] as String;
+        final fileName = file['name'] as String;
+        final url = file['url'] as String;
+        final bytes = await ApiService.downloadFileFromUrl(url);
+
+        final localFile = File('$localPath/$fileName');
+        await localFile.writeAsBytes(bytes);
+        debugPrint('Downloaded: $fileName');
+      } catch (e) {
+        debugPrint('Failed to download file: $e');
+      }
+    }
+
+    // Recursively download all subdirectories
+    for (final folder in folders) {
+      final folderPath = folder['path'] as String;
+      final folderName = folder['name'] as String;
+      final subDir = Directory('$localPath/$folderName');
+      await subDir.create(recursive: true);
+      await _downloadDirectory(folderPath, subDir.path);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text(AppStrings.browse_files_appBar_title),
-        backgroundColor: accent, // Refactored from blue[700]
+        backgroundColor: accent,
         foregroundColor: Colors.white,
         systemOverlayStyle: SystemUiOverlayStyle(
           systemNavigationBarColor: Colors.transparent,
@@ -74,12 +147,28 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
           systemNavigationBarIconBrightness: Brightness.light,
           statusBarIconBrightness: Brightness.dark,
         ),
+        actions: [
+          IconButton(
+            icon: isDownloading
+                ? const SizedBox(
+              width: 20,
+              height: 20,
+              child: CircularProgressIndicator(
+                color: Colors.white,
+                strokeWidth: 2,
+              ),
+            )
+                : const Icon(Icons.download),
+            onPressed: isDownloading ? null : _downloadAll,
+            tooltip: 'Download All',
+          ),
+        ],
       ),
       body: Column(
         children: [
           Container(
             padding: const EdgeInsets.all(16),
-            color: pale, // Refactored from blue[100]
+            color: pale,
             child: Row(
               children: [
                 Expanded(
@@ -134,7 +223,6 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
             title: Text(AppStrings.parent_folder),
             onTap: () {
               setState(() {
-                // Split path into segments, remove the last one, and rejoin
                 List<String> segments = currentPath.split('/');
                 segments.removeWhere((s) => s.isEmpty);
                 if (segments.isNotEmpty) segments.removeLast();
@@ -145,11 +233,11 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
             },
           ),
         ...folders.map((folder) => ListTile(
-          leading: const Icon(Icons.folder, color: light), // Refactored from amber
+          leading: const Icon(Icons.folder, color: light),
           title: Text(folder['name']),
           subtitle: Text('${AppStrings.modified_prefix}${folder['modified']}'),
           trailing: IconButton(
-            icon: const Icon(Icons.delete, color: Colors.red), // Red stays red as per instructions
+            icon: const Icon(Icons.delete, color: Colors.red),
             onPressed: () => _deleteItem(folder['path']),
           ),
           onTap: () {
@@ -160,7 +248,7 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
           },
         )),
         ...files.map((file) => ListTile(
-          leading: const Icon(Icons.insert_drive_file, color: primary), // Refactored from blue
+          leading: const Icon(Icons.insert_drive_file, color: primary),
           title: Text(file['name']),
           subtitle: Text(
               '${AppStrings.size_prefix}${file['size']} bytes\n${AppStrings.modified_prefix}${file['modified']}'),

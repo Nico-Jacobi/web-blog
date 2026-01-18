@@ -61,6 +61,26 @@ class ApiService {
     }
   }
 
+  // Add this method to ApiService class
+  static Future<List<int>> downloadFileFromUrl(String url) async {
+    // The url from /list is relative like "/files/path/to/file.txt"
+    final fullUrl = url.startsWith('http') ? url : '$baseUrl$url';
+
+    debugPrint('⬇️ Downloading: $fullUrl');
+
+    final response = await http.get(
+      Uri.parse(fullUrl),
+      headers: {'x-auth-token': authToken},
+    );
+
+    if (response.statusCode != 200) {
+      throw Exception('Failed to download: ${response.statusCode}');
+    }
+
+    debugPrint('✅ Downloaded: ${response.bodyBytes.length} bytes');
+    return response.bodyBytes;
+  }
+
   static Future<void> writeFile(String path, String content) async {
     final response = await http.post(
       Uri.parse('$baseUrl/write'),

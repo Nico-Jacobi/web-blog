@@ -14,8 +14,7 @@ export default function App() {
     const [activeId, setActiveId] = useState(null);
     const [detailId, setDetailId] = useState(null);
     // Track the password/token
-    const [token, setToken] = useState(sessionStorage.getItem('trip_auth_key'));
-
+    const [token, setToken] = useState(localStorage.getItem('trip_auth_key'));
     const leafletReady = useLeaflet();
 
     useEffect(() => {

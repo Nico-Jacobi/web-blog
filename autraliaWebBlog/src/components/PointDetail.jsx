@@ -115,7 +115,7 @@ export default function PointDetail({ point, onClose }) {
                         <div className="lg:col-span-2 bg-white rounded-2xl p-8 shadow-lg border border-slate-100">
                             <div className="flex items-center gap-3 mb-6">
                                 <div className="w-1 h-8 bg-orange-500 rounded-full"></div>
-                                <h3 className="text-2xl font-black text-slate-900">Beschreibung</h3>
+                                <h3 className="text-2xl font-black text-slate-900">Was hier passiert ist</h3>
                             </div>
                             <p className="text-slate-700 text-base leading-relaxed whitespace-pre-wrap">
                                 {point.description}
@@ -142,7 +142,7 @@ export default function PointDetail({ point, onClose }) {
                             <div className="bg-white rounded-2xl p-6 shadow-lg border border-slate-100">
                                 <div className="flex items-center gap-3 mb-4">
                                     <div className="w-1 h-6 bg-orange-500 rounded-full"></div>
-                                    <h3 className="text-lg font-black text-slate-900">Stopp Nummer</h3>
+                                    <h3 className="text-lg font-black text-slate-900">Stopp Nr.</h3>
                                 </div>
                                 <p className="text-4xl font-black text-slate-900">{point.order ?? '-'}</p>
                             </div>

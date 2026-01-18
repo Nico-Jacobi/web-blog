@@ -5,57 +5,60 @@ import MapView from './components/MapView';
 import PointDetail from './components/PointDetail';
 import { Trip } from './model/Trip';
 import { useLeaflet } from './controller/useLeaflet.js';
+import PasswordGate from "./components/PasswortGate.jsx";
 
 export default function App() {
     const [trip, setTrip] = useState(null);
-    const [loading, setLoading] = useState(true);
+    const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [activeId, setActiveId] = useState(null);
     const [detailId, setDetailId] = useState(null);
+    // Track the password/token
+    const [token, setToken] = useState(sessionStorage.getItem('trip_auth_key'));
 
     const leafletReady = useLeaflet();
 
     useEffect(() => {
-        Trip.getInstance()
+        if (!token) return; // Wait for password
+
+        setLoading(true);
+        setError(null);
+
+        Trip.getInstance(token)
             .then(setTrip)
-            .catch(err => setError(err.message))
+            .catch(err => {
+                setError(err.message);
+                setToken(null); // Clear token if API rejects it
+                sessionStorage.removeItem('trip_auth_key');
+            })
             .finally(() => setLoading(false));
 
         return () => trip?.destroy();
-    }, []);
+    }, [token]);
 
     const activePoint = detailId ? trip?.getPoint(detailId) : null;
 
-    if (loading) return <div className="h-screen flex items-center justify-center">Laden...</div>;
-    if (error) return <div className="h-screen flex items-center justify-center text-red-500">{error}</div>;
+    // Show Gate if no trip is loaded
+    if (!trip) {
+        return (
+            <PasswordGate
+                onPasswordSubmit={setToken}
+                authError={!!error}
+                isLoading={loading}
+            />
+        );
+    }
 
     return (
         <div className="flex flex-col h-screen w-screen bg-slate-50 overflow-hidden">
-            <Header trip={trip} /> {/* CHANGED: pass trip instead of title */}
-
+            <Header trip={trip} />
             <div className="flex flex-1 min-h-0 w-full overflow-hidden">
-                <Sidebar
-                    activeId={activeId}
-                    onSelectStop={setActiveId}
-                    trip={trip}
-                />
-
+                <Sidebar activeId={activeId} onSelectStop={setActiveId} trip={trip} />
                 <main className="flex-1 relative h-full">
-                    <MapView
-                        activeId={activeId}
-                        onOpenDetail={setDetailId}
-                        leafletReady={leafletReady}
-                        trip={trip}
-                    />
+                    <MapView activeId={activeId} onOpenDetail={setDetailId} leafletReady={leafletReady} trip={trip} />
                 </main>
             </div>
-
-            {activePoint && (
-                <PointDetail
-                    point={activePoint}
-                    onClose={() => setDetailId(null)}
-                />
-            )}
+            {activePoint && <PointDetail point={activePoint} onClose={() => setDetailId(null)} />}
         </div>
     );
 }

@@ -1,7 +1,10 @@
 import {apiService} from "../controller/apiService.js";
 
 export class Point {
-    constructor(data) {
+    constructor(data, password) {
+
+        this.password = password; // Store it here
+
         this.id = data.id;
         this.title = data.name || 'Untitled';
         this.desc = data.shortDescription || '';
@@ -36,14 +39,16 @@ export class Point {
     async getTitleImage() {
         if (this._titleBlob) return this._titleBlob;
         if (!this.imagePath) return null;
-        this._titleBlob = await apiService.fetchBlob(this.imagePath);
+        // ADDED: this.password
+        this._titleBlob = await apiService.fetchBlob(this.imagePath, this.password);
         return this._titleBlob;
     }
 
     async getOtherImages() {
         if (this._otherBlobs) return this._otherBlobs;
         const blobs = await Promise.all(
-            this.otherPaths.map(path => apiService.fetchBlob(path))
+            // ADDED: this.password
+            this.otherPaths.map(path => apiService.fetchBlob(path, this.password))
         );
         this._otherBlobs = blobs.filter(b => b !== null);
         return this._otherBlobs;

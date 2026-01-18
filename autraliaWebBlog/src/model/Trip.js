@@ -4,8 +4,9 @@ import { Point } from "./Point.js";
 export class Trip {
     static #instance = null;
 
-    constructor(pointsData, routesData) {
-        this.points = pointsData.map(p => new Point(p)).sort((a, b) => a.order - b.order);
+    constructor(pointsData, routesData, password) { // Added password
+        this.password = password; // Save for image loading
+        this.points = pointsData.map(p => new Point(p, password)).sort((a, b) => a.order - b.order);
 
         this.routes = routesData.map(r => ({
             from: r.pointId1,
@@ -14,13 +15,13 @@ export class Trip {
         }));
     }
 
-    static async getInstance() {
+    static async getInstance(password) { // Accept password
         if (!this.#instance) {
             const [p, r] = await Promise.all([
-                apiService.fetchJson('points.json'),
-                apiService.fetchJson('trips.json')
+                apiService.fetchJson('points.json', password), // Pass password
+                apiService.fetchJson('trips.json', password)   // Pass password
             ]);
-            this.#instance = new Trip(p, r);
+            this.#instance = new Trip(p, r, password);
         }
         return this.#instance;
     }

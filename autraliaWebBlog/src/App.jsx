@@ -13,12 +13,11 @@ export default function App() {
     const [error, setError] = useState(null);
     const [activeId, setActiveId] = useState(null);
     const [detailId, setDetailId] = useState(null);
-    // Track the password/token
     const [token, setToken] = useState(localStorage.getItem('trip_auth_key'));
     const leafletReady = useLeaflet();
 
     useEffect(() => {
-        if (!token) return; // Wait for password
+        if (!token) return;
 
         setLoading(true);
         setError(null);
@@ -27,7 +26,7 @@ export default function App() {
             .then(setTrip)
             .catch(err => {
                 setError(err.message);
-                setToken(null); // Clear token if API rejects it
+                setToken(null);
                 sessionStorage.removeItem('trip_auth_key');
             })
             .finally(() => setLoading(false));
@@ -37,7 +36,6 @@ export default function App() {
 
     const activePoint = detailId ? trip?.getPoint(detailId) : null;
 
-    // Show Gate if no trip is loaded
     if (!trip) {
         return (
             <PasswordGate
@@ -54,7 +52,13 @@ export default function App() {
             <div className="flex flex-1 min-h-0 w-full overflow-hidden">
                 <Sidebar activeId={activeId} onSelectStop={setActiveId} trip={trip} />
                 <main className="flex-1 relative h-full">
-                    <MapView activeId={activeId} onOpenDetail={setDetailId} leafletReady={leafletReady} trip={trip} />
+                    <MapView
+                        activeId={activeId}
+                        onOpenDetail={setDetailId}
+                        onSelectStop={setActiveId}
+                        leafletReady={leafletReady}
+                        trip={trip}
+                    />
                 </main>
             </div>
             {activePoint && <PointDetail point={activePoint} onClose={() => setDetailId(null)} />}

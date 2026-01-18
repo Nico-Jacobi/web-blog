@@ -3,7 +3,7 @@ import { X } from 'lucide-react';
 import {ROUTE_STYLES} from "../model/routeStyles.js";
 
 
-export default function MapView({ activeId, onOpenDetail, leafletReady, trip }) { // NEW: add onOpenDetail prop
+export default function MapView({ activeId, onOpenDetail, onSelectStop, leafletReady, trip }) {
     const mapRef = useRef(null);
     const mapInstance = useRef(null);
     const markersRef = useRef({});
@@ -45,13 +45,15 @@ export default function MapView({ activeId, onOpenDetail, leafletReady, trip }) 
                 })
             }).addTo(map);
 
-            // CHANGED: pass onOpenDetail to createPopupContent
+            marker.on('popupopen', () => {
+                onSelectStop(point.id);
+            });
+
             marker.bindPopup(createPopupContent(point, null, onOpenDetail), {
                 closeButton: false,
                 className: 'modern-popup'
             });
 
-            // CHANGED: pass onOpenDetail when updating with image
             point.getTitleImage().then(img => {
                 marker.setPopupContent(createPopupContent(point, img, onOpenDetail));
             });
@@ -59,10 +61,14 @@ export default function MapView({ activeId, onOpenDetail, leafletReady, trip }) 
             markersRef.current[point.id] = marker;
         });
 
+        map.on('click', () => {
+            onSelectStop(null);
+        });
+
         const observer = new ResizeObserver(() => map.invalidateSize());
         observer.observe(mapRef.current);
         return () => observer.disconnect();
-    }, [leafletReady, trip, onOpenDetail]); // CHANGED: add onOpenDetail to dependencies
+    }, [leafletReady, trip, onOpenDetail, onSelectStop]);
 
     useEffect(() => {
         const marker = markersRef.current[activeId];
@@ -112,7 +118,6 @@ export default function MapView({ activeId, onOpenDetail, leafletReady, trip }) 
 }
 
 
-// CHANGED: add onOpenDetail parameter
 const createPopupContent = (point, img, onOpenDetail) => {
     const calendarIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>`;
 

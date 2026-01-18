@@ -1,5 +1,5 @@
 import React from 'react';
-import { Car, Plane, Bus, Ship, Footprints, Truck, MoveRight } from 'lucide-react';
+import { MoveRight } from 'lucide-react';
 import { ROUTE_STYLES } from '../model/routeStyles';
 
 export default function RouteSegment({ trip, fromPoint, toPoint }) {
@@ -12,13 +12,12 @@ export default function RouteSegment({ trip, fromPoint, toPoint }) {
     const Icon = style.icon || MoveRight;
 
     return (
-        <div className="flex items-center gap-3 py-3 px-2 my-1">
-            {/* Vertical line with dashes matching route style */}
+        <div className="flex items-center gap-3 py-1 px-2 my-0"> {/* Reduced py and my */}
             <div className="flex flex-col items-center gap-1 ml-9">
                 {[...Array(3)].map((_, i) => (
                     <div
                         key={i}
-                        className="w-0.5 h-2"
+                        className="w-0.5 h-1.5" /* Slightly shorter dashes */
                         style={{
                             backgroundColor: style.color,
                             opacity: style.opacity * 0.6
@@ -27,9 +26,8 @@ export default function RouteSegment({ trip, fromPoint, toPoint }) {
                 ))}
             </div>
 
-            {/* Route info */}
             <div
-                className="flex items-center gap-2 text-xs font-medium px-3 py-1.5 rounded-lg flex-1"
+                className="flex items-center gap-2 text-xs font-medium px-3 py-1 rounded-lg flex-1"
                 style={{
                     backgroundColor: `${style.color}10`,
                     color: style.color
@@ -37,7 +35,6 @@ export default function RouteSegment({ trip, fromPoint, toPoint }) {
             >
                 <Icon size={14} />
                 <span>{distance.toLocaleString('de-DE')} km</span>
-
             </div>
         </div>
     );

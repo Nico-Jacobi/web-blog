@@ -6,7 +6,7 @@ export default function Sidebar({ activeId, onSelectStop, trip }) {
     if (!trip) return null;
 
     return (
-        <aside className="w-full md:w-96 flex flex-col border-r border-orange-100 bg-white shrink-0 h-full">
+        <aside className="w-80 xl:w-96 flex flex-col border-r border-orange-100 bg-white h-full">
             {/* Sidebar Header */}
             <div className="pt-8 pb-4 px-6 shrink-0">
                 <div className="flex items-center justify-between">

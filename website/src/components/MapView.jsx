@@ -130,7 +130,7 @@ export default function MapView({ activeId, onOpenDetail, onSelectStop, leafletR
             </div>
 
             {/* Transport Legend */}
-            <div className="mt-4 bg-white rounded-2xl shadow-sm p-4 flex flex-wrap gap-4 items-center justify-center">
+            <div className="mt-3 bg-white rounded-xl shadow-sm p-2 px-3 flex flex-wrap gap-3 items-center justify-center">
                 {usedModes.map(mode => {
                     const style = ROUTE_STYLES[mode];
                     if (!style) return null;
@@ -138,7 +138,7 @@ export default function MapView({ activeId, onOpenDetail, onSelectStop, leafletR
                     const Icon = style.icon;
 
                     return (
-                        <div key={mode} className="flex items-center gap-2 text-xs text-slate-600">
+                        <div key={mode} className="flex items-center gap-2 text-xs text-slate-600" title={style.label || mode}>
                             {Icon && <Icon size={16} style={{ color: style.color }} />}
                             {!Icon && (
                                 <div
@@ -150,7 +150,7 @@ export default function MapView({ activeId, onOpenDetail, onSelectStop, leafletR
                                     }}
                                 />
                             )}
-                            <span>{style.label || mode}</span>
+                            <span className="hidden sm:inline">{style.label || mode}</span>
                         </div>
                     );
                 })}

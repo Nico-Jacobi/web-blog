@@ -18,7 +18,7 @@ export default function Header({ trip }) {
                 <div className="min-w-0">
                     {/* Smaller font size on mobile */}
                     <h1 className="font-black text-sm sm:text-xl lg:text-2xl tracking-tight text-slate-900 truncate">
-                        Jennys und Leons <span className="text-orange-600">Australien Trip</span>
+                        Jennys & Leons <span className="text-orange-600">Australien Trip</span>
                     </h1>
                     <div className="flex items-center gap-2 sm:gap-3 text-slate-400 text-[9px] sm:text-xs font-medium mt-0.5">
                         <span className="flex items-center gap-1 shrink-0">

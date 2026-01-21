@@ -10,7 +10,7 @@ import 'package:flutter_image_compress/flutter_image_compress.dart';
 
 import '../colors.dart';
 import '../model/interest_point.dart';
-import '../services/storage_service.dart'; // Import the service
+import '../services/storage_service.dart';
 import '../strings.dart';
 import '../widgets/info_icon.dart';
 import '../widgets/travel_method_dialog.dart';
@@ -26,9 +26,7 @@ class AddInterestPointPage extends StatefulWidget {
 }
 
 class _AddInterestPointPageState extends State<AddInterestPointPage> {
-  // Use the Singleton instance directly
   final StorageService _storage = StorageService();
-
   final _formKey = GlobalKey<FormState>();
   final ImagePicker _picker = ImagePicker();
 
@@ -46,6 +44,19 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
   InterestPoint? _lastPoint;
   TripMethod _selectedMethod = TripMethod.car;
 
+  // Track if user has made any changes
+  bool _hasUnsavedChanges = false;
+
+  // Store original values for edit mode
+  String _originalName = '';
+  String _originalShortDesc = '';
+  String _originalDesc = '';
+  String _originalLat = '';
+  String _originalLon = '';
+  String _originalDate = '';
+  String? _originalTitleImagePath;
+  List<String> _originalOtherImagePaths = [];
+  TripMethod _originalTravelMethod = TripMethod.car;
 
   @override
   void initState() {
@@ -57,6 +68,14 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       ),
     );
 
+    // Add listeners to text controllers
+    _nameCtrl.addListener(_markAsChanged);
+    _shortDescCtrl.addListener(_markAsChanged);
+    _descCtrl.addListener(_markAsChanged);
+    _latCtrl.addListener(_markAsChanged);
+    _lonCtrl.addListener(_markAsChanged);
+    _dateCtrl.addListener(_markAsChanged);
+
     if (widget.existingPoint != null) {
       _isEditMode = true;
       _loadExistingPoint(widget.existingPoint!);
@@ -65,14 +84,44 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     }
   }
 
+  void _markAsChanged() {
+    if (!_hasUnsavedChanges) {
+      setState(() => _hasUnsavedChanges = true);
+    }
+  }
+
+  bool _hasActualChanges() {
+    if (!_isEditMode) {
+      // For new points, check if any field has content
+      return _nameCtrl.text.isNotEmpty ||
+          _shortDescCtrl.text.isNotEmpty ||
+          _descCtrl.text.isNotEmpty ||
+          _latCtrl.text.isNotEmpty ||
+          _lonCtrl.text.isNotEmpty ||
+          _dateCtrl.text.isNotEmpty ||
+          _titleImage != null ||
+          _otherImages.isNotEmpty;
+    } else {
+      // For edit mode, check if anything changed from original
+      return _nameCtrl.text != _originalName ||
+          _shortDescCtrl.text != _originalShortDesc ||
+          _descCtrl.text != _originalDesc ||
+          _latCtrl.text != _originalLat ||
+          _lonCtrl.text != _originalLon ||
+          _dateCtrl.text != _originalDate ||
+          _titleImage?.path != _originalTitleImagePath ||
+          _otherImages.length != _originalOtherImagePaths.length ||
+          _selectedMethod != _originalTravelMethod ||
+          !_otherImages.every((img) => _originalOtherImagePaths.contains(img.path));
+    }
+  }
+
   Future<void> _loadLastPoint() async {
     try {
-      // Use StorageService to load data
       final data = await _storage.loadPointsAndTrips();
       final points = data['points'] as List<InterestPoint>;
 
       if (points.isNotEmpty) {
-        // Sort by tripOrder to ensure we get the actual last point
         points.sort((a, b) => a.tripOrder.compareTo(b.tripOrder));
         setState(() => _lastPoint = points.last);
       }
@@ -102,15 +151,27 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     _lonCtrl.text = point.lon?.toStringAsFixed(6) ?? '';
     _dateCtrl.text = point.date ?? '';
 
+    // Store original values
+    _originalName = point.name;
+    _originalShortDesc = point.shortDescription;
+    _originalDesc = point.description ?? '';
+    _originalLat = point.lat?.toStringAsFixed(6) ?? '';
+    _originalLon = point.lon?.toStringAsFixed(6) ?? '';
+    _originalDate = point.date ?? '';
+
     if (point.titleImagePath.isNotEmpty) {
-      _titleImage = File(path.join(appDir.path, point.titleImagePath));
+      final titleImagePath = path.join(appDir.path, point.titleImagePath);
+      _titleImage = File(titleImagePath);
+      _originalTitleImagePath = titleImagePath;
     }
 
     _otherImages = point.otherImagePaths
         .map((name) => File(path.join(appDir.path, name)))
         .toList();
 
-    setState(() {}); // Ensure UI updates with files
+    _originalOtherImagePaths = _otherImages.map((img) => img.path).toList();
+
+    setState(() {});
   }
 
   String? _formatExifDate(String? exifDate) {
@@ -167,6 +228,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     if (image != null) {
       _titleImage = File(image.path);
       await _extractMetadata(_titleImage!);
+      _markAsChanged();
       setState(() {});
     }
   }
@@ -182,7 +244,10 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
           if (newFiles.length == 1) await _extractMetadata(f);
         }
       }
-      setState(() => _otherImages.addAll(newFiles));
+      if (newFiles.isNotEmpty) {
+        _markAsChanged();
+        setState(() => _otherImages.addAll(newFiles));
+      }
     }
   }
 
@@ -196,6 +261,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
         _latCtrl.text = result.latitude.toStringAsFixed(6);
         _lonCtrl.text = result.longitude.toStringAsFixed(6);
       });
+      _markAsChanged();
     }
   }
 
@@ -213,7 +279,6 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       return;
     }
 
-    // Show loading
     showDialog(
       context: context,
       barrierDismissible: false,
@@ -230,7 +295,6 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
           ? widget.existingPoint!.id
           : (points.isEmpty ? 1 : points.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1);
 
-      // Compress & copy images asynchronously
       String newTitlePath = _titleImage!.path.startsWith(appDir.path)
           ? _titleImage!.path
           : '${appDir.path}/${_generateImageFilename(path.extension(_titleImage!.path))}';
@@ -290,21 +354,16 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     }
   }
 
-
   Future<String> _compressOnly(File file, String targetPath) async {
-    // targetPath is already the full path (dir + filename)
-    // No need to generate a new filename here
-
     final compressed = await FlutterImageCompress.compressAndGetFile(
       file.path,
       targetPath,
       quality: 80,
-      format: CompressFormat.jpeg, // Ensure a standard format
+      format: CompressFormat.jpeg,
     );
 
     if (compressed == null) {
       print("compression failed");
-      // Fallback: If compression fails, just copy the original file
       await file.copy(targetPath);
       return targetPath;
     }
@@ -312,8 +371,12 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     return compressed.path;
   }
 
-
   Future<bool> _onWillPop() async {
+    // Only show dialog if there are actual changes
+    if (!_hasActualChanges()) {
+      return true;
+    }
+
     return await showDialog<bool>(
       context: context,
       builder: (context) => Dialog(
@@ -333,7 +396,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                 child: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 48),
               ),
               const SizedBox(height: 20),
-              const Text(AppStrings.discard_changes_title, textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold, )),
+              const Text(AppStrings.discard_changes_title, textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
               const SizedBox(height: 12),
               Text(AppStrings.discard_changes_message, textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withOpacity(0.95), fontSize: 15, height: 1.5)),
               const SizedBox(height: 28),
@@ -485,6 +548,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                         final item = _otherImages.removeAt(oldIdx);
                         _otherImages.insert(newIdx, item);
                       });
+                      _markAsChanged();
                     },
                     children: _otherImages.asMap().entries.map((entry) {
                       return Container(
@@ -499,7 +563,10 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                             Positioned(
                               right: 0, top: 0,
                               child: GestureDetector(
-                                onTap: () => setState(() => _otherImages.removeAt(entry.key)),
+                                onTap: () {
+                                  setState(() => _otherImages.removeAt(entry.key));
+                                  _markAsChanged();
+                                },
                                 child: Container(color: Colors.black54, child: const Icon(Icons.close, color: Colors.white, size: 16)),
                               ),
                             )
@@ -540,9 +607,12 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                       const SizedBox(height: 12),
                       InkWell(
                         onTap: () async {
-                          FocusScope.of(context).unfocus(); // unfocus before dialog
+                          FocusScope.of(context).unfocus();
                           final result = await TravelMethodDialog.show(context, currentMethod: _selectedMethod);
-                          if (result != null) setState(() => _selectedMethod = result);
+                          if (result != null) {
+                            setState(() => _selectedMethod = result);
+                            _markAsChanged();
+                          }
                         },
                         child: Container(
                           padding: const EdgeInsets.all(16),

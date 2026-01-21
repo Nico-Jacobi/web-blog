@@ -83,7 +83,33 @@ class AppStrings {
   static const tripMethod_misc = "Sonstiges";
   static const tripMethod_bus = "Bus";
 
-  static const sync_files_appBar_title = "Datein synchronisieren";
 
   static const sync_spinner_text = "Syncing...";
+
+
+  // Sync Status Page
+  static const sync_files_appBar_title = "Dateien synchronisieren";
+  static const sync_status_title = "Synchronisierungsstatus";
+  static const sync_status_error_loading = "Fehler beim Laden des Status: ";
+  static const sync_status_in_progress = "Synchronisierung bereits im Gange";
+  static const sync_status_success = "Synchronisierung erfolgreich abgeschlossen!";
+  static const sync_status_failed = "Synchronisierung fehlgeschlagen: ";
+  static const sync_downloading = "Lade vom Server...";
+  static const sync_download_success = "Erfolgreich vom Server geladen";
+  static const sync_download_failed = "Download vom Server fehlgeschlagen";
+  static const sync_data_replaced = "Lokale Daten wurden durch Server-Daten ersetzt";
+  static const sync_reverse_failed = "Download fehlgeschlagen: ";
+  static const sync_dialog_title = "Daten herunterladen?";
+  static const sync_dialog_content = "Dies ersetzt ALLE lokalen Daten mit Daten vom Server. Nicht synchronisierte lokale Änderungen gehen verloren.\n\nMöchtest du fortfahren?";
+  static const sync_dialog_confirm = "Fortfahren";
+  static const sync_stat_synced = "Synchr.";
+  static const sync_stat_unsynced = "Nicht Synchr.";
+  static const sync_stat_total = "Gesamt";
+  static const button_sync_upload = "Hochladen";
+  static const button_sync_download = "Von Server laden";
+  static const sync_no_files = "Keine Dateien zum Synchronisieren";
+  static const sync_file_metadata = "Metadaten";
+  static const sync_file_synced = "Synchronisiert";
+  static const sync_file_not_synced = "Nicht synchronisiert";
+  static const sync_file_not_found = "Datei lokal nicht gefunden";
 }

@@ -1,9 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
-import '../model/interest_point.dart';
 import '../services/storage_service.dart';
 import '../services/sync_service.dart';
+import '../strings.dart';
+import '../model/file_status.dart';
+import '../colors.dart';
 
 class SyncStatusPage extends StatefulWidget {
   const SyncStatusPage({Key? key}) : super(key: key);
@@ -43,19 +46,30 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
       // Collect all files
       final fileStatuses = <FileStatus>[];
 
-      // Add metadata files
+      final appDir = await getApplicationDocumentsDirectory();
+
+      final pointsFile = File('${appDir.path}/points.json');
+      final pointsExists = await pointsFile.exists();
+      final pointsSize = pointsExists ? await pointsFile.length() : 0;
+
       fileStatuses.add(FileStatus(
         path: 'data/points.json',
         type: FileType.metadata,
-        isSynced: true, // Always consider metadata as needing sync
-        size: 0,
+        isSynced: true,
+        size: pointsSize,
+        exists: pointsExists,
       ));
+
+      final tripsFile = File('${appDir.path}/trips.json');
+      final tripsExists = await tripsFile.exists();
+      final tripsSize = tripsExists ? await tripsFile.length() : 0;
 
       fileStatuses.add(FileStatus(
         path: 'data/trips.json',
         type: FileType.metadata,
         isSynced: true,
-        size: 0,
+        size: tripsSize,
+        exists: tripsExists,
       ));
 
       // Add image files
@@ -67,10 +81,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
         allImages.addAll(point.otherImagePaths);
       }
 
-      final appDir = await getApplicationDocumentsDirectory();
-
       for (final imageName in allImages) {
-        // Construct the full path using the filename from JSON
         final fullPath = '${appDir.path}/$imageName';
         final file = File(fullPath);
 
@@ -78,9 +89,9 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
         final size = exists ? await file.length() : 0;
 
         fileStatuses.add(FileStatus(
-          path: fullPath, // Use full path for the UI/File object
+          path: fullPath,
           type: FileType.image,
-          isSynced: _syncedFiles.contains(imageName), // Sync check usually uses name
+          isSynced: _syncedFiles.contains(imageName),
           size: size,
           exists: exists,
         ));
@@ -92,7 +103,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
       });
     } catch (e) {
       setState(() {
-        _statusMessage = 'Error loading sync status: $e';
+        _statusMessage = '${AppStrings.sync_status_error_loading}$e';
         _isLoading = false;
       });
     }
@@ -101,20 +112,18 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
   Future<void> _performSync() async {
     setState(() {
       _isSyncing = true;
-      _statusMessage = 'Syncing...';
+      _statusMessage = AppStrings.sync_spinner_text;
     });
 
     try {
-      // Use the new syncFromStorage method
       final result = await _syncService.syncFromStorage();
 
       if (result == null) {
-        // Sync was already in progress
         setState(() {
-          _statusMessage = 'Sync already in progress';
+          _statusMessage = AppStrings.sync_status_in_progress;
           _isSyncing = false;
         });
-        _showSuccessSnackBar('Sync already in progress');
+        _showSuccessSnackBar(AppStrings.sync_status_in_progress);
         return;
       }
 
@@ -123,15 +132,14 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
         _isSyncing = false;
       });
 
-      // Reload status to update UI
       await _loadSyncStatus();
 
       if (result.success) {
-        _showSuccessSnackBar('Sync completed successfully!');
+        _showSuccessSnackBar(AppStrings.sync_status_success);
       }
     } catch (e) {
       setState(() {
-        _statusMessage = 'Sync failed: $e';
+        _statusMessage = '${AppStrings.sync_status_failed}$e';
         _isSyncing = false;
       });
     }
@@ -145,7 +153,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
 
     setState(() {
       _isSyncing = true;
-      _statusMessage = 'Downloading from server...';
+      _statusMessage = AppStrings.sync_downloading;
     });
 
     try {
@@ -153,18 +161,18 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
 
       setState(() {
         _statusMessage = success
-            ? 'Successfully downloaded from server'
-            : 'Failed to download from server';
+            ? AppStrings.sync_download_success
+            : AppStrings.sync_download_failed;
         _isSyncing = false;
       });
 
       if (success) {
         await _loadSyncStatus();
-        _showSuccessSnackBar('Local data replaced with server data');
+        _showSuccessSnackBar(AppStrings.sync_data_replaced);
       }
     } catch (e) {
       setState(() {
-        _statusMessage = 'Reverse sync failed: $e';
+        _statusMessage = '${AppStrings.sync_reverse_failed}$e';
         _isSyncing = false;
       });
     }
@@ -173,26 +181,98 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
   Future<bool> _showReverseSyncDialog() async {
     return await showDialog<bool>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Download from Server?'),
-        content: const Text(
-          'This will replace ALL local data with data from the server. '
-              'Any unsynced local changes will be lost.\n\n'
-              'Are you sure you want to continue?',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
-          ),
-          FilledButton(
-            onPressed: () => Navigator.pop(context, true),
-            style: FilledButton.styleFrom(
-              backgroundColor: Colors.red,
+      builder: (context) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              colors: [dark, primary],
+              begin: Alignment.topLeft,
+              end: Alignment.bottomRight,
             ),
-            child: const Text('Replace Local Data'),
+            borderRadius: BorderRadius.circular(28),
           ),
-        ],
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                padding: const EdgeInsets.all(16),
+                decoration: BoxDecoration(
+                  color: Colors.white.withOpacity(0.2),
+                  shape: BoxShape.circle,
+                ),
+                child: const Icon(
+                  Icons.cloud_download,
+                  color: Colors.white,
+                  size: 48,
+                ),
+              ),
+              const SizedBox(height: 20),
+              const Text(
+                AppStrings.sync_dialog_title,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white,
+                  fontSize: 24,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              const SizedBox(height: 12),
+              Text(
+                AppStrings.sync_dialog_content,
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  color: Colors.white.withOpacity(0.95),
+                  fontSize: 15,
+                  height: 1.5,
+                ),
+              ),
+              const SizedBox(height: 28),
+              Row(
+                children: [
+                  Expanded(
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(context, false),
+                      style: TextButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: Colors.white.withOpacity(0.2),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        AppStrings.button_cancel,
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: ElevatedButton(
+                      onPressed: () => Navigator.pop(context, true),
+                      style: ElevatedButton.styleFrom(
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        backgroundColor: Colors.white,
+                        foregroundColor: dark,
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(16),
+                        ),
+                      ),
+                      child: const Text(
+                        AppStrings.sync_dialog_confirm,
+                        style: TextStyle(
+                          fontSize: 16,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
       ),
     ) ?? false;
   }
@@ -214,37 +294,68 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
     final syncedCount = totalImages - unsyncedCount;
 
     return Scaffold(
+      backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text('Sync Status'),
-        elevation: 2,
+        title: const Text(AppStrings.sync_status_title),
+        systemOverlayStyle: const SystemUiOverlayStyle(
+          systemNavigationBarColor: Colors.transparent,
+          statusBarColor: Colors.transparent,
+          systemNavigationBarIconBrightness: Brightness.light,
+          statusBarIconBrightness: Brightness.dark,
+        ),
+        centerTitle: true,
+        backgroundColor: accent,
+        foregroundColor: Colors.white,
+        shape: const RoundedRectangleBorder(
+          borderRadius: BorderRadius.vertical(bottom: Radius.circular(24)),
+        ),
+        elevation: 0,
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
+          ? const Center(child: CircularProgressIndicator(color: primary))
           : Column(
         children: [
           // Status Header
           Container(
-            padding: const EdgeInsets.all(16),
-            color: Theme.of(context).colorScheme.surfaceVariant,
+            margin: const EdgeInsets.all(16),
+            padding: const EdgeInsets.all(20),
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(20),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.05),
+                  blurRadius: 10,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
             child: Column(
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildStatCard('Synced', '$syncedCount', Colors.green),
-                    _buildStatCard('Unsynced', '$unsyncedCount', Colors.orange),
-                    _buildStatCard('Total', '$totalImages', Colors.blue),
+                    _buildStatCard(AppStrings.sync_stat_synced, '$syncedCount', Colors.green),
+                    _buildStatCard(AppStrings.sync_stat_unsynced, '$unsyncedCount', Colors.orange),
+                    _buildStatCard(AppStrings.sync_stat_total, '$totalImages', primary),
                   ],
                 ),
                 if (_statusMessage.isNotEmpty) ...[
-                  const SizedBox(height: 12),
-                  Text(
-                    _statusMessage,
-                    style: TextStyle(
-                      color: Theme.of(context).colorScheme.onSurfaceVariant,
-                      fontSize: 13,
+                  const SizedBox(height: 16),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                    decoration: BoxDecoration(
+                      color: pale.withOpacity(0.3),
+                      borderRadius: BorderRadius.circular(12),
                     ),
-                    textAlign: TextAlign.center,
+                    child: Text(
+                      _statusMessage,
+                      style: TextStyle(
+                        color: Colors.grey[800],
+                        fontSize: 13,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
                   ),
                 ],
               ],
@@ -253,11 +364,11 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
 
           // Action Buttons
           Padding(
-            padding: const EdgeInsets.all(16),
+            padding: const EdgeInsets.symmetric(horizontal: 16),
             child: Row(
               children: [
                 Expanded(
-                  child: FilledButton.icon(
+                  child: ElevatedButton.icon(
                     onPressed: _isSyncing ? null : _performSync,
                     icon: _isSyncing
                         ? const SizedBox(
@@ -269,7 +380,16 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
                       ),
                     )
                         : const Icon(Icons.cloud_upload),
-                    label: Text(_isSyncing ? 'Syncing...' : 'Sync to Server'),
+                    label: Text(_isSyncing ? AppStrings.sync_spinner_text : AppStrings.button_sync_upload),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: accent,
+                      foregroundColor: Colors.white,
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
+                      elevation: 0,
+                    ),
                   ),
                 ),
                 const SizedBox(width: 12),
@@ -277,10 +397,14 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
                   child: OutlinedButton.icon(
                     onPressed: _isSyncing ? null : _performReverseSync,
                     icon: const Icon(Icons.cloud_download),
-                    label: const Text('Download from Server'),
+                    label: const Text(AppStrings.button_sync_download),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
-                      side: const BorderSide(color: Colors.red),
+                      side: const BorderSide(color: Colors.red, width: 2),
+                      padding: const EdgeInsets.symmetric(vertical: 14),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(16),
+                      ),
                     ),
                   ),
                 ),
@@ -288,18 +412,56 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
             ),
           ),
 
+          const SizedBox(height: 16),
+
           // File List
           Expanded(
             child: _fileStatuses.isEmpty
-                ? const Center(child: Text('No files to sync'))
-                : ListView.builder(
-              itemCount: _fileStatuses.length,
-              itemBuilder: (context, index) {
-                final fileStatus = _fileStatuses[index];
-                return _buildFileListItem(fileStatus);
-              },
+                ? Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.folder_open, size: 64, color: Colors.grey[400]),
+                  const SizedBox(height: 16),
+                  Text(
+                    AppStrings.sync_no_files,
+                    style: TextStyle(
+                      fontSize: 16,
+                      color: Colors.grey[600],
+                    ),
+                  ),
+                ],
+              ),
+            )
+                : Container(
+              margin: const EdgeInsets.symmetric(horizontal: 16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(20),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.05),
+                    blurRadius: 10,
+                    offset: const Offset(0, 4),
+                  ),
+                ],
+              ),
+              child: ListView.separated(
+                padding: const EdgeInsets.symmetric(vertical: 8),
+                itemCount: _fileStatuses.length,
+                separatorBuilder: (context, index) => Divider(
+                  height: 1,
+                  indent: 72,
+                  color: Colors.grey[200],
+                ),
+                itemBuilder: (context, index) {
+                  final fileStatus = _fileStatuses[index];
+                  return _buildFileListItem(fileStatus);
+                },
+              ),
             ),
           ),
+          const SizedBox(height: 16),
         ],
       ),
     );
@@ -308,20 +470,28 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
   Widget _buildStatCard(String label, String value, Color color) {
     return Column(
       children: [
-        Text(
-          value,
-          style: TextStyle(
-            fontSize: 28,
-            fontWeight: FontWeight.bold,
-            color: color,
+        Container(
+          padding: const EdgeInsets.all(12),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Text(
+            value,
+            style: TextStyle(
+              fontSize: 24,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
           ),
         ),
-        const SizedBox(height: 4),
+        const SizedBox(height: 8),
         Text(
           label,
-          style: const TextStyle(
+          style: TextStyle(
             fontSize: 12,
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w600,
+            color: Colors.grey[700],
           ),
         ),
       ],
@@ -337,7 +507,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
 
     if (isMetadata) {
       icon = Icons.description;
-      iconColor = Colors.blue;
+      iconColor = primary;
     } else if (!fileStatus.exists) {
       icon = Icons.error_outline;
       iconColor = Colors.red;
@@ -350,30 +520,41 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
     }
 
     return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: iconColor.withOpacity(0.1),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+      leading: Container(
+        padding: const EdgeInsets.all(10),
+        decoration: BoxDecoration(
+          color: iconColor.withOpacity(0.1),
+          shape: BoxShape.circle,
+        ),
         child: Icon(icon, color: iconColor, size: 20),
       ),
       title: Text(
         fileName,
-        style: const TextStyle(fontSize: 14),
+        style: const TextStyle(
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+        ),
       ),
-      subtitle: Text(
-        isMetadata
-            ? 'Metadata (always synced)'
-            : fileStatus.exists
-            ? '${_formatFileSize(fileStatus.size)} • ${fileStatus.isSynced ? "Synced" : "Not synced"}'
-            : 'File not found locally',
-        style: TextStyle(
-          fontSize: 12,
-          color: fileStatus.exists ? null : Colors.red,
+      subtitle: Padding(
+        padding: const EdgeInsets.only(top: 4),
+        child: Text(
+          !fileStatus.exists
+              ? AppStrings.sync_file_not_found
+              : isMetadata
+              ? '${_formatFileSize(fileStatus.size)} • ${AppStrings.sync_file_metadata}'
+              : '${_formatFileSize(fileStatus.size)} • ${fileStatus.isSynced ? AppStrings.sync_file_synced : AppStrings.sync_file_not_synced}',
+          style: TextStyle(
+            fontSize: 12,
+            color: fileStatus.exists ? Colors.grey[600] : Colors.red,
+          ),
         ),
       ),
       trailing: isMetadata
-          ? const Icon(Icons.sync, size: 18)
+          ? Icon(Icons.sync, size: 18, color: primary)
           : fileStatus.isSynced
           ? null
-          : Icon(Icons.upload_outlined, size: 18, color: Colors.grey[600]),
+          : Icon(Icons.upload_outlined, size: 18, color: Colors.grey[400]),
     );
   }
 
@@ -383,21 +564,3 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
     return '${(bytes / (1024 * 1024)).toStringAsFixed(1)} MB';
   }
 }
-
-class FileStatus {
-  final String path;
-  final FileType type;
-  final bool isSynced;
-  final int size;
-  final bool exists;
-
-  FileStatus({
-    required this.path,
-    required this.type,
-    required this.isSynced,
-    required this.size,
-    this.exists = true,
-  });
-}
-
-enum FileType { image, metadata }

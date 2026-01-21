@@ -567,17 +567,14 @@ class SyncService {
   }
 
   /// Downloads everything from server to initialize a fresh local app state.
+  /// Downloads everything from server to initialize a fresh local app state.
   Future<bool> initializeFromServer() async {
     print('[SYNC] ========== Initializing from Server ==========');
     try {
       final appDir = await getApplicationDocumentsDirectory();
 
-      // Create images subdirectory
-      final imagesDir = Directory('${appDir.path}/images');
-      if (!await imagesDir.exists()) {
-        await imagesDir.create(recursive: true);
-        print('[SYNC] Created images directory');
-      }
+      // Don't create images subdirectory - files go directly in appDir
+      // This matches how AddInterestPointPage saves images
 
       // 1. Download Metadata
       print('[SYNC] Downloading points.json...');
@@ -629,8 +626,8 @@ class SyncService {
         // Server path is always images/filename
         final serverPath = 'images/$fileName';
 
-        // Local save path in images subdirectory
-        final localFile = File('${imagesDir.path}/$fileName');
+        // Local save path DIRECTLY in appDir (not in images subdirectory)
+        final localFile = File('${appDir.path}/$fileName');
 
         if (await localFile.exists()) {
           print('[SYNC] Image already exists locally: $fileName');

@@ -47,13 +47,13 @@ export default function App() {
     }
 
     return (
-        <div className="flex flex-col h-screen w-screen bg-slate-50 overflow-hidden">
+        <div className="flex flex-col h-dvh w-screen bg-slate-50 overflow-hidden">
             <Header trip={trip} />
             <div className="flex flex-1 min-h-0 w-full overflow-hidden">
                 <div className="hidden lg:block shrink-0">
                     <Sidebar activeId={activeId} onSelectStop={setActiveId} trip={trip}/>
                 </div>
-                <main className="flex-1 relative h-full min-w-0">
+                <main className="flex-1 relative min-h-0 min-w-0">
                     <MapView
                         activeId={activeId}
                         onOpenDetail={setDetailId}

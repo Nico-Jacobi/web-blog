@@ -7,30 +7,27 @@ export default function Header({ trip }) {
     const totalDistance = trip?.getTotalDistance();
 
     return (
-        /* Reduced height and padding for mobile */
         <header className="h-16 sm:h-20 bg-white border-b border-orange-100 flex items-center justify-between px-3 sm:px-8 shadow-sm shrink-0">
             <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-                {/* Hide map icon on mobile */}
-                <div className="hidden sm:flex bg-orange-600 text-white p-2 sm:p-2.5 rounded-2xl shadow-orange-200 shadow-lg shrink-0">
-                    <Map size={20} className="sm:w-6 sm:h-6" />
+                {/* Map icon visible on all screens */}
+                <div className="flex bg-orange-600 text-white p-1.5 sm:p-2.5 rounded-lg sm:rounded-2xl shadow-orange-200 shadow-lg shrink-0">
+                    <Map className="w-4 h-4 sm:w-6 sm:h-6" />
                 </div>
 
                 <div className="min-w-0">
-                    {/* Smaller font size on mobile */}
                     <h1 className="font-black text-sm sm:text-xl lg:text-2xl tracking-tight text-slate-900 truncate">
                         Jennys & Leons <span className="text-orange-600">Australien Trip</span>
                     </h1>
-                    <div className="flex items-center gap-2 sm:gap-3 text-slate-400 text-[9px] sm:text-xs font-medium mt-0.5">
+                    <div className="flex items-center gap-2 sm:gap-3 text-slate-400 text-[10px] sm:text-xs font-medium mt-0.5 sm:mt-1">
                         <span className="flex items-center gap-1 shrink-0">
-                            <Calendar size={10} className="sm:w-3 sm:h-3" />
-                            <span className="hidden xs:inline">{dateRange}</span>
-                            <span className="xs:hidden">Nov '25 - Jan '26</span>
+                            <Calendar className="w-3 h-3 sm:w-3 sm:h-3" />
+                            <span>{dateRange || "Nov '25 - Jan '26"}</span>
                         </span>
                         {totalDistance && (
                             <>
                                 <span className="w-1 h-1 bg-slate-200 rounded-full shrink-0"></span>
                                 <span className="flex items-center gap-1 shrink-0">
-                                    <Route size={10} className="sm:w-3 sm:h-3" />
+                                    <Route className="w-3 h-3 sm:w-3 sm:h-3" />
                                     {totalDistance.toLocaleString('de-DE')} km
                                 </span>
                             </>
@@ -39,10 +36,10 @@ export default function Header({ trip }) {
                 </div>
             </div>
 
-            {/* Hide kangaroo avatar on mobile */}
-            <div className="hidden sm:block h-8 w-8 sm:h-10 sm:w-10 rounded-full border-2 border-orange-100 p-0.5 shrink-0">
+            {/* Kangaroo avatar hidden on mobile, visible on larger screens */}
+            <div className="hidden sm:block h-10 w-10 rounded-full border-2 border-orange-100 p-0.5 shrink-0">
                 <div className="w-full h-full rounded-full bg-orange-50 flex items-center justify-center overflow-hidden">
-                    <img src={kangarooIcon} alt="Kangaroo" className="w-5 h-5 sm:w-6 sm:h-6" />
+                    <img src={kangarooIcon} alt="Kangaroo" className="w-6 h-6" />
                 </div>
             </div>
         </header>

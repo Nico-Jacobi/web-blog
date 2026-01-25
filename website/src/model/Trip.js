@@ -45,7 +45,7 @@ export class Trip {
         const formatDate = (date) => {
             const months = ['Jan', 'Feb', 'Mär', 'Apr', 'Mai', 'Jun',
                 'Jul', 'Aug', 'Sep', 'Okt', 'Nov', 'Dez'];
-            return `${months[date.getMonth()]} ${date.getFullYear()+100}`; // getMonth() already returns 0-11
+            return `${months[date.getMonth()]} ${date.getFullYear()}`; // getMonth() already returns 0-11
         };
 
         return `${formatDate(start)} - ${formatDate(end)}`;

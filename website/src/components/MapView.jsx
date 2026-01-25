@@ -1,6 +1,7 @@
 import React, { useEffect, useRef } from 'react';
 import { X } from 'lucide-react';
 import {ROUTE_STYLES} from "../model/routeStyles.js";
+import Legend from "./Legend.jsx";
 
 
 export default function MapView({ activeId, onOpenDetail, onSelectStop, leafletReady, trip }) {
@@ -123,41 +124,21 @@ export default function MapView({ activeId, onOpenDetail, onSelectStop, leafletR
 
 
     return (
-        <div className="flex-1 relative bg-slate-100 p-4 h-full flex flex-col">
-            <div className="flex-1 rounded-3xl overflow-hidden relative shadow-lg">
+        <div className="flex flex-col h-full bg-slate-100 p-2 sm:p-4 gap-2 sm:gap-3">
+            <div className="flex-1 min-h-0 rounded-2xl sm:rounded-3xl overflow-hidden relative shadow-lg">
                 <div ref={mapRef} className="w-full h-full z-10" />
-
             </div>
 
-            {/* Transport Legend */}
-            <div className="mt-3 bg-white rounded-xl shadow-sm p-2 px-3 flex flex-wrap gap-3 items-center justify-center">
-                {usedModes.map(mode => {
-                    const style = ROUTE_STYLES[mode];
-                    if (!style) return null;
-
-                    const Icon = style.icon;
-
-                    return (
-                        <div key={mode} className="flex items-center gap-2 text-xs text-slate-600" title={style.label || mode}>
-                            {Icon && <Icon size={16} style={{ color: style.color }} />}
-                            {!Icon && (
-                                <div
-                                    className="w-6 h-0.5"
-                                    style={{
-                                        backgroundColor: style.color,
-                                        opacity: style.opacity,
-                                        borderStyle: style.dashArray ? 'dashed' : 'solid'
-                                    }}
-                                />
-                            )}
-                            <span className="hidden sm:inline">{style.label || mode}</span>
-                        </div>
-                    );
-                })}
+            {/* Legend - always visible, map shrinks to accommodate */}
+            <div className="shrink-0">
+                <Legend usedModes={usedModes} />
             </div>
         </div>
     );
+
 }
+
+
 
 
 const createPopupContent = (point, img, onOpenDetail) => {

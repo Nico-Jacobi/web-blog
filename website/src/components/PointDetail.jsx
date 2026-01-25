@@ -11,6 +11,14 @@ export default function PointDetail({ point, onClose }) {
     const sharedButtonStyle = "group bg-white hover:bg-slate-50 p-2 md:p-3 rounded-full shadow-lg transition-all hover:shadow-xl border border-slate-200 outline-offset-2 focus:outline-orange-500";
     const sharedIconStyle = "text-slate-700 group-hover:text-orange-500 transition-colors";
 
+    // Prevent background scrolling when modal is open
+    useEffect(() => {
+        document.body.style.overflow = 'hidden';
+        return () => {
+            document.body.style.overflow = '';
+        };
+    }, []);
+
     useEffect(() => {
         if (!point) return;
         let mounted = true;
@@ -128,8 +136,18 @@ export default function PointDetail({ point, onClose }) {
                             </div>
 
                             <div className="lg:col-span-1 space-y-4 md:space-y-6">
+                                {/* Stopp Nr. - now first */}
+                                <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border border-slate-100">
+                                    <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                                        <div className="w-1 h-5 md:h-6 bg-orange-500 rounded-full"></div>
+                                        <h3 className="text-base md:text-lg font-black text-slate-900">Stopp Nr.</h3>
+                                    </div>
+                                    <p className="text-4xl md:text-5xl font-black text-orange-600">{point.order ?? '-'}</p>
+                                </div>
+
+                                {/* Standort - now second and hidden on mobile */}
                                 {point.lat && point.lng && (
-                                    <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border border-slate-100">
+                                    <div className="hidden md:block bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border border-slate-100">
                                         <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
                                             <div className="w-1 h-5 md:h-6 bg-orange-500 rounded-full"></div>
                                             <h3 className="text-base md:text-lg font-black text-slate-900">Standort</h3>
@@ -140,14 +158,6 @@ export default function PointDetail({ point, onClose }) {
                                         </div>
                                     </div>
                                 )}
-
-                                <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border border-slate-100">
-                                    <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
-                                        <div className="w-1 h-5 md:h-6 bg-orange-500 rounded-full"></div>
-                                        <h3 className="text-base md:text-lg font-black text-slate-900">Stopp Nr.</h3>
-                                    </div>
-                                    <p className="text-4xl md:text-5xl font-black text-orange-600">{point.order ?? '-'}</p>
-                                </div>
                             </div>
                         </div>
 

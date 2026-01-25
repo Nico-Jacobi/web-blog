@@ -3,7 +3,7 @@ import { Map, Calendar, Route } from 'lucide-react';
 import kangarooIcon from '../../kangaroo.svg';
 
 export default function Header({ trip }) {
-    const dateRange = trip?.getDateRange() || 'Nov 2025 - Jan 2026';
+    const dateRange = trip?.getDateRange() || '';
     const totalDistance = trip?.getTotalDistance();
 
     return (

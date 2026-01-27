@@ -140,13 +140,12 @@ export default function MapView({ activeId, onOpenDetail, onSelectStop, leafletR
 
 
 
-
 const createPopupContent = (point, img, onOpenDetail) => {
     const isMobile = window.innerWidth < 768;
     const popupDiv = document.createElement('div');
 
     const width = isMobile ? '140px' : '160px';
-    const imageHeight = isMobile ? '50px' : '70px';
+    const imageHeight = isMobile ? '60px' : '70px';
     const titleSize = isMobile ? '11px' : '12px';
     const descSize = isMobile ? '10px' : '11px';
     const dateSize = isMobile ? '9px' : '10px';
@@ -158,7 +157,7 @@ const createPopupContent = (point, img, onOpenDetail) => {
     const calendarIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>`;
 
     popupDiv.innerHTML = `
-        ${img ? `<img src="${img}" style="width:100%; height:${imageHeight}; object-fit:cover; border-radius:8px; margin-bottom:6px;"/>` : ''}
+        ${img ? `<img src="${img}" style="width:100%; height:${imageHeight}; object-fit:cover; border-radius:8px; margin-bottom:6px; display:block;"/>` : `<div style="width:100%; height:${imageHeight}; background:#e2e8f0; border-radius:8px; margin-bottom:6px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:${descSize};">Loading...</div>`}
         <div style="display:flex; flex-direction:column; gap:2px;">
             <strong style="font-size:${titleSize}; font-weight:800;">${point.title}</strong>
             

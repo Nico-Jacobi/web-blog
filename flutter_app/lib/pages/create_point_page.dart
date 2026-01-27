@@ -7,9 +7,13 @@ import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
+import 'package:video_compress/video_compress.dart';
+import 'package:video_player/video_player.dart';
 
 import '../colors.dart';
 import '../model/interest_point.dart';
+import '../model/media_file.dart';
+import '../model/trip.dart';
 import '../services/storage_service.dart';
 import '../strings.dart';
 import '../widgets/info_icon.dart';
@@ -38,7 +42,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
   final TextEditingController _dateCtrl = TextEditingController();
 
   File? _titleImage;
-  List<File> _otherImages = [];
+  List<MediaFile> _otherMedia = [];
   bool _isEditMode = false;
 
   InterestPoint? _lastPoint;
@@ -55,7 +59,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
   String _originalLon = '';
   String _originalDate = '';
   String? _originalTitleImagePath;
-  List<String> _originalOtherImagePaths = [];
+  List<String> _originalOtherMediaPaths = [];
   TripMethod _originalTravelMethod = TripMethod.car;
 
   @override
@@ -100,7 +104,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
           _lonCtrl.text.isNotEmpty ||
           _dateCtrl.text.isNotEmpty ||
           _titleImage != null ||
-          _otherImages.isNotEmpty;
+          _otherMedia.isNotEmpty;
     } else {
       // For edit mode, check if anything changed from original
       return _nameCtrl.text != _originalName ||
@@ -110,9 +114,9 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
           _lonCtrl.text != _originalLon ||
           _dateCtrl.text != _originalDate ||
           _titleImage?.path != _originalTitleImagePath ||
-          _otherImages.length != _originalOtherImagePaths.length ||
+          _otherMedia.length != _originalOtherMediaPaths.length ||
           _selectedMethod != _originalTravelMethod ||
-          !_otherImages.every((img) => _originalOtherImagePaths.contains(img.path));
+          !_otherMedia.every((media) => _originalOtherMediaPaths.contains(media.file.path));
     }
   }
 
@@ -165,13 +169,24 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       _originalTitleImagePath = titleImagePath;
     }
 
-    _otherImages = point.otherImagePaths
-        .map((name) => File(path.join(appDir.path, name)))
-        .toList();
+    // Load media files and detect if they're videos
+    _otherMedia = point.otherMediaPaths.map((name) {
+      final file = File(path.join(appDir.path, name));
+      final isVideo = _isVideoFile(name);
+      return MediaFile(file, isVideo);
+    }).toList();
 
-    _originalOtherImagePaths = _otherImages.map((img) => img.path).toList();
+    _originalOtherMediaPaths = _otherMedia.map((media) => media.file.path).toList();
 
     setState(() {});
+  }
+
+  bool _isVideoFile(String filename) {
+    final ext = filename.toLowerCase();
+    return ext.endsWith('.mp4') ||
+        ext.endsWith('.mov') ||
+        ext.endsWith('.avi') ||
+        ext.endsWith('.mkv');
   }
 
   String? _formatExifDate(String? exifDate) {
@@ -233,20 +248,84 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     }
   }
 
-  Future<void> _pickOtherImages() async {
-    final List<XFile> picked = await _picker.pickMultiImage() ?? [];
+  Future<void> _pickOtherMedia() async {
+    // Show dialog to choose between image and video
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+        title: const Text('Add Media', style: TextStyle(fontWeight: FontWeight.bold)),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.photo_library, color: primary),
+              ),
+              title: const Text('Images'),
+              subtitle: const Text('Add multiple photos'),
+              onTap: () async {
+                Navigator.pop(context);
+                await _pickImages();
+              },
+            ),
+            const SizedBox(height: 8),
+            ListTile(
+              leading: Container(
+                padding: const EdgeInsets.all(8),
+                decoration: BoxDecoration(
+                  color: primary.withOpacity(0.1),
+                  borderRadius: BorderRadius.circular(8),
+                ),
+                child: const Icon(Icons.videocam, color: primary),
+              ),
+              title: const Text('Video'),
+              subtitle: const Text('Add a video (max 5 min)'),
+              onTap: () async {
+                Navigator.pop(context);
+                await _pickVideo();
+              },
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _pickImages() async {
+    final List<XFile> picked = await _picker.pickMultiImage();
     if (picked.isNotEmpty) {
-      List<File> newFiles = [];
+      List<MediaFile> newFiles = [];
       for (var xf in picked) {
         File f = File(xf.path);
-        if (!_otherImages.any((img) => img.path == f.path)) {
-          newFiles.add(f);
+        if (!_otherMedia.any((media) => media.file.path == f.path)) {
+          newFiles.add(MediaFile(f, false));
           if (newFiles.length == 1) await _extractMetadata(f);
         }
       }
       if (newFiles.isNotEmpty) {
         _markAsChanged();
-        setState(() => _otherImages.addAll(newFiles));
+        setState(() => _otherMedia.addAll(newFiles));
+      }
+    }
+  }
+
+  Future<void> _pickVideo() async {
+    final XFile? video = await _picker.pickVideo(
+      source: ImageSource.gallery,
+      maxDuration: const Duration(minutes: 5), // Optional limit
+    );
+
+    if (video != null) {
+      File f = File(video.path);
+      if (!_otherMedia.any((media) => media.file.path == f.path)) {
+        _markAsChanged();
+        setState(() => _otherMedia.add(MediaFile(f, true)));
       }
     }
   }
@@ -265,10 +344,10 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     }
   }
 
-  String _generateImageFilename(String extension) {
+  String _generateMediaFilename(String extension) {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final random = (DateTime.now().microsecondsSinceEpoch % 10000);
-    return 'img_${timestamp}_${random}$extension';
+    return 'media_${timestamp}_${random}$extension';
   }
 
   Future<void> _saveData() async {
@@ -282,7 +361,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(child: CircularProgressIndicator(color: primary,)),
+      builder: (context) => const Center(child: CircularProgressIndicator(color: primary)),
     );
 
     try {
@@ -297,20 +376,21 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
 
       String newTitlePath = _titleImage!.path.startsWith(appDir.path)
           ? _titleImage!.path
-          : '${appDir.path}/${_generateImageFilename(path.extension(_titleImage!.path))}';
+          : '${appDir.path}/${_generateMediaFilename(path.extension(_titleImage!.path))}';
       if (!_titleImage!.path.startsWith(appDir.path)) {
-        newTitlePath = await _compressOnly(_titleImage!, newTitlePath);
+        newTitlePath = await _compressImage(_titleImage!, newTitlePath);
       }
 
       List<String> newOtherPaths = [];
-      for (var img in _otherImages) {
-        String imagePath = img.path.startsWith(appDir.path)
-            ? img.path
-            : '${appDir.path}/${_generateImageFilename(path.extension(img.path))}';
-        if (!img.path.startsWith(appDir.path)) {
-          imagePath = await _compressOnly(img, imagePath);
+      for (var media in _otherMedia) {
+        String mediaPath = media.file.path.startsWith(appDir.path)
+            ? media.file.path
+            : '${appDir.path}/${_generateMediaFilename(media.extension)}';
+
+        if (!media.file.path.startsWith(appDir.path)) {
+          mediaPath = await _compressMedia(media, mediaPath);
         }
-        newOtherPaths.add(imagePath);
+        newOtherPaths.add(mediaPath);
       }
 
       InterestPoint point = InterestPoint(
@@ -318,7 +398,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
         name: _nameCtrl.text,
         shortDescription: _shortDescCtrl.text,
         titleImagePath: path.basename(newTitlePath),
-        otherImagePaths: newOtherPaths.map((p) => path.basename(p)).toList(),
+        otherMediaPaths: newOtherPaths.map((p) => path.basename(p)).toList(),
         lat: double.tryParse(_latCtrl.text),
         lon: double.tryParse(_lonCtrl.text),
         date: _dateCtrl.text,
@@ -354,7 +434,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     }
   }
 
-  Future<String> _compressOnly(File file, String targetPath) async {
+  Future<String> _compressImage(File file, String targetPath) async {
     final compressed = await FlutterImageCompress.compressAndGetFile(
       file.path,
       targetPath,
@@ -363,12 +443,48 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     );
 
     if (compressed == null) {
-      print("compression failed");
+      debugPrint("Image compression failed, copying original");
       await file.copy(targetPath);
       return targetPath;
     }
 
     return compressed.path;
+  }
+
+  Future<String> _compressMedia(MediaFile media, String targetPath) async {
+    if (!media.isVideo) {
+      // Image compression
+      return await _compressImage(media.file, targetPath);
+    } else {
+      // Video compression
+      debugPrint("🎥 Compressing video: ${media.file.path}");
+
+      try {
+        final info = await VideoCompress.compressVideo(
+          media.file.path,
+          quality: VideoQuality.MediumQuality,
+          deleteOrigin: false, // Keep original until we're done
+          includeAudio: true,
+        );
+
+        if (info != null && info.file != null) {
+          final originalSize = await media.file.length();
+          final compressedSize = await info.file!.length();
+          debugPrint("✅ Video compressed: ${originalSize} bytes -> ${compressedSize} bytes");
+          await info.file!.copy(targetPath);
+          return targetPath;
+        } else {
+          debugPrint("⚠️ Video compression returned null, copying original");
+          await media.file.copy(targetPath);
+          return targetPath;
+        }
+      } catch (e) {
+        debugPrint("❌ Video compression error: $e");
+        // Fallback: copy original
+        await media.file.copy(targetPath);
+        return targetPath;
+      }
+    }
   }
 
   Future<bool> _onWillPop() async {
@@ -453,6 +569,49 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     );
   }
 
+  Widget _buildMediaThumbnail(MediaFile media) {
+    if (!media.isVideo) {
+      return Image.file(
+        media.file,
+        width: 100,
+        height: 100,
+        fit: BoxFit.cover,
+      );
+    } else {
+      // For videos, show first frame as thumbnail (non-interactive)
+      return FutureBuilder<VideoPlayerController>(
+        future: _getVideoController(media.file),
+        builder: (context, snapshot) {
+          if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
+            return SizedBox(
+              width: 100,
+              height: 100,
+              child: IgnorePointer(  // ← ADD THIS: Disables all interaction
+                child: VideoPlayer(snapshot.data!),
+              ),
+            );
+          }
+          return Container(
+            width: 100,
+            height: 100,
+            color: Colors.black87,
+            child: const Center(
+              child: Icon(Icons.videocam, color: Colors.white, size: 40),
+            ),
+          );
+        },
+      );
+    }
+  }
+
+  Future<VideoPlayerController> _getVideoController(File videoFile) async {
+    final controller = VideoPlayerController.file(videoFile);
+    await controller.initialize();
+    await controller.setVolume(0);
+    await controller.seekTo(const Duration(seconds: 1)); // Get frame from 1s
+    return controller;
+  }
+
   @override
   Widget build(BuildContext context) {
     return WillPopScope(
@@ -533,11 +692,11 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
               _buildField(_descCtrl, AppStrings.field_full_description, maxLines: 4, icon: Icons.notes_outlined),
               Row(
                 children: [
-                  Text(AppStrings.gallery_title, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey[800])),
-                  IconButton(onPressed: _pickOtherImages, icon: const Icon(Icons.add_circle, color: primary, size: 32)),
+                  Text('Media Gallery', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey[800])),
+                  IconButton(onPressed: _pickOtherMedia, icon: const Icon(Icons.add_circle, color: primary, size: 32)),
                 ],
               ),
-              if (_otherImages.isNotEmpty)
+              if (_otherMedia.isNotEmpty)
                 SizedBox(
                   height: 100,
                   child: ReorderableListView(
@@ -545,29 +704,52 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                     onReorder: (oldIdx, newIdx) {
                       setState(() {
                         if (newIdx > oldIdx) newIdx -= 1;
-                        final item = _otherImages.removeAt(oldIdx);
-                        _otherImages.insert(newIdx, item);
+                        final item = _otherMedia.removeAt(oldIdx);
+                        _otherMedia.insert(newIdx, item);
                       });
                       _markAsChanged();
                     },
-                    children: _otherImages.asMap().entries.map((entry) {
+                    children: _otherMedia.asMap().entries.map((entry) {
                       return Container(
-                        key: ValueKey(entry.value.path),
+                        key: ValueKey(entry.value.file.path),
                         margin: const EdgeInsets.only(right: 8),
                         child: Stack(
                           children: [
                             ClipRRect(
                               borderRadius: BorderRadius.circular(12),
-                              child: Image.file(entry.value, width: 100, height: 100, fit: BoxFit.cover),
+                              child: _buildMediaThumbnail(entry.value),
                             ),
+                            // Video indicator
+                            if (entry.value.isVideo)
+                              Positioned(
+                                bottom: 4,
+                                right: 4,
+                                child: Container(
+                                  padding: const EdgeInsets.all(4),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black54,
+                                    borderRadius: BorderRadius.circular(4),
+                                  ),
+                                  child: const Icon(
+                                    Icons.play_circle_outline,
+                                    color: Colors.white,
+                                    size: 20,
+                                  ),
+                                ),
+                              ),
+                            // Delete button
                             Positioned(
-                              right: 0, top: 0,
+                              right: 0,
+                              top: 0,
                               child: GestureDetector(
                                 onTap: () {
-                                  setState(() => _otherImages.removeAt(entry.key));
+                                  setState(() => _otherMedia.removeAt(entry.key));
                                   _markAsChanged();
                                 },
-                                child: Container(color: Colors.black54, child: const Icon(Icons.close, color: Colors.white, size: 16)),
+                                child: Container(
+                                  color: Colors.black54,
+                                  child: const Icon(Icons.close, color: Colors.white, size: 16),
+                                ),
                               ),
                             )
                           ],

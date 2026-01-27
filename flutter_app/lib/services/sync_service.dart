@@ -7,6 +7,7 @@ import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../api_keys.dart';
 import '../model/interest_point.dart';
+import '../model/trip.dart';
 import 'storage_service.dart';
 
 class SyncService {
@@ -233,7 +234,7 @@ class SyncService {
         return true;
       }
 
-      for (var name in point.otherImagePaths) {
+      for (var name in point.otherMediaPaths) {
         final fullOtherPath = p.join(name);
         if (!_syncedFilesWithSize.containsKey(fullOtherPath)) return true;
       }
@@ -286,7 +287,7 @@ class SyncService {
     final imageNames = <String>{};
     for (var point in points) {
       if (point.titleImagePath.isNotEmpty) imageNames.add(point.titleImagePath);
-      imageNames.addAll(point.otherImagePaths);
+      imageNames.addAll(point.otherMediaPaths);
     }
 
     final appDir = await getApplicationDocumentsDirectory();

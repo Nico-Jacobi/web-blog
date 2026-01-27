@@ -78,7 +78,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
         if (point.titleImagePath.isNotEmpty) {
           allImages.add(point.titleImagePath);
         }
-        allImages.addAll(point.otherImagePaths);
+        allImages.addAll(point.otherMediaPaths);
       }
 
       for (final imageName in allImages) {

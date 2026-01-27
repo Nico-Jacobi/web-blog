@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:australien_blog_app/services/sync_service.dart';
 import 'package:path_provider/path_provider.dart';
 import '../model/interest_point.dart';
+import '../model/trip.dart';
 
 class StorageService {
 
@@ -32,7 +33,7 @@ class StorageService {
         name: json['name'] ?? '',
         shortDescription: json['shortDescription'] ?? '',
         titleImagePath: json['titleImagePath'] ?? '',
-        otherImagePaths: List<String>.from(json['otherImagePaths'] ?? []),
+        otherMediaPaths: List<String>.from(json['otherImagePaths'] ?? []),
         lat: json['lat']?.toDouble(),
         lon: json['lon']?.toDouble(),
         date: json['date'],
@@ -71,7 +72,7 @@ class StorageService {
       final titleFile = File(point.titleImagePath);
       if (await titleFile.exists()) await titleFile.delete();
     }
-    for (var imgPath in point.otherImagePaths) {
+    for (var imgPath in point.otherMediaPaths) {
       final imgFile = File(imgPath);
       if (await imgFile.exists()) await imgFile.delete();
     }
@@ -113,7 +114,7 @@ class StorageService {
       name: json['name'] ?? '',
       shortDescription: json['shortDescription'] ?? '',
       titleImagePath: json['titleImagePath'] ?? '',
-      otherImagePaths: List<String>.from(json['otherImagePaths'] ?? []),
+      otherMediaPaths: List<String>.from(json['otherImagePaths'] ?? []),
       lat: json['lat']?.toDouble(),
       lon: json['lon']?.toDouble(),
       date: json['date'],

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../model/interest_point.dart';
 import '../colors.dart';
+import '../model/trip.dart';
 import '../strings.dart';
 
 class TravelMethodDialog extends StatelessWidget {

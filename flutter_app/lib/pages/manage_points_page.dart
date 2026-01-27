@@ -6,6 +6,7 @@ import 'package:path_provider/path_provider.dart';
 
 import '../colors.dart'; // Using the theme colors
 import '../model/interest_point.dart';
+import '../model/trip.dart';
 import '../widgets/info_icon.dart';
 import '../widgets/point_with_route_card.dart';
 import '../services/storage_service.dart';
@@ -51,7 +52,7 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
         if (p.titleImagePath.isNotEmpty && !p.titleImagePath.contains('/')) {
           p.titleImagePath = '${appDir.path}/${p.titleImagePath}';
         }
-        p.otherImagePaths = p.otherImagePaths.map((name) {
+        p.otherMediaPaths = p.otherMediaPaths.map((name) {
           return (name.isNotEmpty && !name.contains('/'))
               ? '${appDir.path}/$name'
               : name;

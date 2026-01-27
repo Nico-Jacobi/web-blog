@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import '../colors.dart';
 import '../model/interest_point.dart';
+import '../model/trip.dart';
 import '../widgets/dashed_line_painter.dart';
 
 class PointWithRouteCard extends StatelessWidget {

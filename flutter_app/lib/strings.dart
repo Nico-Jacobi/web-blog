@@ -39,6 +39,13 @@ class AppStrings {
   static const button_discard = "Verwerfen";
   static const error_title_image_required = "Ein Titelbild ist erforderlich";
   static const info_date_location = "Datum und Standort werden automatisch aus den deinen Bilder ermittelt, können aber jederzeit geändert werden. (Standort nur wenn GPS beim Fotografieren aktiv war) ";
+  static const String label_media_gallery = 'Medien Galerie';
+  static const String media_add_title = 'Medien hinzufügen';
+  static const String media_images_title = 'Bilder';
+  static const String media_images_subtitle = 'Mehrere Fotos hinzufügen';
+  static const String media_video_title = 'Video';
+  static const String media_video_subtitle = 'Video hinzufügen (max. 5 Min.)';
+
 
   // pages/manage_points_page.dart
   static const manage_points_title = "Wegpunkte verwalten";
@@ -112,4 +119,15 @@ class AppStrings {
   static const sync_file_synced = "Synchronisiert";
   static const sync_file_not_synced = "Nicht synchronisiert";
   static const sync_file_not_found = "Datei lokal nicht gefunden";
+
+
+  // brose files page
+  static const String delete_item_title = 'Element löschen';
+  static const String delete_item_confirm_prefix = 'Willst du';
+  static const String delete_item_confirm_suffix = 'wirlich löschen? Dies kann nicht rückgängig gemacht werden.';
+  static const String perm_required_title = 'Speicherberechtigung erforderlich';
+  static const String perm_required_body = 'Diese App benötigt Zugriff auf den Speicher, um Dateien in Ihren Downloads-Ordner herunterzuladen.\n\nBitte gewähren Sie die Berechtigung "Zugriff auf alle Dateien" in den Einstellungen.';
+  static const String perm_denied_snackbar = 'Speicherberechtigung ist erforderlich, um Dateien im Downloads-Ordner herunterzuladen';
+  static const String download_success_prefix = '✅ Backup gespeichert in:\nDownload/';
+
 }

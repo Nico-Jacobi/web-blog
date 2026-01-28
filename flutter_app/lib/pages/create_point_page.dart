@@ -16,6 +16,7 @@ import '../model/media_file.dart';
 import '../model/trip.dart';
 import '../services/storage_service.dart';
 import '../strings.dart';
+import '../widgets/confirm_dialog.dart';
 import '../widgets/info_icon.dart';
 import '../widgets/travel_method_dialog.dart';
 import 'coordinate_picker.dart';
@@ -164,16 +165,14 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     _originalDate = point.date ?? '';
 
     if (point.titleImagePath.isNotEmpty) {
-      final titleImagePath = path.join(appDir.path, point.titleImagePath);
-      _titleImage = File(titleImagePath);
-      _originalTitleImagePath = titleImagePath;
+      final titleMedia = MediaFile.fromFilenameSync(point.titleImagePath, appDir.path);
+      _titleImage = titleMedia.file;
+      _originalTitleImagePath = titleMedia.file.path;
     }
 
-    // Load media files and detect if they're videos
-    _otherMedia = point.otherMediaPaths.map((name) {
-      final file = File(path.join(appDir.path, name));
-      final isVideo = _isVideoFile(name);
-      return MediaFile(file, isVideo);
+    // Load media files
+    _otherMedia = point.otherMediaPaths.map((filename) {
+      return MediaFile.fromFilenameSync(filename, appDir.path);
     }).toList();
 
     _originalOtherMediaPaths = _otherMedia.map((media) => media.file.path).toList();
@@ -181,13 +180,6 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     setState(() {});
   }
 
-  bool _isVideoFile(String filename) {
-    final ext = filename.toLowerCase();
-    return ext.endsWith('.mp4') ||
-        ext.endsWith('.mov') ||
-        ext.endsWith('.avi') ||
-        ext.endsWith('.mkv');
-  }
 
   String? _formatExifDate(String? exifDate) {
     if (exifDate == null || exifDate.isEmpty) return null;
@@ -249,52 +241,33 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
   }
 
   Future<void> _pickOtherMedia() async {
-    // Show dialog to choose between image and video
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-        title: const Text('Add Media', style: TextStyle(fontWeight: FontWeight.bold)),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.photo_library, color: primary),
-              ),
-              title: const Text('Images'),
-              subtitle: const Text('Add multiple photos'),
-              onTap: () async {
-                Navigator.pop(context);
-                await _pickImages();
-              },
-            ),
-            const SizedBox(height: 8),
-            ListTile(
-              leading: Container(
-                padding: const EdgeInsets.all(8),
-                decoration: BoxDecoration(
-                  color: primary.withOpacity(0.1),
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: const Icon(Icons.videocam, color: primary),
-              ),
-              title: const Text('Video'),
-              subtitle: const Text('Add a video (max 5 min)'),
-              onTap: () async {
-                Navigator.pop(context);
-                await _pickVideo();
-              },
-            ),
-          ],
-        ),
-      ),
-    );
+    try {
+      // pickMultipleMedia is the standard for mixed types
+      final List<XFile> picked = await _picker.pickMultipleMedia();
+
+      if (picked.isNotEmpty) {
+        final List<MediaFile> newFiles = [];
+        for (var xf in picked) {
+          final f = File(xf.path);
+          if (!_otherMedia.any((m) => m.file.path == f.path)) {
+            final isVideo = _isVideoExtension(xf.path);
+            newFiles.add(MediaFile(f, isVideo));
+          }
+        }
+
+        if (newFiles.isNotEmpty) {
+          _markAsChanged();
+          setState(() => _otherMedia.addAll(newFiles));
+        }
+      }
+    } on PlatformException catch (e) {
+      debugPrint("Picker error: $e");
+    }
+  }
+
+  bool _isVideoExtension(String path) {
+    final ext = path.toLowerCase();
+    return ext.endsWith('.mp4') || ext.endsWith('.mov') || ext.endsWith('.avi');
   }
 
   Future<void> _pickImages() async {
@@ -318,7 +291,6 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
   Future<void> _pickVideo() async {
     final XFile? video = await _picker.pickVideo(
       source: ImageSource.gallery,
-      maxDuration: const Duration(minutes: 5), // Optional limit
     );
 
     if (video != null) {
@@ -374,31 +346,40 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
           ? widget.existingPoint!.id
           : (points.isEmpty ? 1 : points.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1);
 
-      String newTitlePath = _titleImage!.path.startsWith(appDir.path)
-          ? _titleImage!.path
-          : '${appDir.path}/${_generateMediaFilename(path.extension(_titleImage!.path))}';
-      if (!_titleImage!.path.startsWith(appDir.path)) {
-        newTitlePath = await _compressImage(_titleImage!, newTitlePath);
+      // Handle title image
+      String titleFilename;
+      if (_titleImage!.path.startsWith(appDir.path)) {
+        // Already in app directory
+        titleFilename = path.basename(_titleImage!.path);
+      } else {
+        // New image - compress and save
+        final newFilename = _generateMediaFilename(path.extension(_titleImage!.path));
+        final targetPath = path.join(appDir.path, newFilename);
+        await _compressImage(_titleImage!, targetPath);
+        titleFilename = newFilename;
       }
 
-      List<String> newOtherPaths = [];
+      // Handle other media
+      List<String> mediaFilenames = [];
       for (var media in _otherMedia) {
-        String mediaPath = media.file.path.startsWith(appDir.path)
-            ? media.file.path
-            : '${appDir.path}/${_generateMediaFilename(media.extension)}';
-
-        if (!media.file.path.startsWith(appDir.path)) {
-          mediaPath = await _compressMedia(media, mediaPath);
+        if (media.file.path.startsWith(appDir.path)) {
+          // Already in app directory
+          mediaFilenames.add(media.filename);
+        } else {
+          // New media - compress and save
+          final newFilename = _generateMediaFilename(media.extension);
+          final targetPath = path.join(appDir.path, newFilename);
+          await _compressMedia(media, targetPath);
+          mediaFilenames.add(newFilename);
         }
-        newOtherPaths.add(mediaPath);
       }
 
       InterestPoint point = InterestPoint(
         id: pointId,
         name: _nameCtrl.text,
         shortDescription: _shortDescCtrl.text,
-        titleImagePath: path.basename(newTitlePath),
-        otherMediaPaths: newOtherPaths.map((p) => path.basename(p)).toList(),
+        titleImagePath: titleFilename,  // Just filename
+        otherMediaPaths: mediaFilenames,  // Just filenames
         lat: double.tryParse(_latCtrl.text),
         lon: double.tryParse(_lonCtrl.text),
         date: _dateCtrl.text,
@@ -422,8 +403,8 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
 
       await _storage.savePointsAndTrips(points, trips);
 
-      if (mounted) Navigator.pop(context); // close loading
-      if (mounted) Navigator.pop(context, true); // close page
+      if (mounted) Navigator.pop(context);
+      if (mounted) Navigator.pop(context, true);
 
     } catch (e) {
       if (mounted) Navigator.pop(context);
@@ -433,6 +414,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       );
     }
   }
+
 
   Future<String> _compressImage(File file, String targetPath) async {
     final compressed = await FlutterImageCompress.compressAndGetFile(
@@ -493,62 +475,15 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       return true;
     }
 
-    return await showDialog<bool>(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(colors: [dark, primary], begin: Alignment.topLeft, end: Alignment.bottomRight),
-            borderRadius: BorderRadius.circular(28),
-          ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(color: Colors.white.withOpacity(0.2), shape: BoxShape.circle),
-                child: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 48),
-              ),
-              const SizedBox(height: 20),
-              const Text(AppStrings.discard_changes_title, textAlign: TextAlign.center, style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 12),
-              Text(AppStrings.discard_changes_message, textAlign: TextAlign.center, style: TextStyle(color: Colors.white.withOpacity(0.95), fontSize: 15, height: 1.5)),
-              const SizedBox(height: 28),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: Colors.white.withOpacity(0.2),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      child: const Text(AppStrings.button_cancel, style: TextStyle(color: Colors.white, fontSize: 16)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: Colors.white,
-                        foregroundColor: dark,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      child: const Text(AppStrings.button_discard, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    ) ?? false;
+    final shouldDiscard = await GradientConfirmDialog.show(
+      context,
+      title: AppStrings.discard_changes_title,
+      content: AppStrings.discard_changes_message,
+      confirmText: AppStrings.button_discard,
+      cancelText: AppStrings.button_cancel,
+    );
+
+    return shouldDiscard ?? false;
   }
 
   Widget _buildField(TextEditingController ctrl, String label, {String? hint, int maxLines = 1, IconData? icon}) {
@@ -692,7 +627,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
               _buildField(_descCtrl, AppStrings.field_full_description, maxLines: 4, icon: Icons.notes_outlined),
               Row(
                 children: [
-                  Text('Media Gallery', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey[800])),
+                  Text(AppStrings.label_media_gallery, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey[800])),
                   IconButton(onPressed: _pickOtherMedia, icon: const Icon(Icons.add_circle, color: primary, size: 32)),
                 ],
               ),

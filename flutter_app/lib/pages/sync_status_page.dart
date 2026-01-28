@@ -2,11 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'dart:io';
+import '../model/data_file.dart';
+import '../model/media_file.dart';
 import '../services/storage_service.dart';
 import '../services/sync_service.dart';
 import '../strings.dart';
 import '../model/file_status.dart';
 import '../colors.dart';
+import '../widgets/confirm_dialog.dart';
 
 class SyncStatusPage extends StatefulWidget {
   const SyncStatusPage({Key? key}) : super(key: key);
@@ -36,64 +39,51 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
     setState(() => _isLoading = true);
 
     try {
-      // Load synced files state
       _syncedFiles = await _syncService.getSyncedFiles();
-
-      // Load points and trips
       final points = await _storageService.loadPoints();
       final trips = await _storageService.loadTrips();
 
-      // Collect all files
       final fileStatuses = <FileStatus>[];
-
       final appDir = await getApplicationDocumentsDirectory();
 
-      final pointsFile = File('${appDir.path}/points.json');
-      final pointsExists = await pointsFile.exists();
-      final pointsSize = pointsExists ? await pointsFile.length() : 0;
-
+      // Add data files using DataFile class
+      final pointsData = DataFile.points;
       fileStatuses.add(FileStatus(
-        path: 'data/points.json',
+        path: pointsData.name,  // "points.json"
         type: FileType.metadata,
         isSynced: true,
-        size: pointsSize,
-        exists: pointsExists,
+        size: await pointsData.size(),
+        exists: await pointsData.exists(),
       ));
 
-      final tripsFile = File('${appDir.path}/trips.json');
-      final tripsExists = await tripsFile.exists();
-      final tripsSize = tripsExists ? await tripsFile.length() : 0;
-
+      final tripsData = DataFile.trips;
       fileStatuses.add(FileStatus(
-        path: 'data/trips.json',
+        path: tripsData.name,  // "trips.json"
         type: FileType.metadata,
         isSynced: true,
-        size: tripsSize,
-        exists: tripsExists,
+        size: await tripsData.size(),
+        exists: await tripsData.exists(),
       ));
 
-      // Add image files
-      final allImages = <String>{};
+      // Collect all media filenames
+      final allMediaFilenames = <String>{};
       for (var point in points) {
         if (point.titleImagePath.isNotEmpty) {
-          allImages.add(point.titleImagePath);
+          allMediaFilenames.add(point.titleImagePath);
         }
-        allImages.addAll(point.otherMediaPaths);
+        allMediaFilenames.addAll(point.otherMediaPaths);
       }
 
-      for (final imageName in allImages) {
-        final fullPath = '${appDir.path}/$imageName';
-        final file = File(fullPath);
-
-        final exists = await file.exists();
-        final size = exists ? await file.length() : 0;
+      // Add media files using MediaFile class
+      for (final filename in allMediaFilenames) {
+        final media = MediaFile.fromFilenameSync(filename, appDir.path);
 
         fileStatuses.add(FileStatus(
-          path: fullPath,
+          path: media.filename,  // Just filename
           type: FileType.image,
-          isSynced: _syncedFiles.contains(imageName),
-          size: size,
-          exists: exists,
+          isSynced: _syncedFiles.contains(filename),
+          size: await media.size(),
+          exists: await media.exists(),
         ));
       }
 
@@ -146,8 +136,15 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
   }
 
   Future<void> _performReverseSync() async {
-    final confirmed = await _showReverseSyncDialog();
-    if (!confirmed) return;
+    final confirmed = await GradientConfirmDialog.show(
+      context,
+      title: AppStrings.sync_dialog_title,
+      content: AppStrings.sync_dialog_content,
+      confirmText: AppStrings.sync_dialog_confirm,
+      cancelText: AppStrings.button_cancel,
+      icon: Icons.cloud_download,
+    );
+    if (confirmed != true) return;
 
     _storageService.resetApp();
 
@@ -178,104 +175,6 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
     }
   }
 
-  Future<bool> _showReverseSyncDialog() async {
-    return await showDialog<bool>(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [dark, primary],
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(28),
-          ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(
-                  Icons.cloud_download,
-                  color: Colors.white,
-                  size: 48,
-                ),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                AppStrings.sync_dialog_title,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 24,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                AppStrings.sync_dialog_content,
-                textAlign: TextAlign.center,
-                style: TextStyle(
-                  color: Colors.white.withOpacity(0.95),
-                  fontSize: 15,
-                  height: 1.5,
-                ),
-              ),
-              const SizedBox(height: 28),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: Colors.white.withOpacity(0.2),
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: const Text(
-                        AppStrings.button_cancel,
-                        style: TextStyle(color: Colors.white, fontSize: 16),
-                      ),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: Colors.white,
-                        foregroundColor: dark,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(16),
-                        ),
-                      ),
-                      child: const Text(
-                        AppStrings.sync_dialog_confirm,
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    ) ?? false;
-  }
 
   void _showSuccessSnackBar(String message) {
     ScaffoldMessenger.of(context).showSnackBar(

@@ -2,11 +2,14 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
 import '../colors.dart'; // Using the theme colors
 import '../model/interest_point.dart';
+import '../model/media_file.dart';
 import '../model/trip.dart';
+import '../widgets/confirm_dialog.dart';
 import '../widgets/info_icon.dart';
 import '../widgets/point_with_route_card.dart';
 import '../services/storage_service.dart';
@@ -47,15 +50,19 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
 
       List<InterestPoint> points = data['points'] as List<InterestPoint>;
 
-      // Reconstruct full paths for UI display
+      // Convert filenames to full paths for UI display using MediaFile
       for (var p in points) {
-        if (p.titleImagePath.isNotEmpty && !p.titleImagePath.contains('/')) {
-          p.titleImagePath = '${appDir.path}/${p.titleImagePath}';
+        if (p.titleImagePath.isNotEmpty) {
+          final media = MediaFile.fromFilenameSync(p.titleImagePath, appDir.path);
+          p.titleImagePath = media.file.path;  // Full path for UI
         }
-        p.otherMediaPaths = p.otherMediaPaths.map((name) {
-          return (name.isNotEmpty && !name.contains('/'))
-              ? '${appDir.path}/$name'
-              : name;
+
+        p.otherMediaPaths = p.otherMediaPaths.map((filename) {
+          if (filename.isNotEmpty) {
+            final media = MediaFile.fromFilenameSync(filename, appDir.path);
+            return media.file.path;  // Full path for UI
+          }
+          return filename;
         }).toList();
       }
 
@@ -71,15 +78,44 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
   }
 
   Future<void> _saveData() async {
-    await _storage.savePointsAndTrips(_points, _tripElements);
+    final cleanedPoints = _points.map((p) {
+      final titleName = path.basename(p.titleImagePath);
+      final otherNames = p.otherMediaPaths
+          .where((pathStr) => pathStr.isNotEmpty)
+          .map((pathStr) => pathStr.contains(Platform.pathSeparator)
+          ? path.basename(pathStr)
+          : pathStr)
+          .toList();
+
+      return InterestPoint(
+        id: p.id,
+        name: p.name,
+        shortDescription: p.shortDescription,
+        titleImagePath: titleName, // Nur Dateiname!
+        otherMediaPaths: otherNames, // Nur Dateinamen!
+        lat: p.lat,
+        lon: p.lon,
+        date: p.date,
+        description: p.description,
+        tripOrder: p.tripOrder,
+      );
+    }).toList();
+
+    await _storage.savePointsAndTrips(cleanedPoints, _tripElements);
   }
 
   Future<void> _deletePoint(InterestPoint point) async {
-    final confirm = await _showDeleteDialog(point.name);
+    final confirm = await GradientConfirmDialog.show(
+      context,
+      title: AppStrings.delete_point_title,
+      content: '${AppStrings.delete_point_confirm_prefix}\n"${point.name}"\n${AppStrings.delete_point_confirm_suffix}',
+      confirmText: AppStrings.button_delete,
+      cancelText: AppStrings.button_cancel,
+    );
     if (confirm != true) return;
 
     try {
-      await _storage.deletePointImages(point);
+      await _storage.deletePointMedia(point);
       _tripElements.removeWhere((trip) => trip.pointId2 == point.id);
 
       final deletedOrder = point.tripOrder;
@@ -169,78 +205,6 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
     }
   }
 
-  Future<bool?> _showDeleteDialog(String pointName) {
-    return showDialog<bool>(
-      context: context,
-      builder: (context) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [dark, primary], // Correctly using theme variables
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-            ),
-            borderRadius: BorderRadius.circular(28),
-          ),
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: Colors.white.withOpacity(0.2),
-                  shape: BoxShape.circle,
-                ),
-                child: const Icon(Icons.warning_amber_rounded, color: Colors.white, size: 48),
-              ),
-              const SizedBox(height: 20),
-              const Text(
-                AppStrings.delete_point_title, textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white, fontSize: 24, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 12),
-              Text(
-                '${AppStrings.delete_point_confirm_prefix}\n"$pointName"\n${AppStrings.delete_point_confirm_suffix}',
-                textAlign: TextAlign.center,
-                style: TextStyle(color: Colors.white.withOpacity(0.95), fontSize: 15, height: 1.5),
-              ),
-              const SizedBox(height: 28),
-              Row(
-                children: [
-                  Expanded(
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(context, false),
-                      style: TextButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: Colors.white.withOpacity(0.2),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      child: const Text(AppStrings.button_cancel, style: TextStyle(color: Colors.white, fontSize: 16)),
-                    ),
-                  ),
-                  const SizedBox(width: 12),
-                  Expanded(
-                    child: ElevatedButton(
-                      onPressed: () => Navigator.pop(context, true),
-                      style: ElevatedButton.styleFrom(
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        backgroundColor: Colors.white,
-                        foregroundColor: dark,
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                      ),
-                      child: const Text(AppStrings.button_delete, style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-                    ),
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
 
   void _showErrorSnackBar(String message) {
     if (!mounted) return;

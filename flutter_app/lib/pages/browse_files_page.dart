@@ -2,10 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 import '../services/api_service.dart';
 import '../strings.dart';
 import '../colors.dart';
+import '../widgets/confirm_dialog.dart';
 
 class BrowseFilesPage extends StatefulWidget {
   const BrowseFilesPage({super.key});
@@ -47,6 +49,22 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
     }
   }
 
+  Future<void> _confirmDelete(String path, String name) async {
+    // Hier nutzen wir jetzt das neue Widget
+    final confirmed = await GradientConfirmDialog.show(
+      context,
+      title: AppStrings.delete_item_title,
+      content: '${AppStrings.delete_item_confirm_prefix}\n"$name"\n${AppStrings.delete_item_confirm_suffix}',
+      confirmText: AppStrings.button_delete,
+      cancelText: AppStrings.button_cancel,
+      icon: Icons.delete_forever_rounded, // Optional anderes Icon
+    );
+
+    if (confirmed == true) {
+      await _deleteItem(path);
+    }
+  }
+
   Future<void> _deleteItem(String path) async {
     try {
       await ApiService.deleteFile(path);
@@ -65,39 +83,96 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
     }
   }
 
+  Future<bool> _requestStoragePermission() async {
+    if (Platform.isAndroid) {
+      final androidInfo = await DeviceInfoPlugin().androidInfo;
+
+      if (androidInfo.version.sdkInt >= 30) {
+        var status = await Permission.manageExternalStorage.status;
+        if (!status.isGranted) {
+          status = await Permission.manageExternalStorage.request();
+
+          if (!status.isGranted) {
+            if (mounted) {
+              final openSettings = await GradientConfirmDialog.show(
+                context,
+                title: AppStrings.perm_required_title,
+                content: AppStrings.perm_required_body,
+                confirmText: AppStrings.button_retry, // Oder "Einstellungen öffnen"
+                cancelText: AppStrings.button_cancel,
+                icon: Icons.storage_rounded,
+              );
+
+              if (openSettings == true) {
+                await openAppSettings();
+              }
+            }
+            return false;
+          }
+        }
+        return status.isGranted;
+      } else {
+        var status = await Permission.storage.status;
+        if (!status.isGranted) {
+          status = await Permission.storage.request();
+        }
+        return status.isGranted;
+      }
+    }
+    return true;
+  }
+
   Future<void> _downloadAll() async {
+    final hasPermission = await _requestStoragePermission();
+    if (!hasPermission) {
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text(AppStrings.perm_denied_snackbar)),
+        );
+      }
+      return;
+    }
+
     setState(() => isDownloading = true);
 
     try {
-      String? downloadsPath;
+      String downloadsPath;
 
       if (Platform.isAndroid) {
-        // Gets /storage/emulated/0/Android/data/your.package/files
-        final externalDirs = await getExternalStorageDirectories(type: StorageDirectory.downloads);
-        if (externalDirs != null && externalDirs.isNotEmpty) {
-          // Extract the root path to get to the public /Download folder
-          String path = externalDirs.first.path;
-          downloadsPath = path.split('/Android')[0] + '/Download';
+        downloadsPath = '/storage/emulated/0/Download';
+        final downloadsDir = Directory(downloadsPath);
+        if (!await downloadsDir.exists()) {
+          throw Exception('Downloads folder not found');
         }
       } else {
         final dir = await getApplicationDocumentsDirectory();
         downloadsPath = dir.path;
       }
 
-      if (downloadsPath == null) throw Exception("Could not find path");
-
-      final backupDir = Directory('$downloadsPath/Backup_${DateTime.now().millisecondsSinceEpoch}');
+      final timestamp = DateTime.now().millisecondsSinceEpoch;
+      final backupDirName = 'Backup_$timestamp';
+      final backupDir = Directory('$downloadsPath/$backupDirName');
       await backupDir.create(recursive: true);
 
       await _downloadDirectory('/', backupDir.path);
 
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('✅ Saved to: $downloadsPath')),
+          SnackBar(
+            content: Text('${AppStrings.download_success_prefix}$backupDirName'),
+            duration: const Duration(seconds: 5),
+            backgroundColor: accent,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
     } catch (e) {
-      debugPrint('Error: $e');
+      debugPrint('Download error: $e');
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('${AppStrings.snackBar_error}$e')),
+        );
+      }
     } finally {
       setState(() => isDownloading = false);
     }
@@ -108,23 +183,19 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
     final folders = data['folders'] as List? ?? [];
     final files = data['files'] as List? ?? [];
 
-    // Download all files in current directory
     for (final file in files) {
       try {
-        final filePath = file['path'] as String;
         final fileName = file['name'] as String;
         final url = file['url'] as String;
         final bytes = await ApiService.downloadFileFromUrl(url);
 
         final localFile = File('$localPath/$fileName');
         await localFile.writeAsBytes(bytes);
-        debugPrint('Downloaded: $fileName');
       } catch (e) {
-        debugPrint('Failed to download file: $e');
+        debugPrint('Failed: $e');
       }
     }
 
-    // Recursively download all subdirectories
     for (final folder in folders) {
       final folderPath = folder['path'] as String;
       final folderName = folder['name'] as String;
@@ -141,7 +212,7 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
         title: Text(AppStrings.browse_files_appBar_title),
         backgroundColor: accent,
         foregroundColor: Colors.white,
-        systemOverlayStyle: SystemUiOverlayStyle(
+        systemOverlayStyle: const SystemUiOverlayStyle(
           systemNavigationBarColor: Colors.transparent,
           statusBarColor: Colors.transparent,
           systemNavigationBarIconBrightness: Brightness.light,
@@ -153,14 +224,10 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
                 ? const SizedBox(
               width: 20,
               height: 20,
-              child: CircularProgressIndicator(
-                color: Colors.white,
-                strokeWidth: 2,
-              ),
+              child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
             )
                 : const Icon(Icons.download),
             onPressed: isDownloading ? null : _downloadAll,
-            tooltip: 'Download All',
           ),
         ],
       ),
@@ -177,10 +244,7 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
-                IconButton(
-                  icon: const Icon(Icons.refresh),
-                  onPressed: _loadFiles,
-                ),
+                IconButton(icon: const Icon(Icons.refresh), onPressed: _loadFiles),
               ],
             ),
           ),
@@ -211,7 +275,6 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
 
   Widget _buildFileList() {
     if (fileData == null) return Center(child: Text(AppStrings.noData_text));
-
     final folders = fileData!['folders'] as List? ?? [];
     final files = fileData!['files'] as List? ?? [];
 
@@ -223,10 +286,8 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
             title: Text(AppStrings.parent_folder),
             onTap: () {
               setState(() {
-                List<String> segments = currentPath.split('/');
-                segments.removeWhere((s) => s.isEmpty);
+                List<String> segments = currentPath.split('/')..removeWhere((s) => s.isEmpty);
                 if (segments.isNotEmpty) segments.removeLast();
-
                 currentPath = '/${segments.join('/')}';
               });
               _loadFiles();
@@ -238,23 +299,20 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
           subtitle: Text('${AppStrings.modified_prefix}${folder['modified']}'),
           trailing: IconButton(
             icon: const Icon(Icons.delete, color: Colors.red),
-            onPressed: () => _deleteItem(folder['path']),
+            onPressed: () => _confirmDelete(folder['path'], folder['name']),
           ),
           onTap: () {
-            setState(() {
-              currentPath = folder['path'];
-            });
+            setState(() => currentPath = folder['path']);
             _loadFiles();
           },
         )),
         ...files.map((file) => ListTile(
           leading: const Icon(Icons.insert_drive_file, color: primary),
           title: Text(file['name']),
-          subtitle: Text(
-              '${AppStrings.size_prefix}${file['size']} bytes\n${AppStrings.modified_prefix}${file['modified']}'),
+          subtitle: Text('${AppStrings.size_prefix}${file['size']} bytes\n${AppStrings.modified_prefix}${file['modified']}'),
           trailing: IconButton(
             icon: const Icon(Icons.delete, color: Colors.red),
-            onPressed: () => _deleteItem(file['path']),
+            onPressed: () => _confirmDelete(file['path'], file['name']),
           ),
         )),
       ],

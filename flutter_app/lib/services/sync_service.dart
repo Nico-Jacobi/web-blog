@@ -6,7 +6,9 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 import '../api_keys.dart';
+import '../model/data_file.dart';
 import '../model/interest_point.dart';
+import '../model/media_file.dart';
 import '../model/trip.dart';
 import 'storage_service.dart';
 
@@ -283,41 +285,44 @@ class SyncService {
     // 1. Collect all images
     print('[SYNC] --- Phase 1: Image Sync ---');
     // Collect all images (these are names from JSON)
-    // 1. Collect all image NAMES from JSON
+// 1. Collect all image NAMES from JSON (around line 150)
     final imageNames = <String>{};
     for (var point in points) {
       if (point.titleImagePath.isNotEmpty) imageNames.add(point.titleImagePath);
       imageNames.addAll(point.otherMediaPaths);
     }
 
+// Create MediaFile objects to get server paths
     final appDir = await getApplicationDocumentsDirectory();
-    // Create a Map to link Absolute Path -> Filename
-    final absToName = {for (var name in imageNames) p.join(appDir.path, name): name};
-    final absolutePaths = absToName.keys.toList();
+    final mediaFiles = imageNames.map((filename) =>
+        MediaFile.fromFilenameSync(filename, appDir.path)
+    ).toList();
 
-    // 2. Batch verify using ABSOLUTE paths
+// Get absolute paths for verification
+    final absolutePaths = mediaFiles.map((m) => m.file.path).toList();
+
+// 2. Batch verify
     final verificationResults = await _batchVerifyOnServer(absolutePaths);
 
-    // 3. Filter using the same absolute keys used in verificationResults
-    final imagesToUploadNames = imageNames.where((name) {
-      final absPath = p.join(appDir.path, name);
-      final verified = verificationResults[absPath] ?? false;
+// 3. Filter to get media that needs uploading
+    final mediaToUpload = mediaFiles.where((media) {
+      final verified = verificationResults[media.file.path] ?? false;
       if (verified) {
-        print('[SYNC] Skipping $name (verified on server)');
+        print('[SYNC] Skipping ${media.filename} (verified on server)');
         return false;
       }
       return true;
     }).toList();
 
-    print('[SYNC] Need to upload ${imagesToUploadNames.length} images');
-    skippedCount = imageNames.length - imagesToUploadNames.length;
+    print('[SYNC] Need to upload ${mediaToUpload.length} media files');
+    skippedCount = mediaFiles.length - mediaToUpload.length;
 
-    // 4. Upload images using filenames
-    for (int i = 0; i < imagesToUploadNames.length; i++) {
-      final name = imagesToUploadNames[i];
-      print('[SYNC] Uploading image ${i + 1}/${imagesToUploadNames.length}: $name');
+// 4. Upload using MediaFile
+    for (int i = 0; i < mediaToUpload.length; i++) {
+      final media = mediaToUpload[i];
+      print('[SYNC] Uploading ${i + 1}/${mediaToUpload.length}: ${media.filename}');
 
-      final result = await _uploadFile(name);
+      final result = await _uploadFile(media.filename);
       if (result['success']) {
         print('[SYNC] ✓ Upload request completed');
       } else {
@@ -326,27 +331,28 @@ class SyncService {
     }
 
 // 5. Verify everything and count actual successes
-    print('[SYNC] Verifying ${imagesToUploadNames.length} uploads...');
-    final absPathsToVerify = imagesToUploadNames.map((n) => p.join(appDir.path, n)).toList();
-    final verifyResults = await _batchVerifyOnServer(absPathsToVerify);
+    final uploadAttemptPaths = mediaToUpload.map((m) => m.file.path).toList();
+    print('[SYNC] Verifying ${uploadAttemptPaths.length} uploads...');
+
+    final verifyResults = await _batchVerifyOnServer(uploadAttemptPaths);
 
     int verifiedCount = 0;
     for (final entry in verifyResults.entries) {
-      if (entry.value) { // entry.key is the absolute path
+      if (entry.value) { // entry.key is the absolute path, value is boolean
         verifiedCount++;
         final file = File(entry.key);
-        final size = await file.length();
-        // Mark as synced using filename to keep state clean
-        await _markAsSynced(entry.key, size);
+        if (await file.exists()) {
+          final size = await file.length();
+          await _markAsSynced(entry.key, size);
+        }
       }
     }
 
     successCount += verifiedCount;
-    // Calculate failures based on what was supposed to upload vs what was verified
-    int currentBatchFailures = imagesToUploadNames.length - verifiedCount;
+    int currentBatchFailures = mediaToUpload.length - verifiedCount;
     failCount += currentBatchFailures;
 
-    print('[SYNC] Verification: $verifiedCount/${imagesToUploadNames.length} confirmed on server');
+    print('[SYNC] Verification: $verifiedCount/${mediaToUpload.length} confirmed on server');
     if (currentBatchFailures > 0) {
       print('[SYNC] ⚠️ $currentBatchFailures images failed to upload or verify');
     }
@@ -359,15 +365,19 @@ class SyncService {
     final pointsContent = jsonEncode(pointsJson);
     final tripsContent = jsonEncode(tripsJson);
 
-    final pointsNeedSync = await _shouldSyncJson('data/points.json', pointsContent);
-    final tripsNeedSync = await _shouldSyncJson('data/trips.json', tripsContent);
+    final pointsData = DataFile.points;
+    final tripsData = DataFile.trips;
+
+    final pointsNeedSync = await _shouldSyncJson(pointsData.serverPath, pointsContent);
+    final tripsNeedSync = await _shouldSyncJson(tripsData.serverPath, tripsContent);
+
 
     print('[SYNC] Points JSON needs sync: $pointsNeedSync');
     print('[SYNC] Trips JSON needs sync: $tripsNeedSync');
 
     if (pointsNeedSync) {
       print('[SYNC] Uploading points.json...');
-      final result = await _writeJson('data/points.json', pointsJson);
+      final result = await _writeJson(pointsData.serverPath, pointsJson);
       if (result['success']) {
         await _markAsSynced('data/points.json', result['size']);
         await _saveContentHash('data/points.json', pointsContent);
@@ -383,7 +393,7 @@ class SyncService {
 
     if (tripsNeedSync) {
       print('[SYNC] Uploading trips.json...');
-      final result = await _writeJson('data/trips.json', tripsJson);
+      final result = await _writeJson(tripsData.serverPath, tripsJson);
       if (result['success']) {
         await _markAsSynced('data/trips.json', result['size']);
         await _saveContentHash('data/trips.json', tripsContent);
@@ -486,42 +496,37 @@ class SyncService {
 
   // --- API CALLS ---
 
-  Future<Map<String, dynamic>> _uploadFile(String localPath, {int retryCount = 0}) async {
+  Future<Map<String, dynamic>> _uploadFile(String filename, {int retryCount = 0}) async {
     final appDir = await getApplicationDocumentsDirectory();
-    final fullPath = p.join(appDir.path, localPath);
+    final media = MediaFile.fromFilenameSync(filename, appDir.path);
 
-    final file = File(fullPath);
-
-    if (!await file.exists()) {
-      print('[SYNC] File not found locally, skipping: $fullPath');
+    if (!await media.exists()) {
+      print('[SYNC] File not found locally, skipping: ${media.filename}');
       return {'success': true, 'size': 0};
     }
+
     const maxRetries = 3;
     const timeoutDuration = Duration(minutes: 3);
 
     try {
-      final filename = p.basename(localPath);
-      // FORCE server directory to images/
-      final serverPath = 'images/$filename';
-      final fileSize = await file.length();
+      final fileSize = await media.size();
+      final serverPath = media.serverPath;  // Uses "images/filename"
 
-      print('[SYNC] Uploading to server path: $serverPath (${fileSize} bytes)');
+      print('[SYNC] Uploading to server path: $serverPath ($fileSize bytes)');
 
       var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/upload'));
       request.headers.addAll({
         'x-auth-token': authToken,
-        'Connection': 'close', // Clean up socket after each file
+        'Connection': 'close',
       });
 
-      // This tells the server the target filename/path
       request.fields['path'] = serverPath;
-      request.files.add(await http.MultipartFile.fromPath('file', file.path));
+      request.files.add(await http.MultipartFile.fromPath('file', media.file.path));
 
       final streamedResponse = await request.send().timeout(timeoutDuration);
       final response = await http.Response.fromStream(streamedResponse);
 
       if (response.statusCode == 200) {
-        // Small pause to let the Raspberry Pi SD card finish writing
         await Future.delayed(const Duration(milliseconds: 500));
         return {'success': true, 'size': fileSize};
       } else {
@@ -532,7 +537,7 @@ class SyncService {
 
       if (retryCount < maxRetries - 1) {
         await Future.delayed(Duration(seconds: (retryCount + 1) * 2));
-        return _uploadFile(localPath, retryCount: retryCount + 1);
+        return _uploadFile(filename, retryCount: retryCount + 1);
       }
       return {'success': false, 'error': e.toString()};
     }
@@ -568,20 +573,19 @@ class SyncService {
   }
 
   /// Downloads everything from server to initialize a fresh local app state.
-  /// Downloads everything from server to initialize a fresh local app state.
   Future<bool> initializeFromServer() async {
     print('[SYNC] ========== Initializing from Server ==========');
     try {
       final appDir = await getApplicationDocumentsDirectory();
 
-      // Don't create images subdirectory - files go directly in appDir
-      // This matches how AddInterestPointPage saves images
+      // 1. Download Metadata using DataFile
+      final pointsData = DataFile.points;
+      final tripsData = DataFile.trips;
 
-      // 1. Download Metadata
       print('[SYNC] Downloading points.json...');
-      final pointsJson = await _downloadJson('data/points.json');
+      final pointsJson = await _downloadJson(pointsData.serverPath);
       print('[SYNC] Downloading trips.json...');
-      final tripsJson = await _downloadJson('data/trips.json');
+      final tripsJson = await _downloadJson(tripsData.serverPath);
 
       if (pointsJson == null || tripsJson == null) {
         print('[SYNC] ✗ Failed to download metadata');
@@ -590,56 +594,50 @@ class SyncService {
       print('[SYNC] ✓ Metadata downloaded successfully');
 
       // Save metadata locally
-      final pointsFile = File('${appDir.path}/points.json');
+      final pointsFile = await pointsData.file;
       final pointsContent = jsonEncode(pointsJson);
       await pointsFile.writeAsString(pointsContent);
       print('[SYNC] Saved points.json locally');
 
-      final tripsFile = File('${appDir.path}/trips.json');
+      final tripsFile = await tripsData.file;
       final tripsContent = jsonEncode(tripsJson);
       await tripsFile.writeAsString(tripsContent);
       print('[SYNC] Saved trips.json locally');
 
-      await _markAsSynced('data/points.json', utf8.encode(pointsContent).length);
-      await _markAsSynced('data/trips.json', utf8.encode(tripsContent).length);
-      await _saveContentHash('data/points.json', pointsContent);
-      await _saveContentHash('data/trips.json', tripsContent);
+      await _markAsSynced(pointsData.serverPath, utf8.encode(pointsContent).length);
+      await _markAsSynced(tripsData.serverPath, utf8.encode(tripsContent).length);
+      await _saveContentHash(pointsData.serverPath, pointsContent);
+      await _saveContentHash(tripsData.serverPath, tripsContent);
 
-      // 2. Parse and download images
+      // 2. Parse and download images using MediaFile
       print('[SYNC] --- Downloading Images ---');
       final List<dynamic> jsonList = pointsJson;
-      final imagesToDownload = <String>{};
+      final mediaFilenames = <String>{};
+
       for (var json in jsonList) {
         if (json['titleImagePath']?.isNotEmpty == true) {
-          imagesToDownload.add(json['titleImagePath']);
+          mediaFilenames.add(json['titleImagePath']);
         }
         if (json['otherImagePaths'] != null) {
-          imagesToDownload.addAll(List<String>.from(json['otherImagePaths']));
+          mediaFilenames.addAll(List<String>.from(json['otherImagePaths']));
         }
       }
-      print('[SYNC] Found ${imagesToDownload.length} images to download');
+      print('[SYNC] Found ${mediaFilenames.length} media files to download');
 
       int downloadCount = 0;
-      for (String localPathFromJson in imagesToDownload) {
-        // Extract just the filename
-        final fileName = p.basename(localPathFromJson);
+      for (String filename in mediaFilenames) {
+        final media = MediaFile.fromFilenameSync(filename, appDir.path);
 
-        // Server path is always images/filename
-        final serverPath = 'images/$fileName';
-
-        // Local save path DIRECTLY in appDir (not in images subdirectory)
-        final localFile = File('${appDir.path}/$fileName');
-
-        if (await localFile.exists()) {
-          print('[SYNC] Image already exists locally: $fileName');
-          await _markAsSynced(localFile.path, await localFile.length());
+        if (await media.exists()) {
+          print('[SYNC] Media already exists locally: $filename');
+          await _markAsSynced(media.file.path, await media.size());
           continue;
         }
 
-        print('[SYNC] Downloading ${++downloadCount}/${imagesToDownload.length}: $fileName');
-        final size = await _downloadFile(serverPath, localFile.path);
+        print('[SYNC] Downloading ${++downloadCount}/${mediaFilenames.length}: $filename');
+        final size = await _downloadFile(media.serverPath, media.file.path);
         if (size > 0) {
-          await _markAsSynced(localFile.path, size);
+          await _markAsSynced(media.file.path, size);
           print('[SYNC] ✓ Downloaded successfully ($size bytes)');
         } else {
           print('[SYNC] ✗ Download failed');

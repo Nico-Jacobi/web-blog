@@ -6,6 +6,7 @@ import '../main.dart';
 import '../strings.dart';
 import '../colors.dart';
 import '../services/sync_service.dart';
+import '../services/storage_service.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
@@ -18,6 +19,7 @@ class _SettingsPageState extends State<SettingsPage> {
   final _urlController = TextEditingController();
   final _tokenController = TextEditingController();
   bool _noSync = true;
+  bool _useModernPicker = true;
 
   @override
   void initState() {
@@ -32,6 +34,7 @@ class _SettingsPageState extends State<SettingsPage> {
       _urlController.text = prefs.getString('base_url') ?? baseUrl;
       _tokenController.text = prefs.getString('auth_token') ?? authToken;
       _noSync = prefs.getBool('sync_data') ?? SyncService().syncData;
+      _useModernPicker = prefs.getBool('use_modern_picker') ?? true;
     });
   }
 
@@ -47,6 +50,11 @@ class _SettingsPageState extends State<SettingsPage> {
     await prefs.setString('base_url', baseUrl);
     await prefs.setString('auth_token', authToken);
     await prefs.setBool('sync_data', _noSync);
+
+    await prefs.setBool('use_modern_picker', _useModernPicker);
+    useModernPicker = _useModernPicker; // Update global variable
+
+    StorageService.updatePickerImplementation();
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -124,12 +132,22 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     const SizedBox(height: 8),
                     SwitchListTile(
-                      title: const Text("Synchronisierung"),
+                      title: const Text(AppStrings.deactivate_snc_setting),
                       value: _noSync,
                       activeColor: primary,
                       onChanged: (bool value) {
                         setState(() {
                           _noSync = value;
+                        });
+                      },
+                    ),
+                    SwitchListTile(
+                      title: const Text(AppStrings.google_photo_picker_setting),
+                      value: _useModernPicker,
+                      activeColor: primary,
+                      onChanged: (bool value) {
+                        setState(() {
+                          _useModernPicker = value;
                         });
                       },
                     ),

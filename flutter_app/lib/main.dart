@@ -6,7 +6,8 @@ import 'package:australien_blog_app/services/storage_service.dart';
 import 'package:australien_blog_app/services/sync_service.dart';
 import 'package:australien_blog_app/strings.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
-
+import 'package:image_picker_android/image_picker_android.dart';
+import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:provider/provider.dart';
@@ -22,6 +23,7 @@ import '../api_keys.dart';
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
 FlutterLocalNotificationsPlugin();
 
+bool useModernPicker = true;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -72,6 +74,9 @@ void main() async {
     baseUrl = prefs.getString('base_url') ?? baseUrl;
     authToken = prefs.getString('auth_token') ?? authToken;
     SyncService().syncData = prefs.getBool('sync_data') ?? SyncService().syncData;
+    useModernPicker = prefs.getBool('use_modern_picker') ?? true;
+
+    StorageService.updatePickerImplementation();
 
     runApp(MyApp());
   });

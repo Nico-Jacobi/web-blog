@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -230,11 +231,28 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     }
   }
 
+  Future<void> _checkAndApplyMetadata(List<File> files) async {
+    for (var file in files) {
+      // Falls alle Felder schon voll sind, können wir aufhören
+      if (_dateCtrl.text.isNotEmpty &&
+          _latCtrl.text.isNotEmpty &&
+          _lonCtrl.text.isNotEmpty) {
+        break;
+      }
+
+      // Nur Bilder haben EXIF-Daten
+      if (!_isVideoExtension(file.path)) {
+        await _extractMetadata(file);
+      }
+    }
+  }
+
   Future<void> _pickTitleImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
     if (image != null) {
       _titleImage = File(image.path);
-      await _extractMetadata(_titleImage!);
+      // Metadaten prüfen
+      await _checkAndApplyMetadata([_titleImage!]);
       _markAsChanged();
       setState(() {});
     }
@@ -242,16 +260,48 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
 
   Future<void> _pickOtherMedia() async {
     try {
-      // pickMultipleMedia is the standard for mixed types
       final List<XFile> picked = await _picker.pickMultipleMedia();
 
       if (picked.isNotEmpty) {
         final List<MediaFile> newFiles = [];
+        final List<File> filesToCheck = [];
+
         for (var xf in picked) {
           final f = File(xf.path);
           if (!_otherMedia.any((m) => m.file.path == f.path)) {
-            final isVideo = _isVideoExtension(xf.path);
-            newFiles.add(MediaFile(f, isVideo));
+            newFiles.add(MediaFile(f, _isVideoExtension(xf.path)));
+            filesToCheck.add(f);
+          }
+        }
+
+        if (newFiles.isNotEmpty) {
+          // Hier prüfen wir alle neuen Bilder auf Metadaten
+          await _checkAndApplyMetadata(filesToCheck);
+
+          _markAsChanged();
+          setState(() => _otherMedia.addAll(newFiles));
+        }
+      }
+    } catch (e) {
+      debugPrint("Gallery error: $e");
+    }
+  }
+
+  Future<void> _pickOtherMedia2() async {
+    try {
+      FilePickerResult? result = await FilePicker.platform.pickFiles(
+        allowMultiple: true,
+        type: FileType.media, // Images and Videos
+      );
+
+      if (result != null) {
+        List<MediaFile> newFiles = [];
+        for (var path in result.paths) {
+          if (path != null) {
+            File f = File(path);
+            if (!_otherMedia.any((m) => m.file.path == f.path)) {
+              newFiles.add(MediaFile(f, _isVideoExtension(path)));
+            }
           }
         }
 
@@ -260,7 +310,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
           setState(() => _otherMedia.addAll(newFiles));
         }
       }
-    } on PlatformException catch (e) {
+    } catch (e) {
       debugPrint("Picker error: $e");
     }
   }

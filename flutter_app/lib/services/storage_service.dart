@@ -2,16 +2,20 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:australien_blog_app/services/sync_service.dart';
+import 'package:image_picker_android/image_picker_android.dart';
+import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
+import '../main.dart';
 import '../model/data_file.dart';
 import '../model/interest_point.dart';
 import '../model/media_file.dart';
 import '../model/trip.dart';
 
+
+
+
 class StorageService {
-
-
   static final StorageService _instance = StorageService._internal();
 
   factory StorageService() {
@@ -141,4 +145,12 @@ class StorageService {
 
     SyncService().syncFromStorage();
   }
+
+  static void updatePickerImplementation() {
+    final ImagePickerPlatform implementation = ImagePickerPlatform.instance;
+    if (implementation is ImagePickerAndroid) {
+      implementation.useAndroidPhotoPicker = useModernPicker;
+    }
+  }
 }
+

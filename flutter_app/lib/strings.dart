@@ -39,13 +39,13 @@ class AppStrings {
   static const button_discard = "Verwerfen";
   static const error_title_image_required = "Ein Titelbild ist erforderlich";
   static const info_date_location = "Datum und Standort werden automatisch aus den deinen Bilder ermittelt, können aber jederzeit geändert werden. (Standort nur wenn GPS beim Fotografieren aktiv war) ";
-  static const String label_media_gallery = 'Medien Galerie';
+  static const String label_media_gallery = 'Galerie';
   static const String media_add_title = 'Medien hinzufügen';
   static const String media_images_title = 'Bilder';
   static const String media_images_subtitle = 'Mehrere Fotos hinzufügen';
   static const String media_video_title = 'Video';
   static const String media_video_subtitle = 'Video hinzufügen (max. 5 Min.)';
-
+  static const String error_picker_failed = "Bilder konnten nicht gewählt werden";
 
   // pages/manage_points_page.dart
   static const manage_points_title = "Wegpunkte verwalten";
@@ -68,6 +68,8 @@ class AppStrings {
   static const field_auth_token = "Authentifizierungs-Token";
   static const button_save_settings = "Einstellungen speichern";
   static const snack_settings_saved = "Einstellungen erfolgreich gespeichert";
+  static const deactivate_snc_setting = "Synchonisierung";
+  static const google_photo_picker_setting = "Google Photos";
 
   // pages/start_page.dart
   static const app_hero_title = "Australien Blog";

@@ -1,15 +1,22 @@
 import React, { useEffect, useState } from 'react';
-import { X, Calendar, MapPin, Image as ImageIcon } from 'lucide-react';
+import { X, Calendar, MapPin, Image as ImageIcon, Play } from 'lucide-react';
 
 export default function PointDetail({ point, onClose }) {
     const [titleImageUrl, setTitleImageUrl] = useState(null);
     const [otherImageUrls, setOtherImageUrls] = useState([]);
     const [loadingOther, setLoadingOther] = useState(false);
-    const [lightboxImage, setLightboxImage] = useState(null);
+    const [lightboxMedia, setLightboxMedia] = useState(null); // Changed from lightboxImage
 
     // Define common button styling classes to ensure exact consistency
     const sharedButtonStyle = "group bg-white hover:bg-slate-50 p-2 md:p-3 rounded-full shadow-lg transition-all hover:shadow-xl border border-slate-200 outline-offset-2 focus:outline-orange-500";
     const sharedIconStyle = "text-slate-700 group-hover:text-orange-500 transition-colors";
+
+    // Helper function to check if a URL/path is a video
+    const isVideo = (path) => {
+        if (!path) return false;
+        const lower = path.toLowerCase();
+        return lower.endsWith('.mp4') || lower.endsWith('.mov') || lower.endsWith('.webm');
+    };
 
     // Prevent background scrolling when modal is open
     useEffect(() => {
@@ -47,8 +54,8 @@ export default function PointDetail({ point, onClose }) {
     useEffect(() => {
         const handleKeyDown = (e) => {
             if (e.key === 'Escape') {
-                if (lightboxImage) {
-                    setLightboxImage(null);
+                if (lightboxMedia) {
+                    setLightboxMedia(null);
                 } else {
                     onClose();
                 }
@@ -56,7 +63,7 @@ export default function PointDetail({ point, onClose }) {
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [lightboxImage, onClose]);
+    }, [lightboxMedia, onClose]);
 
     if (!point) return null;
 
@@ -172,7 +179,7 @@ export default function PointDetail({ point, onClose }) {
                                         Galerie
                                     </h3>
                                     <span className="ml-auto text-xs md:text-sm text-slate-400 font-bold">
-                                        {point.otherPaths.length} {point.otherPaths.length === 1 ? 'BILD' : 'BILDER'}
+                                        {point.otherPaths.length} {point.otherPaths.length === 1 ? 'DATEI' : 'DATEIEN'}
                                     </span>
                                 </div>
                                 {loadingOther ? (
@@ -183,20 +190,45 @@ export default function PointDetail({ point, onClose }) {
                                     </div>
                                 ) : (
                                     <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-                                        {otherImageUrls.map((url, idx) => (
-                                            <div
-                                                key={idx}
-                                                className="group relative aspect-square rounded-lg md:rounded-xl overflow-hidden cursor-pointer"
-                                                onClick={() => setLightboxImage(url)}
-                                            >
-                                                <img
-                                                    src={url}
-                                                    alt="Gallery"
-                                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                                />
-                                                <div className="absolute inset-0 bg-orange-600/0 group-hover:bg-orange-600/20 transition-colors" />
-                                            </div>
-                                        ))}
+                                        {otherImageUrls.map((url, idx) => {
+                                            // Check the ORIGINAL path, not the blob URL
+                                            const originalPath = point.otherPaths[idx];
+                                            const isVid = isVideo(originalPath);
+
+                                            return (
+                                                <div
+                                                    key={idx}
+                                                    className="group relative aspect-square rounded-lg md:rounded-xl overflow-hidden cursor-pointer"
+                                                    onClick={() => setLightboxMedia({ url, isVideo: isVid })}
+                                                >
+                                                    {isVid ? (
+                                                        <>
+                                                            <video
+                                                                src={url}
+                                                                className="w-full h-full object-cover"
+                                                                muted
+                                                                playsInline
+                                                            />
+                                                            <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                                                                <div className="bg-white/90 group-hover:bg-orange-500 group-hover:text-white rounded-full p-3 md:p-4 transition-all shadow-lg">
+                                                                    <Play size={20} className="md:hidden" fill="currentColor" />
+                                                                    <Play size={24} className="hidden md:block" fill="currentColor" />
+                                                                </div>
+                                                            </div>
+                                                        </>
+                                                    ) : (
+                                                        <>
+                                                            <img
+                                                                src={url}
+                                                                alt="Gallery"
+                                                                className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                                            />
+                                                            <div className="absolute inset-0 bg-orange-600/0 group-hover:bg-orange-600/20 transition-colors" />
+                                                        </>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
                                     </div>
                                 )}
                             </div>
@@ -207,10 +239,10 @@ export default function PointDetail({ point, onClose }) {
             </div>
 
             {/* Lightbox Overlay */}
-            {lightboxImage && (
+            {lightboxMedia && (
                 <div
                     className="fixed inset-0 z-[6000] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in duration-200"
-                    onClick={() => setLightboxImage(null)}
+                    onClick={() => setLightboxMedia(null)}
                 >
                     {/* --- LIGHTBOX CLOSE BUTTON --- */}
                     <button
@@ -221,12 +253,22 @@ export default function PointDetail({ point, onClose }) {
                         <X size={24} className={`hidden md:block ${sharedIconStyle}`}/>
                     </button>
 
-                    <img
-                        src={lightboxImage}
-                        alt="Full size"
-                        className="max-w-full max-h-full object-contain shadow-2xl"
-                        onClick={(e) => e.stopPropagation()}
-                    />
+                    {lightboxMedia.isVideo ? (
+                        <video
+                            src={lightboxMedia.url}
+                            controls
+                            autoPlay
+                            className="max-w-full max-h-full object-contain shadow-2xl"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    ) : (
+                        <img
+                            src={lightboxMedia.url}
+                            alt="Full size"
+                            className="max-w-full max-h-full object-contain shadow-2xl"
+                            onClick={(e) => e.stopPropagation()}
+                        />
+                    )}
                 </div>
             )}
         </>

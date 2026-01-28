@@ -53,14 +53,15 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
       // Convert filenames to full paths for UI display using MediaFile
       for (var p in points) {
         if (p.titleImagePath.isNotEmpty) {
-          final media = MediaFile.fromFilenameSync(p.titleImagePath, appDir.path);
-          p.titleImagePath = media.file.path;  // Full path for UI
+          final media = MediaFile.fromFilenameSync(
+              p.titleImagePath, appDir.path);
+          p.titleImagePath = media.file.path; // Full path for UI
         }
 
         p.otherMediaPaths = p.otherMediaPaths.map((filename) {
           if (filename.isNotEmpty) {
             final media = MediaFile.fromFilenameSync(filename, appDir.path);
-            return media.file.path;  // Full path for UI
+            return media.file.path; // Full path for UI
           }
           return filename;
         }).toList();
@@ -82,7 +83,8 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
       final titleName = path.basename(p.titleImagePath);
       final otherNames = p.otherMediaPaths
           .where((pathStr) => pathStr.isNotEmpty)
-          .map((pathStr) => pathStr.contains(Platform.pathSeparator)
+          .map((pathStr) =>
+      pathStr.contains(Platform.pathSeparator)
           ? path.basename(pathStr)
           : pathStr)
           .toList();
@@ -91,8 +93,10 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
         id: p.id,
         name: p.name,
         shortDescription: p.shortDescription,
-        titleImagePath: titleName, // Nur Dateiname!
-        otherMediaPaths: otherNames, // Nur Dateinamen!
+        titleImagePath: titleName,
+        // Nur Dateiname!
+        otherMediaPaths: otherNames,
+        // Nur Dateinamen!
         lat: p.lat,
         lon: p.lon,
         date: p.date,
@@ -108,7 +112,8 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
     final confirm = await GradientConfirmDialog.show(
       context,
       title: AppStrings.delete_point_title,
-      content: '${AppStrings.delete_point_confirm_prefix}\n"${point.name}"\n${AppStrings.delete_point_confirm_suffix}',
+      content: '${AppStrings.delete_point_confirm_prefix}\n"${point
+          .name}"\n${AppStrings.delete_point_confirm_suffix}',
       confirmText: AppStrings.button_delete,
       cancelText: AppStrings.button_cancel,
     );
@@ -249,15 +254,18 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
           statusBarIconBrightness: Brightness.dark,
         ),
         centerTitle: true,
-        backgroundColor: accent, // Refactored to theme accent
+        backgroundColor: accent,
+        // Refactored to theme accent
         foregroundColor: Colors.white,
-        shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(bottom: Radius.circular(24))),
+        shape: const RoundedRectangleBorder(
+            borderRadius: BorderRadius.vertical(bottom: Radius.circular(24))),
         actions: const [
           InfoIcon(infoText: AppStrings.info_manage_points),
         ],
       ),
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator(valueColor: AlwaysStoppedAnimation<Color>(primary)))
+          ? const Center(child: CircularProgressIndicator(
+          valueColor: AlwaysStoppedAnimation<Color>(primary)))
           : _points.isEmpty
           ? _buildEmptyState()
           : _buildPointsList(),
@@ -271,63 +279,79 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
         children: [
           Container(
             padding: const EdgeInsets.all(24),
-            decoration: const BoxDecoration(color: pale, shape: BoxShape.circle), // Refactored to theme pale
-            child: const Icon(Icons.place_outlined, size: 80, color: primary), // Refactored to theme primary
+            decoration: const BoxDecoration(
+                color: pale, shape: BoxShape.circle),
+            // Refactored to theme pale
+            child: const Icon(Icons.place_outlined, size: 80,
+                color: primary), // Refactored to theme primary
           ),
           const SizedBox(height: 24),
-          const Text(AppStrings.empty_points_title, style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          const Text(AppStrings.empty_points_title,
+              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          Text(AppStrings.empty_points_subtitle, style: TextStyle(fontSize: 15, color: Colors.grey[600])),
+          Text(AppStrings.empty_points_subtitle,
+              style: TextStyle(fontSize: 15, color: Colors.grey[600])),
         ],
       ),
     );
   }
 
   Widget _buildPointsList() {
-    return ReorderableListView.builder(
-      padding: const EdgeInsets.all(16),
-      onReorder: _reorderPointsWithRoutes,
-      itemCount: _points.length,
-      proxyDecorator: (child, index, animation) {
-        return AnimatedBuilder(
-          animation: animation,
-          builder: (context, child) {
-            return Material(
-              color: Colors.transparent,
-              elevation: 0,
-              child: child,
-            );
-          },
-          child: child,
-        );
-      },
-      itemBuilder: (context, index) {
-        final point = _points[index];
-        TripElement? tripBefore;
-
-        if (index > 0) {
-          final prevPoint = _points[index - 1];
-          tripBefore = _tripElements.firstWhere(
-                (t) => t.pointId1 == prevPoint.id && t.pointId2 == point.id,
-            orElse: () {
-              final newTrip = TripElement(pointId1: prevPoint.id, pointId2: point.id);
-              _tripElements.add(newTrip);
-              _saveData();
-              return newTrip;
+    return ScrollConfiguration(
+      behavior: const ScrollBehavior().copyWith(
+        physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics()),
+      ),
+      child: ReorderableListView.builder(
+        padding: const EdgeInsets.all(16),
+        onReorder: _reorderPointsWithRoutes,
+        itemCount: _points.length,
+        // Explicitly set physics for the builder
+        physics: const BouncingScrollPhysics(
+            parent: AlwaysScrollableScrollPhysics()),
+        proxyDecorator: (child, index, animation) {
+          return AnimatedBuilder(
+            animation: animation,
+            builder: (context, child) {
+              return Material(
+                color: Colors.transparent,
+                elevation: 0,
+                child: child,
+              );
             },
+            child: child,
           );
-        }
+        },
+        itemBuilder: (context, index) {
+          final point = _points[index];
+          TripElement? tripBefore;
 
-        return PointWithRouteCard(
-          key: ValueKey('point_route_${point.id}'),
-          point: point,
-          orderNumber: index + 1,
-          tripBefore: tripBefore,
-          onEdit: () => _editPoint(point),
-          onDelete: () => _deletePoint(point),
-          onChangeTripMethod: tripBefore != null ? () => _changeTripMethod(tripBefore!) : null,
-        );
-      },
+          if (index > 0) {
+            final prevPoint = _points[index - 1];
+            tripBefore = _tripElements.firstWhere(
+                  (t) => t.pointId1 == prevPoint.id && t.pointId2 == point.id,
+              orElse: () {
+                final newTrip = TripElement(
+                    pointId1: prevPoint.id, pointId2: point.id);
+                _tripElements.add(newTrip);
+                _saveData();
+                return newTrip;
+              },
+            );
+          }
+
+          return PointWithRouteCard(
+            key: ValueKey('point_route_${point.id}'),
+            point: point,
+            orderNumber: index + 1,
+            tripBefore: tripBefore,
+            onEdit: () => _editPoint(point),
+            onDelete: () => _deletePoint(point),
+            onChangeTripMethod: tripBefore != null ? () =>
+                _changeTripMethod(tripBefore!) : null,
+          );
+        },
+      ),
     );
   }
 }

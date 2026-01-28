@@ -73,7 +73,6 @@ void main() async {
     final prefs = await SharedPreferences.getInstance();
     baseUrl = prefs.getString('base_url') ?? baseUrl;
     authToken = prefs.getString('auth_token') ?? authToken;
-    SyncService().syncData = prefs.getBool('sync_data') ?? SyncService().syncData;
     useModernPicker = prefs.getBool('use_modern_picker') ?? true;
 
     StorageService.updatePickerImplementation();

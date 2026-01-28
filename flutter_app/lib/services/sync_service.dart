@@ -5,6 +5,7 @@ import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import '../api_keys.dart';
 import '../model/data_file.dart';
 import '../model/interest_point.dart';
@@ -26,10 +27,15 @@ class SyncService {
 
   // SYNC LOCK - Prevents concurrent syncs
   bool _isSyncing = false;
-  bool syncData = true;
+  bool syncData = false;
   final StorageService _storageService = StorageService();
 
   Future<void> _init() async {
+
+    final prefs = await SharedPreferences.getInstance();
+    syncData = prefs.getBool('sync_data') ?? syncData;
+
+
     if (_syncStateFile != null) return;
     print('[SYNC] Initializing SyncService...');
     final appDir = await getApplicationDocumentsDirectory();

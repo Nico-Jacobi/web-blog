@@ -18,7 +18,7 @@ class SettingsPage extends StatefulWidget {
 class _SettingsPageState extends State<SettingsPage> {
   final _urlController = TextEditingController();
   final _tokenController = TextEditingController();
-  bool _noSync = true;
+  bool _syncData = false;
   bool _useModernPicker = true;
 
   @override
@@ -33,7 +33,7 @@ class _SettingsPageState extends State<SettingsPage> {
       // Load saved values or fallback to global defaults
       _urlController.text = prefs.getString('base_url') ?? baseUrl;
       _tokenController.text = prefs.getString('auth_token') ?? authToken;
-      _noSync = prefs.getBool('sync_data') ?? SyncService().syncData;
+      _syncData = prefs.getBool('sync_data') ?? SyncService().syncData;
       _useModernPicker = prefs.getBool('use_modern_picker') ?? true;
     });
   }
@@ -44,12 +44,12 @@ class _SettingsPageState extends State<SettingsPage> {
     // Update global variables
     baseUrl = _urlController.text;
     authToken = _tokenController.text;
-    SyncService().syncData = _noSync;
+    SyncService().syncData = _syncData;
 
     // Persist to local storage
     await prefs.setString('base_url', baseUrl);
     await prefs.setString('auth_token', authToken);
-    await prefs.setBool('sync_data', _noSync);
+    await prefs.setBool('sync_data', _syncData);
 
     await prefs.setBool('use_modern_picker', _useModernPicker);
     useModernPicker = _useModernPicker; // Update global variable
@@ -133,11 +133,11 @@ class _SettingsPageState extends State<SettingsPage> {
                     const SizedBox(height: 8),
                     SwitchListTile(
                       title: const Text(AppStrings.deactivate_snc_setting),
-                      value: _noSync,
+                      value: _syncData,
                       activeColor: primary,
                       onChanged: (bool value) {
                         setState(() {
-                          _noSync = value;
+                          _syncData = value;
                         });
                       },
                     ),

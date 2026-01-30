@@ -674,7 +674,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
               ),
               const SizedBox(height: 16),
               _buildField(_dateCtrl, AppStrings.field_date, hint: "DD/MM/YYYY", icon: Icons.calendar_today_outlined),
-              _buildField(_descCtrl, AppStrings.field_full_description, maxLines: 4, icon: Icons.notes_outlined),
+              _buildField(_descCtrl, AppStrings.field_full_description, maxLines: 8, icon: Icons.notes_outlined),
               Row(
                 children: [
                   Text(AppStrings.label_media_gallery, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey[800])),

@@ -25,16 +25,20 @@ export default function App() {
     // 1. Handle Back Button (PopState)
     useEffect(() => {
         const handlePopState = (event) => {
-            // Priority 1: Close Detail if open
-            if (detailId) {
-                setDetailId(null);
-                // Important: Stop here so we don't also close the popup in the same click
+            // FIX: Check if we are landing on a 'detail' state.
+            // If yes, it means we came back from the Lightbox, so we keep Detail open.
+            if (event.state?.view === 'detail') {
                 return;
             }
 
-            // Priority 2: Close Popup if open (and Detail was already closed)
+            // Priority 1: Close Detail if open (and state is not 'detail')
+            if (detailId) {
+                setDetailId(null);
+                return;
+            }
+
+            // Priority 2: Close Popup
             if (activeId) {
-                // Call the map ref to physically close the leaflet popup
                 mapViewRef.current?.closePopup();
                 return;
             }
@@ -46,16 +50,16 @@ export default function App() {
 
     // 2. Manage History Stack (PushState)
     useEffect(() => {
-        // Only push state if we are OPENING a new UI element
-        // (i.e., Current is set, Previous was null)
         const isDetailOpening = detailId && !prevDetailId.current;
         const isActiveOpening = activeId && !prevActiveId.current;
 
-        if (isDetailOpening || isActiveOpening) {
-            window.history.pushState(null, '', window.location.href);
+        if (isDetailOpening) {
+            // FIX: Tag this state as 'detail'
+            window.history.pushState({ view: 'detail' }, '', window.location.href);
+        } else if (isActiveOpening) {
+            window.history.pushState({ view: 'map' }, '', window.location.href);
         }
 
-        // Update refs for next render
         prevDetailId.current = detailId;
         prevActiveId.current = activeId;
     }, [detailId, activeId]);

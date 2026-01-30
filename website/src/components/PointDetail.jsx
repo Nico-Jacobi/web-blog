@@ -1,11 +1,13 @@
-import React, { useEffect, useState } from 'react';
+import React, {useEffect, useMemo, useState} from 'react';
 import { X, Calendar, MapPin, Image as ImageIcon, Play } from 'lucide-react';
+import MediaLightbox from './MediaLightbox.jsx';
 
 export default function PointDetail({ point, onClose }) {
     const [titleImageUrl, setTitleImageUrl] = useState(null);
     const [otherImageUrls, setOtherImageUrls] = useState([]);
     const [loadingOther, setLoadingOther] = useState(false);
-    const [lightboxMedia, setLightboxMedia] = useState(null); // Changed from lightboxImage
+    const [isLightboxOpen, setIsLightboxOpen] = useState(false);
+    const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
 
     // Define common button styling classes to ensure exact consistency
     const sharedButtonStyle = "group bg-white hover:bg-slate-50 p-2 md:p-3 rounded-full shadow-lg transition-all hover:shadow-xl border border-slate-200 outline-offset-2 focus:outline-orange-500";
@@ -16,6 +18,39 @@ export default function PointDetail({ point, onClose }) {
         if (!path) return false;
         const lower = path.toLowerCase();
         return lower.endsWith('.mp4') || lower.endsWith('.mov') || lower.endsWith('.webm');
+    };
+
+    // Build media array for lightbox
+    const lightboxMedia = useMemo(() => {
+        return otherImageUrls.map((url, idx) => ({
+            url,
+            isVideo: isVideo(point.otherPaths[idx])
+        }));
+    }, [otherImageUrls, point]);
+
+    useEffect(() => {
+        if (isLightboxOpen) {
+            // 1. Push a 'lightbox' state so the back button has something to remove
+            window.history.pushState({ view: 'lightbox' }, '');
+
+            // 2. Define local handler for when user presses Back
+            const handleLightboxPop = (_) => {
+                // If we pop back, simply close the lightbox
+                // The event will bubble to App.js, but App.js will see
+                // we landed on { view: 'detail' } and will ignore it.
+                setIsLightboxOpen(false);
+            };
+
+            window.addEventListener('popstate', handleLightboxPop);
+            return () => window.removeEventListener('popstate', handleLightboxPop);
+        }
+    }, [isLightboxOpen]);
+
+    const handleCloseLightbox = () => {
+        // If we close manually, we must go back in history to remove the 'lightbox' tag
+        // so the Forward button doesn't reopen it weirdly.
+        window.history.back();
+        // Note: calling .back() triggers popstate, which sets isLightboxOpen(false) via the listener above
     };
 
     // Prevent background scrolling when modal is open
@@ -53,17 +88,13 @@ export default function PointDetail({ point, onClose }) {
 
     useEffect(() => {
         const handleKeyDown = (e) => {
-            if (e.key === 'Escape') {
-                if (lightboxMedia) {
-                    setLightboxMedia(null);
-                } else {
-                    onClose();
-                }
+            if (e.key === 'Escape' && !isLightboxOpen) {
+                onClose();
             }
         };
         window.addEventListener('keydown', handleKeyDown);
         return () => window.removeEventListener('keydown', handleKeyDown);
-    }, [lightboxMedia, onClose]);
+    }, [isLightboxOpen, onClose]);
 
     if (!point) return null;
 
@@ -199,7 +230,10 @@ export default function PointDetail({ point, onClose }) {
                                                 <div
                                                     key={idx}
                                                     className="group relative aspect-square rounded-lg md:rounded-xl overflow-hidden cursor-pointer"
-                                                    onClick={() => setLightboxMedia({ url, isVideo: isVid })}
+                                                    onClick={() => {
+                                                        setCurrentMediaIndex(idx);
+                                                        setIsLightboxOpen(true);
+                                                    }}
                                                 >
                                                     {isVid ? (
                                                         <>
@@ -239,37 +273,13 @@ export default function PointDetail({ point, onClose }) {
             </div>
 
             {/* Lightbox Overlay */}
-            {lightboxMedia && (
-                <div
-                    className="fixed inset-0 z-[6000] bg-black/95 backdrop-blur-md flex items-center justify-center p-4 cursor-zoom-out animate-in fade-in duration-200"
-                    onClick={() => setLightboxMedia(null)}
-                >
-                    {/* --- LIGHTBOX CLOSE BUTTON --- */}
-                    <button
-                        className={`absolute top-4 right-4 md:top-8 md:right-8 z-[6010] ${sharedButtonStyle}`}
-                        aria-label="Close Gallery"
-                    >
-                        <X size={20} className={`md:hidden ${sharedIconStyle}`}/>
-                        <X size={24} className={`hidden md:block ${sharedIconStyle}`}/>
-                    </button>
-
-                    {lightboxMedia.isVideo ? (
-                        <video
-                            src={lightboxMedia.url}
-                            controls
-                            autoPlay
-                            className="max-w-full max-h-full object-contain shadow-2xl"
-                            onClick={(e) => e.stopPropagation()}
-                        />
-                    ) : (
-                        <img
-                            src={lightboxMedia.url}
-                            alt="Full size"
-                            className="max-w-full max-h-full object-contain shadow-2xl"
-                            onClick={(e) => e.stopPropagation()}
-                        />
-                    )}
-                </div>
+            {isLightboxOpen && lightboxMedia.length > 0 && (
+                <MediaLightbox
+                    media={lightboxMedia} // Pass the memoized array
+                    currentIndex={currentMediaIndex}
+                    onClose={handleCloseLightbox} // Use the new close handler
+                    onNavigate={setCurrentMediaIndex}
+                />
             )}
         </>
     );

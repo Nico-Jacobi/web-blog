@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import MapView from './components/MapView';
@@ -14,11 +14,54 @@ export default function App() {
     const [activeId, setActiveId] = useState(null);
     const [detailId, setDetailId] = useState(null);
     const [token, setToken] = useState(localStorage.getItem('trip_auth_key'));
+
     const leafletReady = useLeaflet();
+    const mapViewRef = useRef(null);
+
+    // Track previous state to determine if we are Opening or Closing
+    const prevActiveId = useRef(activeId);
+    const prevDetailId = useRef(detailId);
+
+    // 1. Handle Back Button (PopState)
+    useEffect(() => {
+        const handlePopState = (event) => {
+            // Priority 1: Close Detail if open
+            if (detailId) {
+                setDetailId(null);
+                // Important: Stop here so we don't also close the popup in the same click
+                return;
+            }
+
+            // Priority 2: Close Popup if open (and Detail was already closed)
+            if (activeId) {
+                // Call the map ref to physically close the leaflet popup
+                mapViewRef.current?.closePopup();
+                return;
+            }
+        };
+
+        window.addEventListener('popstate', handlePopState);
+        return () => window.removeEventListener('popstate', handlePopState);
+    }, [detailId, activeId]);
+
+    // 2. Manage History Stack (PushState)
+    useEffect(() => {
+        // Only push state if we are OPENING a new UI element
+        // (i.e., Current is set, Previous was null)
+        const isDetailOpening = detailId && !prevDetailId.current;
+        const isActiveOpening = activeId && !prevActiveId.current;
+
+        if (isDetailOpening || isActiveOpening) {
+            window.history.pushState(null, '', window.location.href);
+        }
+
+        // Update refs for next render
+        prevDetailId.current = detailId;
+        prevActiveId.current = activeId;
+    }, [detailId, activeId]);
 
     useEffect(() => {
         if (!token) return;
-
         setLoading(true);
         setError(null);
 
@@ -33,6 +76,10 @@ export default function App() {
 
         return () => trip?.destroy();
     }, [token]);
+
+    const handleSelectStop = (id) => {
+        setActiveId(id);
+    };
 
     const activePoint = detailId ? trip?.getPoint(detailId) : null;
 
@@ -51,13 +98,14 @@ export default function App() {
             <Header trip={trip} />
             <div className="flex flex-1 min-h-0 w-full overflow-hidden">
                 <div className="hidden lg:block shrink-0">
-                    <Sidebar activeId={activeId} onSelectStop={setActiveId} trip={trip}/>
+                    <Sidebar activeId={activeId} onSelectStop={handleSelectStop} trip={trip}/>
                 </div>
                 <main className="flex-1 relative min-h-0 min-w-0">
                     <MapView
+                        ref={mapViewRef}
                         activeId={activeId}
                         onOpenDetail={setDetailId}
-                        onSelectStop={setActiveId}
+                        onSelectStop={handleSelectStop}
                         leafletReady={leafletReady}
                         trip={trip}
                     />

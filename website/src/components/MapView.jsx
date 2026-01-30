@@ -1,16 +1,26 @@
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { X } from 'lucide-react';
 import {ROUTE_STYLES} from "../model/routeStyles.js";
 import Legend from "./Legend.jsx";
 
 
-export default function MapView({ activeId, onOpenDetail, onSelectStop, leafletReady, trip }) {
+const MapView = forwardRef(({ activeId, onOpenDetail, onSelectStop, leafletReady, trip }, ref) => {
     const mapRef = useRef(null);
     const mapInstance = useRef(null);
     const markersRef = useRef({});
     const userClickedMarkerRef = useRef(false);
 
     const usedModes = trip ? [...new Set(trip.routes.map(r => r.mode))] : [];
+
+    // Expose method to parent
+    useImperativeHandle(ref, () => ({
+        closePopup: () => {
+            if (mapInstance.current) {
+                mapInstance.current.closePopup();
+                onSelectStop(null);
+            }
+        }
+    }));
 
 
     useEffect(() => {
@@ -77,35 +87,39 @@ export default function MapView({ activeId, onOpenDetail, onSelectStop, leafletR
     }, [leafletReady, trip, onOpenDetail, onSelectStop]);
 
 
+    // ... inside MapView component ...
+
     useEffect(() => {
+        if (!mapInstance.current || !trip) return;
+
+        // CASE 1: ActiveId is cleared (Back button pressed) -> Close Leaflet Popup
+        if (!activeId) {
+            mapInstance.current.closePopup();
+            return;
+        }
+
         const marker = markersRef.current[activeId];
         const point = trip?.getPoint(activeId);
 
-        if (mapInstance.current && marker && point) {
-            // If user clicked the marker directly, just open popup without flying
+        // CASE 2: ActiveId is set -> Fly to point and open popup
+        if (marker && point) {
             if (userClickedMarkerRef.current) {
                 marker.openPopup();
                 userClickedMarkerRef.current = false;
                 return;
             }
 
+            // ... existing flyTo logic ...
             const map = mapInstance.current;
             const L = window.L;
-
-            // Force layout update
             map.invalidateSize();
 
             const flyToPoint = () => {
                 const isMobile = window.innerWidth < 768;
                 const zoomLevel = isMobile ? 6 : 8;
-
                 const pointLatLng = L.latLng(point.lat, point.lng);
-
-                // Calculate offset at target zoom level
                 const targetPoint = map.project(pointLatLng, zoomLevel);
                 const offsetY = isMobile ? map.getSize().y * 0.2 : map.getSize().y * 0.1;
-
-                // Move center down by subtracting from Y (pixels start from top)
                 const newCenter = map.unproject(targetPoint.subtract([0, offsetY]), zoomLevel);
 
                 map.flyTo(newCenter, zoomLevel, {
@@ -116,11 +130,10 @@ export default function MapView({ activeId, onOpenDetail, onSelectStop, leafletR
                 marker.openPopup();
             };
 
-            // Increased timeout to ensure container is stable
             const timer = setTimeout(flyToPoint, 100);
             return () => clearTimeout(timer);
         }
-    }, [activeId, trip]);
+    }, [activeId, trip]); // Keep dependency array simple
 
 
     return (
@@ -135,8 +148,7 @@ export default function MapView({ activeId, onOpenDetail, onSelectStop, leafletR
             </div>
         </div>
     );
-
-}
+});
 
 
 
@@ -188,3 +200,5 @@ const createPopupContent = (point, img, onOpenDetail) => {
 
     return popupDiv;
 };
+
+export default MapView;

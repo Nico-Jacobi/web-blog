@@ -1,4 +1,6 @@
 // main.dart
+import 'dart:math';
+
 import 'package:australien_blog_app/pages/create_point_page.dart';
 import 'package:australien_blog_app/pages/manage_points_page.dart';
 import 'package:australien_blog_app/pages/sync_status_page.dart';
@@ -53,7 +55,7 @@ void main() async {
   await Workmanager().registerPeriodicTask(
     "1",
     "syncTask",
-    frequency: const Duration(minutes: 30), // once per
+    frequency: const Duration(minutes: 25), // once per
     constraints: Constraints(
       networkType: NetworkType.connected, // Only run if internet is on
       requiresBatteryNotLow: true,
@@ -232,10 +234,21 @@ void callbackDispatcher() {
       const NotificationDetails platformChannelSpecifics =
       NotificationDetails(android: androidPlatformChannelSpecifics);
 
+      final funMessages = [
+        'Alle Kängurus wurden erfolgreich durchs Kabel geschubst.',
+        'Deine Koalas sind sicher im Cloud-Eukalyptus gelandet.',
+        'Krokodile abgewehrt, Daten erfolgreich hochgeladen.',
+        'Daten-Roadtrip beendet. Alles sicher verstaut!',
+        'Wombats haben deine Dateien artgerecht vergraben.',
+        'Die Emus haben den Daten nach Hause gebracht.',
+      ];
+
+      final randomText = funMessages[Random().nextInt(funMessages.length)];
+
       await flutterLocalNotificationsPlugin.show(
         0,
-        'Sync complete',
-        success ? 'All files synced' : 'Sync failed',
+        success ? 'Sync abgeschlossen' : 'Sync fehlgeschlagen',
+        success ? randomText : 'Die Kängurus sind entwischt.',
         platformChannelSpecifics,
       );
     }

@@ -27,7 +27,7 @@ class SyncService {
 
   // SYNC LOCK - Prevents concurrent syncs
   bool _isSyncing = false;
-  bool syncData = false;
+  bool syncData = true;
   final StorageService _storageService = StorageService();
 
   Future<void> _init() async {

@@ -472,6 +472,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       targetPath,
       quality: 80,
       format: CompressFormat.jpeg,
+      keepExif: true,  // preserves EXIF including GPS and time
     );
 
     if (compressed == null) {

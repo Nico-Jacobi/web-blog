@@ -7,13 +7,26 @@ import { Trip } from './model/Trip';
 import { useLeaflet } from './controller/useLeaflet.js';
 import PasswordGate from "./components/PasswortGate.jsx";
 
+const AUTH_COOKIE = 'trip_auth_key';
+
+const getCookie = (name) => {
+    const match = document.cookie.match(new RegExp('(^| )' + name + '=([^;]+)'));
+    return match ? decodeURIComponent(match[2]) : null;
+};
+const setCookie = (name, value) => {
+    document.cookie = `${name}=${encodeURIComponent(value)}; max-age=${30 * 24 * 60 * 60}; SameSite=Strict; Secure`;
+};
+const deleteCookie = (name) => {
+    document.cookie = `${name}=; max-age=0; SameSite=Strict; Secure`;
+};
+
 export default function App() {
     const [trip, setTrip] = useState(null);
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [activeId, setActiveId] = useState(null);
     const [detailId, setDetailId] = useState(null);
-    const [token, setToken] = useState(localStorage.getItem('trip_auth_key'));
+    const [token, setToken] = useState(getCookie(AUTH_COOKIE));
 
     const leafletReady = useLeaflet();
     const mapViewRef = useRef(null);
@@ -74,7 +87,7 @@ export default function App() {
             .catch(err => {
                 setError(err.message);
                 setToken(null);
-                sessionStorage.removeItem('trip_auth_key');
+                deleteCookie(AUTH_COOKIE);
             })
             .finally(() => setLoading(false));
 
@@ -87,10 +100,18 @@ export default function App() {
 
     const activePoint = detailId ? trip?.getPoint(detailId) : null;
 
+    if (loading && token) {
+        return (
+            <div className="fixed inset-0 bg-orange-50 flex items-center justify-center">
+                <div className="w-10 h-10 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin" />
+            </div>
+        );
+    }
+
     if (!trip) {
         return (
             <PasswordGate
-                onPasswordSubmit={setToken}
+                onPasswordSubmit={(pw) => { setCookie(AUTH_COOKIE, pw); setToken(pw); }}
                 authError={!!error}
                 isLoading={loading}
             />
@@ -115,7 +136,7 @@ export default function App() {
                     />
                 </main>
             </div>
-            {activePoint && <PointDetail point={activePoint} onClose={() => setDetailId(null)} />}
+            {activePoint && <PointDetail point={activePoint} trip={trip} onClose={() => setDetailId(null)} />}
         </div>
     );
 }

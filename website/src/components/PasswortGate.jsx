@@ -5,7 +5,6 @@ export default function PasswordGate({ onPasswordSubmit, authError }) {
 
     const handleSubmit = (e) => {
         e.preventDefault();
-        localStorage.setItem('trip_auth_key', password);
         onPasswordSubmit(password);
     };
 

@@ -2,7 +2,14 @@ import React, {useEffect, useMemo, useState} from 'react';
 import { X, Calendar, MapPin, Image as ImageIcon, Play } from 'lucide-react';
 import MediaLightbox from './MediaLightbox.jsx';
 
-export default function PointDetail({ point, onClose }) {
+function getTravelDay(point, trip) {
+    const startDate = trip?.points?.[0]?.getParsedDate();
+    const currentDate = point?.getParsedDate();
+    if (!startDate || !currentDate) return point?.order ?? '-';
+    return Math.round((currentDate - startDate) / (1000 * 60 * 60 * 24)) + 1;
+}
+
+export default function PointDetail({ point, trip, onClose }) {
     const [titleImageUrl, setTitleImageUrl] = useState(null);
     const [otherImageUrls, setOtherImageUrls] = useState([]);
     const [loadingOther, setLoadingOther] = useState(false);
@@ -178,9 +185,9 @@ export default function PointDetail({ point, onClose }) {
                                 <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border border-slate-100">
                                     <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
                                         <div className="w-1 h-5 md:h-6 bg-orange-500 rounded-full"></div>
-                                        <h3 className="text-base md:text-lg font-black text-slate-900">Stopp Nr.</h3>
+                                        <h3 className="text-base md:text-lg font-black text-slate-900">Reisetag</h3>
                                     </div>
-                                    <p className="text-4xl md:text-5xl font-black text-orange-600">{point.order ?? '-'}</p>
+                                    <p className="text-4xl md:text-5xl font-black text-orange-600">{getTravelDay(point, trip)}</p>
                                 </div>
 
                                 {/* Standort - now second and hidden on mobile */}

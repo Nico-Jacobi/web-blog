@@ -2,11 +2,11 @@ import React from 'react';
 import StopCard from './StopCard';
 import RouteSegment from './RouteSegment';
 
-export default function Sidebar({ activeId, onSelectStop, trip }) {
+export default function Sidebar({ activeId, onSelectStop, onOpenDetail, trip }) {
     if (!trip) return null;
 
     return (
-        <aside className="w-80 xl:w-96 flex flex-col border-r border-orange-100 bg-white h-full">
+        <aside className="w-full lg:w-80 xl:w-96 flex flex-col border-r border-orange-100 bg-white h-full">
             {/* Sidebar Header */}
             <div className="pt-8 pb-4 px-6 shrink-0">
                 <div className="flex items-center justify-between">
@@ -26,7 +26,8 @@ export default function Sidebar({ activeId, onSelectStop, trip }) {
                         <StopCard
                             point={point}
                             isActive={activeId === point.id}
-                            onClick={() => onSelectStop(point.id)}
+                            onInfoClick={() => onOpenDetail(point.id)}
+                            onMapClick={() => onSelectStop(point.id)}
                         />
 
                         {index < trip.points.length - 1 && (

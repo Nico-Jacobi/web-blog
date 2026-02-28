@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { ArrowLeft } from 'lucide-react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import MapView from './components/MapView';
@@ -27,6 +28,7 @@ export default function App() {
     const [activeId, setActiveId] = useState(null);
     const [detailId, setDetailId] = useState(null);
     const [token, setToken] = useState(getCookie(AUTH_COOKIE));
+    const [mobileShowMap, setMobileShowMap] = useState(false);
 
     const leafletReady = useLeaflet();
     const mapViewRef = useRef(null);
@@ -96,6 +98,12 @@ export default function App() {
 
     const handleSelectStop = (id) => {
         setActiveId(id);
+        if (id) setMobileShowMap(true);
+    };
+
+    const handleMobileBack = () => {
+        setMobileShowMap(false);
+        setActiveId(null);
     };
 
     const activePoint = detailId ? trip?.getPoint(detailId) : null;
@@ -122,10 +130,19 @@ export default function App() {
         <div className="flex flex-col h-dvh w-screen bg-slate-50 overflow-hidden">
             <Header trip={trip} />
             <div className="flex flex-1 min-h-0 w-full overflow-hidden">
-                <div className="hidden lg:block shrink-0">
-                    <Sidebar activeId={activeId} onSelectStop={handleSelectStop} trip={trip}/>
+                {/* Sidebar: always on desktop, toggleable on mobile */}
+                <div className={`${mobileShowMap ? 'hidden' : 'block'} lg:block shrink-0 w-full lg:w-auto h-full`}>
+                    <Sidebar activeId={activeId} onSelectStop={handleSelectStop} onOpenDetail={setDetailId} trip={trip}/>
                 </div>
-                <main className="flex-1 relative min-h-0 min-w-0">
+                {/* Map: always on desktop, toggleable on mobile */}
+                <main className={`${mobileShowMap ? 'block' : 'hidden'} lg:block flex-1 relative min-h-0 min-w-0`}>
+                    {/* Mobile back button */}
+                    <button
+                        onClick={handleMobileBack}
+                        className="lg:hidden absolute top-6 left-6 z-[1000] bg-white hover:bg-slate-50 p-2 rounded-full shadow-lg border border-slate-200 transition-all"
+                    >
+                        <ArrowLeft size={20} className="text-slate-700" />
+                    </button>
                     <MapView
                         ref={mapViewRef}
                         activeId={activeId}

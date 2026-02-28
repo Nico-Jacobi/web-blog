@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar } from 'lucide-react';
+import { Calendar, Info, MapPin } from 'lucide-react';
 
-export default function StopCard({ point, isActive, onClick }) {
+export default function StopCard({ point, isActive, onInfoClick, onMapClick }) {
     const [image, setImage] = useState(null);
 
     useEffect(() => {
@@ -10,8 +10,7 @@ export default function StopCard({ point, isActive, onClick }) {
 
     return (
         <div
-            onClick={onClick}
-            className={`cursor-pointer p-4 rounded-2xl transition-all border-2 mb-0 ${
+            className={`p-4 rounded-2xl transition-all border-2 mb-0 ${
                 isActive
                     ? 'bg-orange-50 border-orange-200 shadow-sm'
                     : 'bg-white border-transparent hover:bg-slate-50'
@@ -26,7 +25,7 @@ export default function StopCard({ point, isActive, onClick }) {
                     )}
                 </div>
 
-                <div className="flex flex-col justify-center overflow-hidden">
+                <div className="flex flex-col justify-center overflow-hidden flex-1 min-w-0">
                     <h3 className={`font-bold truncate ${isActive ? 'text-orange-900' : 'text-slate-800'}`}>
                         {point.title}
                     </h3>
@@ -42,6 +41,23 @@ export default function StopCard({ point, isActive, onClick }) {
                         {point.desc}
                     </p>
                 </div>
+            </div>
+
+            <div className="flex gap-2 mt-3">
+                <button
+                    onClick={() => onInfoClick(point.id)}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-orange-500 text-white hover:bg-orange-600"
+                >
+                    <Info size={14} />
+                    Info
+                </button>
+                <button
+                    onClick={() => onMapClick(point.id)}
+                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-slate-100 text-slate-700 hover:bg-slate-200"
+                >
+                    <MapPin size={14} />
+                    Karte
+                </button>
             </div>
         </div>
     );

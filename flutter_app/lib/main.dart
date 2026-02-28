@@ -12,6 +12,7 @@ import 'package:image_picker_android/image_picker_android.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
 import 'colors.dart';
@@ -75,9 +76,12 @@ void main() async {
     final prefs = await SharedPreferences.getInstance();
     baseUrl = prefs.getString('base_url') ?? baseUrl;
     authToken = prefs.getString('auth_token') ?? authToken;
-    useModernPicker = prefs.getBool('use_modern_picker') ?? true;
+    useModernPicker = prefs.getBool('use_modern_picker') ?? false;
 
     StorageService.updatePickerImplementation();
+
+    await Permission.location.request();
+    await Permission.accessMediaLocation.request();
 
     runApp(MyApp());
   });

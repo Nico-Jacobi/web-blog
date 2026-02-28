@@ -78,6 +78,7 @@ class SyncService {
   bool get isSyncing => _isSyncing;
 
   Future<SyncResult?> syncFromStorage() async {
+    await _init();
 
     if (!syncData) {
       print('[SYNC] ⚠️ Syncing disabled');

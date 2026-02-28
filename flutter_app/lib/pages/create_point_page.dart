@@ -182,17 +182,70 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
   }
 
 
-  String? _formatExifDate(String? exifDate) {
-    if (exifDate == null || exifDate.isEmpty) return null;
-    try {
-      final parts = exifDate.split(' ');
-      if (parts.isEmpty) return null;
-      final dateParts = parts[0].split(':');
-      if (dateParts.length != 3) return null;
-      return '${dateParts[2]}/${dateParts[1]}/${dateParts[0]}';
-    } catch (e) {
-      return null;
+  /// Parses a single date string like "15.03.2024", "2024:03:15", "15/3/24", etc.
+  /// Returns DD/MM/YYYY or null if unparsable.
+  String? _parseSingleDate(String input) {
+    input = input.trim();
+    if (input.isEmpty) return null;
+
+    // Strip time part if present (EXIF: "2024:03:15 14:30:00")
+    final datePart = input.split(' ')[0];
+
+    // Split by common date separators: . / : -
+    final segments = datePart.split(RegExp(r'[./:\-]'));
+    if (segments.length != 3) return null;
+
+    final a = int.tryParse(segments[0]);
+    final b = int.tryParse(segments[1]);
+    final c = int.tryParse(segments[2]);
+    if (a == null || b == null || c == null) return null;
+
+    int day, month, year;
+    if (a > 31) {
+      // YYYY-MM-DD format (EXIF, ISO, etc.)
+      year = a; month = b; day = c;
+    } else {
+      // DD-MM-YYYY or DD-MM-YY
+      day = a; month = b; year = c;
     }
+
+    if (year < 100) year += 2000;
+    if (day < 1 || day > 31 || month < 1 || month > 12 || year < 1900) return null;
+
+    return '${day.toString().padLeft(2, '0')}/${month.toString().padLeft(2, '0')}/$year';
+  }
+
+  /// Normalizes a date string (or date range) into DD/MM/YYYY format.
+  /// Handles ranges like "15.03.2024 - 20.03.2024".
+  /// Returns the original input if parsing fails.
+  String _normalizeDate(String input) {
+    input = input.trim();
+    if (input.isEmpty) return input;
+
+    // Handle date ranges with " - " or " – " separator
+    for (final sep in [' - ', ' – ']) {
+      if (input.contains(sep)) {
+        final parts = input.split(sep);
+        if (parts.length == 2) {
+          final d1 = _parseSingleDate(parts[0]);
+          final d2 = _parseSingleDate(parts[1]);
+          if (d1 != null && d2 != null) return '$d1 - $d2';
+        }
+      }
+    }
+
+    return _parseSingleDate(input) ?? input;
+  }
+
+  double _toDouble(dynamic value) {
+    if (value is Ratio) {
+      if (value.denominator == 0) return 0.0;
+      return value.toDouble();
+    }
+    if (value is int) return value.toDouble();
+    if (value is double) return value.isNaN ? 0.0 : value;
+    final parsed = double.tryParse(value.toString()) ?? 0.0;
+    return parsed.isNaN ? 0.0 : parsed;
   }
 
   Future<void> _extractMetadata(File image) async {
@@ -201,26 +254,56 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       final tags = await readExifFromBytes(bytes);
 
       if (_dateCtrl.text.isEmpty && tags.containsKey('Image DateTime')) {
-        final formatted = _formatExifDate(tags['Image DateTime'].toString());
-        if (formatted != null) _dateCtrl.text = formatted;
+        final normalized = _normalizeDate(tags['Image DateTime'].toString());
+        if (normalized.isNotEmpty) _dateCtrl.text = normalized;
+      }
+
+      // Debug: dump all GPS-related tags
+      final gpsTags = tags.entries.where((e) => e.key.contains('GPS')).toList();
+      debugPrint('=== GPS EXIF DEBUG for ${path.basename(image.path)} ===');
+      for (final entry in gpsTags) {
+        final tag = entry.value;
+        debugPrint('  ${entry.key}: printable="${tag.printable}" '
+            'type=${tag.values.runtimeType} values=${tag.values.toList()}');
+      }
+      if (gpsTags.isEmpty) {
+        debugPrint('  (no GPS tags found)');
       }
 
       double? convertToDecimal(IfdTag? tag, IfdTag? ref) {
         if (tag == null || ref == null) return null;
         try {
-          final values = tag.values as IfdRatios;
-          if (values.ratios.length < 3) return null;
-          double d = values.ratios[0].toDouble();
-          double m = values.ratios[1].toDouble();
-          double s = values.ratios[2].toDouble();
+          List<dynamic> values;
+          if (tag.values is IfdRatios) {
+            values = (tag.values as IfdRatios).ratios;
+          } else {
+            values = tag.values.toList();
+          }
+          if (values.length < 3) return null;
+          double d = _toDouble(values[0]);
+          double m = _toDouble(values[1]);
+          double s = _toDouble(values[2]);
+          debugPrint('  -> d=$d m=$m s=$s (raw: ${values[0]} ${values[1]} ${values[2]})');
           double res = d + (m / 60.0) + (s / 3600.0);
+          if (res.isNaN || res.isInfinite) return null;
+          // Treat 0.0 as missing data (0°0'0" is in the Atlantic Ocean)
+          if (res == 0.0) {
+            debugPrint('  -> result is 0.0, treating as missing GPS data');
+            return null;
+          }
           final refStr = ref.printable.toUpperCase();
           return (refStr.contains('S') || refStr.contains('W')) ? -res : res;
-        } catch (e) { return null; }
+        } catch (e) {
+          debugPrint('GPS conversion error: $e');
+          return null;
+        }
       }
 
       double? lat = convertToDecimal(tags['GPS GPSLatitude'], tags['GPS GPSLatitudeRef']);
       double? lon = convertToDecimal(tags['GPS GPSLongitude'], tags['GPS GPSLongitudeRef']);
+
+      debugPrint('  => lat=$lat, lon=$lon');
+      debugPrint('=== END GPS DEBUG ===');
 
       if (_latCtrl.text.isEmpty && lat != null) _latCtrl.text = lat.toStringAsFixed(6);
       if (_lonCtrl.text.isEmpty && lon != null) _lonCtrl.text = lon.toStringAsFixed(6);
@@ -426,14 +509,14 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
 
       InterestPoint point = InterestPoint(
         id: pointId,
-        name: _nameCtrl.text,
-        shortDescription: _shortDescCtrl.text,
+        name: _nameCtrl.text.trim(),
+        shortDescription: _shortDescCtrl.text.trim(),
         titleImagePath: titleFilename,  // Just filename
         otherMediaPaths: mediaFilenames,  // Just filenames
-        lat: double.tryParse(_latCtrl.text),
-        lon: double.tryParse(_lonCtrl.text),
-        date: _dateCtrl.text,
-        description: _descCtrl.text,
+        lat: double.tryParse(_latCtrl.text.trim()),
+        lon: double.tryParse(_lonCtrl.text.trim()),
+        date: _normalizeDate(_dateCtrl.text),
+        description: _descCtrl.text.trim(),
         tripOrder: _isEditMode && widget.existingPoint != null ? widget.existingPoint!.tripOrder : pointId,
       );
 

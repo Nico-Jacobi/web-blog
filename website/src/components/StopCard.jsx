@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Calendar, Info, MapPin } from 'lucide-react';
+import { Calendar, MapPin } from 'lucide-react';
 
 export default function StopCard({ point, isActive, isNew, onInfoClick, onMapClick }) {
     const [image, setImage] = useState(null);
@@ -10,7 +10,8 @@ export default function StopCard({ point, isActive, isNew, onInfoClick, onMapCli
 
     return (
         <div
-            className={`p-4 rounded-2xl transition-all border-2 mb-0 ${
+            onClick={() => onInfoClick(point.id)}
+            className={`p-4 rounded-2xl transition-all border-2 mb-0 cursor-pointer ${
                 isActive
                     ? 'bg-orange-50 border-orange-200 shadow-sm'
                     : 'bg-white border-transparent hover:bg-slate-50'
@@ -49,20 +50,12 @@ export default function StopCard({ point, isActive, isNew, onInfoClick, onMapCli
                     </p>
                 </div>
 
-                <div className="flex gap-2 shrink-0">
-                    <button
-                        onClick={() => onInfoClick(point.id)}
-                        className="w-10 h-10 flex items-center justify-center rounded-lg transition-all border-2 border-orange-400 text-orange-500 hover:bg-orange-50"
-                    >
-                        <Info size={16} />
-                    </button>
-                    <button
-                        onClick={() => onMapClick(point.id)}
-                        className="w-10 h-10 flex items-center justify-center rounded-lg transition-all border-2 border-slate-200 text-slate-500 hover:bg-slate-50"
-                    >
-                        <MapPin size={16} />
-                    </button>
-                </div>
+                <button
+                    onClick={(e) => { e.stopPropagation(); onMapClick(point.id); }}
+                    className="w-10 h-10 flex items-center justify-center rounded-lg transition-all border-2 border-slate-200 text-slate-500 hover:bg-slate-50 shrink-0"
+                >
+                    <MapPin size={16} />
+                </button>
             </div>
         </div>
     );

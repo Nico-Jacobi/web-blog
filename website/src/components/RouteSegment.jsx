@@ -6,10 +6,13 @@ export default function RouteSegment({ trip, fromPoint, toPoint }) {
     const route = trip.getRouteBetween(fromPoint.id, toPoint.id);
     const distance = trip.getDistanceBetween(fromPoint.id, toPoint.id);
 
-    if (!route || !distance) return null;
+    if (!route || distance == null) return null;
 
     const style = ROUTE_STYLES[route.mode] || ROUTE_STYLES.misc;
     const Icon = style.icon || MoveRight;
+    const distanceLabel = distance < 1
+        ? `${Math.round(distance * 1000).toLocaleString('de-DE')} m`
+        : `${distance.toLocaleString('de-DE')} km`;
 
     return (
         <div className="flex items-center gap-3 py-1 px-2 my-0"> {/* Reduced py and my */}
@@ -34,7 +37,7 @@ export default function RouteSegment({ trip, fromPoint, toPoint }) {
                 }}
             >
                 <Icon size={14} />
-                <span>{distance.toLocaleString('de-DE')} km</span>
+                <span>{distanceLabel}</span>
             </div>
         </div>
     );

@@ -1,9 +1,24 @@
-import React from 'react';
+import React, { useRef, useEffect } from 'react';
 import StopCard from './StopCard';
 import RouteSegment from './RouteSegment';
 
-export default function Sidebar({ activeId, onSelectStop, onOpenDetail, trip }) {
+export default function Sidebar({ activeId, onSelectStop, onOpenDetail, trip, newPointIds }) {
+    const firstNewRef = useRef(null);
+    const scrollRef = useRef(null);
+
+    // Scroll to first new point on mount
+    useEffect(() => {
+        if (firstNewRef.current && scrollRef.current) {
+            const container = scrollRef.current;
+            const element = firstNewRef.current;
+            const offset = element.offsetTop - container.offsetTop - 16;
+            container.scrollTo({ top: offset, behavior: 'smooth' });
+        }
+    }, [trip, newPointIds]);
+
     if (!trip) return null;
+
+    let foundFirstNew = false;
 
     return (
         <aside className="w-full lg:w-80 xl:w-96 flex flex-col border-r border-orange-100 bg-white h-full">
@@ -20,25 +35,33 @@ export default function Sidebar({ activeId, onSelectStop, onOpenDetail, trip }) 
                 <div className="h-1 w-8 bg-orange-500 mt-2 rounded-full" />
             </div>
 
-            <div className="flex-1 overflow-y-auto px-4 pb-6">
-                {trip.points.map((point, index) => (
-                    <React.Fragment key={point.id}>
-                        <StopCard
-                            point={point}
-                            isActive={activeId === point.id}
-                            onInfoClick={() => onOpenDetail(point.id)}
-                            onMapClick={() => onSelectStop(point.id)}
-                        />
+            <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pb-6">
+                {trip.points.map((point, index) => {
+                    const isFirstNew = !foundFirstNew && newPointIds.has(point.id);
+                    if (isFirstNew) foundFirstNew = true;
 
-                        {index < trip.points.length - 1 && (
-                            <RouteSegment
-                                trip={trip}
-                                fromPoint={point}
-                                toPoint={trip.points[index + 1]}
-                            />
-                        )}
-                    </React.Fragment>
-                ))}
+                    return (
+                        <React.Fragment key={point.id}>
+                            <div ref={isFirstNew ? firstNewRef : null}>
+                                <StopCard
+                                    point={point}
+                                    isActive={activeId === point.id}
+                                    isNew={newPointIds.has(point.id)}
+                                    onInfoClick={() => onOpenDetail(point.id)}
+                                    onMapClick={() => onSelectStop(point.id)}
+                                />
+                            </div>
+
+                            {index < trip.points.length - 1 && (
+                                <RouteSegment
+                                    trip={trip}
+                                    fromPoint={point}
+                                    toPoint={trip.points[index + 1]}
+                                />
+                            )}
+                        </React.Fragment>
+                    );
+                })}
             </div>
         </aside>
     );

@@ -4,7 +4,7 @@ import {ROUTE_STYLES} from "../model/routeStyles.js";
 import Legend from "./Legend.jsx";
 
 
-const MapView = forwardRef(({ activeId, onOpenDetail, onSelectStop, leafletReady, trip }, ref) => {
+const MapView = forwardRef(({ activeId, onOpenDetail, onSelectStop, leafletReady, trip, newPointIds }, ref) => {
     const mapRef = useRef(null);
     const mapInstance = useRef(null);
     const markersRef = useRef({});
@@ -27,7 +27,11 @@ const MapView = forwardRef(({ activeId, onOpenDetail, onSelectStop, leafletReady
         if (!leafletReady || !mapRef.current || mapInstance.current || !trip) return;
 
         const L = window.L;
-        const map = L.map(mapRef.current, { center: [-25.27, 133.77], zoom: 4 });
+        const map = L.map(mapRef.current, {
+            center: [-25.27, 133.77],
+            zoom: 4,
+            renderer: L.svg({ padding: 2 })
+        });
         mapInstance.current = map;
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
@@ -48,10 +52,18 @@ const MapView = forwardRef(({ activeId, onOpenDetail, onSelectStop, leafletReady
         trip.points.forEach(point => {
             if (!point.lat || !point.lng) return;
 
+            const isNew = newPointIds.has(point.id);
+            const markerHtml = isNew
+                ? `<div style="position:relative; width:18px; height:18px;">
+                     <div style="position:absolute; inset:-5px; border-radius:50%; border:2px solid #F97316; opacity:0.6; animation:pulse-ring 2s ease-out infinite;"></div>
+                     <div style="background:#F97316; width:18px; height:18px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 5px rgba(0,0,0,0.3);"></div>
+                   </div>`
+                : `<div style="background:#F97316; width:18px; height:18px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 5px rgba(0,0,0,0.3);"></div>`;
+
             const marker = L.marker([point.lat, point.lng], {
                 icon: L.divIcon({
                     className: 'custom-marker',
-                    html: `<div style="background:#F97316; width:18px; height:18px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 5px rgba(0,0,0,0.3);"></div>`,
+                    html: markerHtml,
                     iconSize: [18, 18],
                     iconAnchor: [9, 9]
                 })
@@ -184,7 +196,7 @@ const createPopupContent = (point, img, onOpenDetail) => {
             
             <button 
                 id="detail-btn-${point.id}"
-                style="margin-top:6px; padding:${buttonPadding}; background:#f97316; color:white; border:none; border-radius:6px; font-size:${buttonSize}; font-weight:600; width:100%; cursor:pointer;"
+                style="margin-top:6px; padding:${buttonPadding}; background:transparent; color:#f97316; border:2px solid #fb923c; border-radius:6px; font-size:${buttonSize}; font-weight:600; width:100%; cursor:pointer;"
             >
                 Details
             </button>

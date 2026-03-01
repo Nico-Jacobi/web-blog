@@ -29,6 +29,7 @@ export default function App() {
     const [detailId, setDetailId] = useState(null);
     const [token, setToken] = useState(getCookie(AUTH_COOKIE));
     const [mobileShowMap, setMobileShowMap] = useState(false);
+    const [newPointIds, setNewPointIds] = useState(new Set());
 
     const leafletReady = useLeaflet();
     const mapViewRef = useRef(null);
@@ -85,7 +86,24 @@ export default function App() {
         setError(null);
 
         Trip.getInstance(token)
-            .then(setTrip)
+            .then(loadedTrip => {
+                setTrip(loadedTrip);
+
+                const lastKnown = parseInt(localStorage.getItem('lastKnownPointOrder')) || 0;
+                const maxOrder = Math.max(...loadedTrip.points.map(p => p.order));
+                const newIds = new Set(
+                    loadedTrip.points.filter(p => p.order > lastKnown).map(p => p.id)
+                );
+                setNewPointIds(newIds);
+
+                // Focus on first new point, or most recent if none are new
+                const sorted = [...loadedTrip.points].sort((a, b) => a.order - b.order);
+                const firstNew = sorted.find(p => newIds.has(p.id));
+                const target = firstNew || sorted[sorted.length - 1];
+                if (target) setActiveId(target.id);
+
+                localStorage.setItem('lastKnownPointOrder', String(maxOrder));
+            })
             .catch(err => {
                 setError(err.message);
                 setToken(null);
@@ -132,7 +150,7 @@ export default function App() {
             <div className="flex flex-1 min-h-0 w-full overflow-hidden">
                 {/* Sidebar: always on desktop, toggleable on mobile */}
                 <div className={`${mobileShowMap ? 'hidden' : 'block'} lg:block shrink-0 w-full lg:w-auto h-full`}>
-                    <Sidebar activeId={activeId} onSelectStop={handleSelectStop} onOpenDetail={setDetailId} trip={trip}/>
+                    <Sidebar activeId={activeId} onSelectStop={handleSelectStop} onOpenDetail={setDetailId} trip={trip} newPointIds={newPointIds}/>
                 </div>
                 {/* Map: always on desktop, toggleable on mobile */}
                 <main className={`${mobileShowMap ? 'block' : 'hidden'} lg:block flex-1 relative min-h-0 min-w-0`}>
@@ -150,6 +168,7 @@ export default function App() {
                         onSelectStop={handleSelectStop}
                         leafletReady={leafletReady}
                         trip={trip}
+                        newPointIds={newPointIds}
                     />
                 </main>
             </div>

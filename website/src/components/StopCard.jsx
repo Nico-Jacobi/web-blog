@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Calendar, Info, MapPin } from 'lucide-react';
 
-export default function StopCard({ point, isActive, onInfoClick, onMapClick }) {
+export default function StopCard({ point, isActive, isNew, onInfoClick, onMapClick }) {
     const [image, setImage] = useState(null);
 
     useEffect(() => {
@@ -16,7 +16,7 @@ export default function StopCard({ point, isActive, onInfoClick, onMapClick }) {
                     : 'bg-white border-transparent hover:bg-slate-50'
             }`}
         >
-            <div className="flex gap-4">
+            <div className="flex gap-4 items-center">
                 <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0">
                     {image ? (
                         <img src={image} alt={point.title} className="w-full h-full object-cover" />
@@ -26,9 +26,16 @@ export default function StopCard({ point, isActive, onInfoClick, onMapClick }) {
                 </div>
 
                 <div className="flex flex-col justify-center overflow-hidden flex-1 min-w-0">
-                    <h3 className={`font-bold truncate ${isActive ? 'text-orange-900' : 'text-slate-800'}`}>
-                        {point.title}
-                    </h3>
+                    <div className="flex items-center gap-2 min-w-0">
+                        <h3 className={`font-bold truncate ${isActive ? 'text-orange-900' : 'text-slate-800'}`}>
+                            {point.title}
+                        </h3>
+                        {isNew && (
+                            <span className="bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase shrink-0 leading-none">
+                                Neu
+                            </span>
+                        )}
+                    </div>
 
                     {point.date && (
                         <div className="flex items-center gap-1 text-slate-400 text-[10px] mt-0.5">
@@ -41,23 +48,21 @@ export default function StopCard({ point, isActive, onInfoClick, onMapClick }) {
                         {point.desc}
                     </p>
                 </div>
-            </div>
 
-            <div className="flex gap-2 mt-3">
-                <button
-                    onClick={() => onInfoClick(point.id)}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-orange-500 text-white hover:bg-orange-600"
-                >
-                    <Info size={14} />
-                    Info
-                </button>
-                <button
-                    onClick={() => onMapClick(point.id)}
-                    className="flex-1 flex items-center justify-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-semibold transition-all bg-slate-100 text-slate-700 hover:bg-slate-200"
-                >
-                    <MapPin size={14} />
-                    Karte
-                </button>
+                <div className="flex gap-2 shrink-0">
+                    <button
+                        onClick={() => onInfoClick(point.id)}
+                        className="w-10 h-10 flex items-center justify-center rounded-lg transition-all border-2 border-orange-400 text-orange-500 hover:bg-orange-50"
+                    >
+                        <Info size={16} />
+                    </button>
+                    <button
+                        onClick={() => onMapClick(point.id)}
+                        className="w-10 h-10 flex items-center justify-center rounded-lg transition-all border-2 border-slate-200 text-slate-500 hover:bg-slate-50"
+                    >
+                        <MapPin size={16} />
+                    </button>
+                </div>
             </div>
         </div>
     );

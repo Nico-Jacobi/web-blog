@@ -30,6 +30,7 @@ const MapView = forwardRef(({ activeId, onOpenDetail, onSelectStop, leafletReady
         const map = L.map(mapRef.current, {
             center: [-25.27, 133.77],
             zoom: 4,
+            zoomControl: false,
             renderer: L.svg({ padding: 2 })
         });
         mapInstance.current = map;

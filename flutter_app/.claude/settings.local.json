@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(flutter analyze lib/pages/create_point_page.dart lib/services/metadata_helper.dart)",
+      "Bash(flutter pub get)"
+    ]
+  }
+}

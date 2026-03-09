@@ -12,12 +12,58 @@ const fsSync = require('fs');
 const app = express();
 app.set('trust proxy', 1); // 1 = trust first proxy
 
+// --- WEB PUSH ---
+let webpush = null;
+try {
+    webpush = require('web-push');
+    webpush.setVapidDetails(
+        'mailto:' + (process.env.VAPID_CONTACT || 'admin@example.com'),
+        process.env.VAPID_PUBLIC_KEY,
+        process.env.VAPID_PRIVATE_KEY
+    );
+    console.log('✅ Web Push initialized');
+} catch {
+    console.warn('⚠️  web-push not installed — push notifications disabled. Run: npm install web-push');
+}
 
 // --- CONFIGURATION (Use Environment Variables) ---
 const PORT = process.env.PORT || 3000;
 const READ_PASS = process.env.READ_PASS;
 const WRITE_PASS = process.env.WRITE_PASS;
 const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR || './storage');
+const SUBSCRIPTIONS_FILE = path.resolve('./push-subscriptions.json');
+
+// --- PUSH HELPERS ---
+async function loadSubscriptions() {
+    try {
+        const data = await fs.readFile(SUBSCRIPTIONS_FILE, 'utf8');
+        return JSON.parse(data);
+    } catch {
+        return [];
+    }
+}
+
+async function saveSubscriptions(subs) {
+    await fs.writeFile(SUBSCRIPTIONS_FILE, JSON.stringify(subs, null, 2));
+}
+
+async function sendPushToAll(payload) {
+    if (!webpush) return;
+    const subs = await loadSubscriptions();
+    const dead = [];
+    await Promise.allSettled(subs.map(async (sub, i) => {
+        try {
+            await webpush.sendNotification(sub, JSON.stringify(payload));
+        } catch (err) {
+            if (err.statusCode === 410 || err.statusCode === 404) dead.push(i);
+        }
+    }));
+    if (dead.length) {
+        const pruned = subs.filter((_, i) => !dead.includes(i));
+        await saveSubscriptions(pruned);
+        console.log(`🧹 Removed ${dead.length} expired push subscription(s)`);
+    }
+}
 
 // --- MIDDLEWARE ---
 app.use(helmet());
@@ -300,6 +346,14 @@ app.post('/write', checkAuth, async (req, res) => {
         const size = Buffer.byteLength(data);
         console.log(`✅ WRITE SUCCESS: "${filePath}" (${size} bytes)`);
         res.json({ message: "Written", path: filePath });
+
+        // Auto-notify subscribers when points data is updated
+        if (filePath.endsWith('points.json')) {
+            sendPushToAll({
+                title: 'Neuer Stop! 🇦🇺',
+                body: 'Ein neuer Ort wurde zur Reise hinzugefügt.'
+            }).catch(err => console.error('Push notify error:', err.message));
+        }
     } catch (err) {
         console.log(`❌ WRITE FAILED: "${filePath}" - ${err.message}`);
         res.status(500).json({ error: "Write failed" });
@@ -320,6 +374,26 @@ app.delete('/delete', checkAuth, async (req, res) => {
     } catch (err) {
         console.log(`❌ DELETE FAILED: "${filePath}" - ${err.message}`);
         res.status(500).json({ error: "Delete failed" });
+    }
+});
+
+// --- PUSH SUBSCRIBE ---
+app.post('/push/subscribe', checkAuth, async (req, res) => {
+    const subscription = req.body;
+    if (!subscription?.endpoint) return res.status(400).json({ error: 'Invalid subscription' });
+
+    try {
+        const subs = await loadSubscriptions();
+        const exists = subs.some(s => s.endpoint === subscription.endpoint);
+        if (!exists) {
+            subs.push(subscription);
+            await saveSubscriptions(subs);
+            console.log(`✅ Push subscription added (total: ${subs.length})`);
+        }
+        res.json({ ok: true });
+    } catch (err) {
+        console.error('❌ Subscribe failed:', err.message);
+        res.status(500).json({ error: 'Subscribe failed' });
     }
 });
 

@@ -7,6 +7,7 @@ import PointDetail from './components/PointDetail';
 import { Trip } from './model/Trip';
 import { useLeaflet } from './controller/useLeaflet.js';
 import PasswordGate from "./components/PasswortGate.jsx";
+import { registerServiceWorker, setupPushNotifications } from './controller/usePushNotifications.js';
 
 const AUTH_COOKIE = 'trip_auth_key';
 
@@ -33,6 +34,9 @@ export default function App() {
 
     const leafletReady = useLeaflet();
     const mapViewRef = useRef(null);
+
+    // Register service worker once on mount
+    useEffect(() => { registerServiceWorker(); }, []);
 
     // Track previous state to determine if we are Opening or Closing
     const prevActiveId = useRef(activeId);
@@ -103,6 +107,7 @@ export default function App() {
                 if (target) setActiveId(target.id);
 
                 localStorage.setItem('lastKnownPointOrder', String(maxOrder));
+                setupPushNotifications(token);
             })
             .catch(err => {
                 setError(err.message);

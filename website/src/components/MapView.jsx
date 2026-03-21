@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
+import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { X } from 'lucide-react';
 import {ROUTE_STYLES} from "../model/routeStyles.js";
 import Legend from "./Legend.jsx";
@@ -10,6 +10,7 @@ const MapView = forwardRef(({ activeId, onOpenDetail, onSelectStop, leafletReady
     const markersRef = useRef({});
     const userClickedMarkerRef = useRef(false);
 
+    const [containerReady, setContainerReady] = useState(false);
     const usedModes = trip ? [...new Set(trip.routes.map(r => r.mode))] : [];
 
     // Expose method to parent
@@ -22,17 +23,60 @@ const MapView = forwardRef(({ activeId, onOpenDetail, onSelectStop, leafletReady
         }
     }));
 
+    // Wait until container has actual dimensions before initializing map
+    useEffect(() => {
+        const el = mapRef.current;
+        if (!el) return;
+        if (el.offsetWidth && el.offsetHeight) {
+            setContainerReady(true);
+            return;
+        }
+        const obs = new ResizeObserver(() => {
+            if (el.offsetWidth && el.offsetHeight) {
+                setContainerReady(true);
+                obs.disconnect();
+            }
+        });
+        obs.observe(el);
+        return () => obs.disconnect();
+    }, []);
+
 
     useEffect(() => {
-        if (!leafletReady || !mapRef.current || mapInstance.current || !trip) return;
+        if (!leafletReady || !containerReady || !mapRef.current || mapInstance.current || !trip) return;
 
         const L = window.L;
+
+        // Calculate initial bounds from trip points, filtering outliers
+        const validPoints = trip.points.filter(p => p.lat && p.lng);
+        let initialBounds;
+        if (validPoints.length > 2) {
+            const avgLat = validPoints.reduce((s, p) => s + p.lat, 0) / validPoints.length;
+            const avgLng = validPoints.reduce((s, p) => s + p.lng, 0) / validPoints.length;
+            const distances = validPoints.map(p =>
+                Math.sqrt((p.lat - avgLat) ** 2 + (p.lng - avgLng) ** 2)
+            );
+            const sorted = [...distances].sort((a, b) => a - b);
+            const median = sorted[Math.floor(sorted.length / 2)];
+            // Keep points within 3x median distance to exclude far-away outliers
+            const threshold = Math.max(median * 3, 1);
+            const corePoints = validPoints.filter((p, i) => distances[i] <= threshold);
+            const pts = corePoints.length > 1 ? corePoints : validPoints;
+            initialBounds = L.latLngBounds(pts.map(p => [p.lat, p.lng]));
+        } else if (validPoints.length > 0) {
+            initialBounds = L.latLngBounds(validPoints.map(p => [p.lat, p.lng]));
+        }
+
         const map = L.map(mapRef.current, {
-            center: [-25.27, 133.77],
-            zoom: 4,
             zoomControl: false,
-            renderer: L.svg({ padding: 2 })
+            renderer: L.canvas()
         });
+
+        if (initialBounds && initialBounds.isValid()) {
+            map.fitBounds(initialBounds, { padding: [40, 40], maxZoom: 10 });
+        } else {
+            map.setView([-25.27, 133.77], 4);
+        }
         mapInstance.current = map;
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
@@ -97,7 +141,7 @@ const MapView = forwardRef(({ activeId, onOpenDetail, onSelectStop, leafletReady
         const observer = new ResizeObserver(() => map.invalidateSize());
         observer.observe(mapRef.current);
         return () => observer.disconnect();
-    }, [leafletReady, trip, onOpenDetail, onSelectStop]);
+    }, [leafletReady, containerReady, trip, onOpenDetail, onSelectStop]);
 
 
     // ... inside MapView component ...

@@ -43,7 +43,7 @@ const MapView = forwardRef(({ activeId, onOpenDetail, onSelectStop, leafletReady
 
             if (p1.lat && p2.lat) {
                 const style = ROUTE_STYLES[route.mode] || ROUTE_STYLES.car;
-                L.polyline(
+                const line = L.polyline(
                     [[p1.lat, p1.lng], [p2.lat, p2.lng]],
                     { ...style, lineJoin: 'round' }
                 ).addTo(map);

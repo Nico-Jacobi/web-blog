@@ -38,51 +38,74 @@ export default function App() {
     // Register service worker once on mount
     useEffect(() => { registerServiceWorker(); }, []);
 
+    // Use refs so the popstate handler always sees current state
+    const detailIdRef = useRef(detailId);
+    const mobileShowMapRef = useRef(mobileShowMap);
+    detailIdRef.current = detailId;
+    mobileShowMapRef.current = mobileShowMap;
+
     // Track previous state to determine if we are Opening or Closing
-    const prevActiveId = useRef(activeId);
     const prevDetailId = useRef(detailId);
+    const prevMobileShowMap = useRef(mobileShowMap);
+
+    // Flag to skip pushState when navigating via popstate
+    const isPopping = useRef(false);
 
     // 1. Handle Back Button (PopState)
     useEffect(() => {
         const handlePopState = (event) => {
-            // FIX: Check if we are landing on a 'detail' state.
-            // If yes, it means we came back from the Lightbox, so we keep Detail open.
+            isPopping.current = true;
+
+            // If we land on a 'detail' state, keep detail open (e.g. back from lightbox)
             if (event.state?.view === 'detail') {
+                isPopping.current = false;
                 return;
             }
 
-            // Priority 1: Close Detail if open (and state is not 'detail')
-            if (detailId) {
+            // Priority 1: Close Detail if open
+            if (detailIdRef.current) {
                 setDetailId(null);
+                isPopping.current = false;
                 return;
             }
 
-            // Priority 2: Close Popup
-            if (activeId) {
-                mapViewRef.current?.closePopup();
+            // Priority 2: Go from map back to list on mobile
+            if (mobileShowMapRef.current) {
+                setMobileShowMap(false);
+                setActiveId(null);
+                isPopping.current = false;
                 return;
             }
+
+            isPopping.current = false;
         };
 
         window.addEventListener('popstate', handlePopState);
         return () => window.removeEventListener('popstate', handlePopState);
-    }, [detailId, activeId]);
+    }, []);
 
     // 2. Manage History Stack (PushState)
     useEffect(() => {
-        const isDetailOpening = detailId && !prevDetailId.current;
-        const isActiveOpening = activeId && !prevActiveId.current;
-
-        if (isDetailOpening) {
-            // FIX: Tag this state as 'detail'
+        if (isPopping.current) {
+            prevDetailId.current = detailId;
+            return;
+        }
+        if (detailId && !prevDetailId.current) {
             window.history.pushState({ view: 'detail' }, '', window.location.href);
-        } else if (isActiveOpening) {
+        }
+        prevDetailId.current = detailId;
+    }, [detailId]);
+
+    useEffect(() => {
+        if (isPopping.current) {
+            prevMobileShowMap.current = mobileShowMap;
+            return;
+        }
+        if (mobileShowMap && !prevMobileShowMap.current) {
             window.history.pushState({ view: 'map' }, '', window.location.href);
         }
-
-        prevDetailId.current = detailId;
-        prevActiveId.current = activeId;
-    }, [detailId, activeId]);
+        prevMobileShowMap.current = mobileShowMap;
+    }, [mobileShowMap]);
 
     useEffect(() => {
         if (!token) return;
@@ -151,7 +174,7 @@ export default function App() {
 
     return (
         <div className="flex flex-col h-dvh w-screen bg-slate-50 overflow-hidden">
-            <Header trip={trip} />
+            <Header trip={trip} onMapToggle={() => { mobileShowMap ? handleMobileBack() : setMobileShowMap(true); }} />
             <div className="flex flex-1 min-h-0 w-full overflow-hidden">
                 {/* Sidebar: always on desktop, toggleable on mobile */}
                 <div className={`${mobileShowMap ? 'hidden' : 'block'} lg:block shrink-0 w-full lg:w-auto h-full`}>

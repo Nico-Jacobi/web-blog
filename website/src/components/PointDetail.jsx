@@ -266,7 +266,6 @@ export default function PointDetail({ point, trip, onClose }) {
                                                                 alt="Gallery"
                                                                 className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                                             />
-                                                            <div className="absolute inset-0 bg-orange-600/0 group-hover:bg-orange-600/20 transition-colors" />
                                                         </>
                                                     )}
                                                 </div>

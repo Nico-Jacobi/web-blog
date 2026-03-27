@@ -377,8 +377,15 @@ app.delete('/delete', checkAuth, async (req, res) => {
     }
 });
 
-// --- PUSH SUBSCRIBE ---
-app.post('/push/subscribe', checkAuth, async (req, res) => {
+// --- PUSH SUBSCRIBE (allow read-only users) ---
+app.post('/push/subscribe', (req, res, next) => {
+    let token = req.headers['x-auth-token'];
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+    let decoded;
+    try { decoded = Buffer.from(token, 'base64').toString('utf8'); } catch { return res.status(400).json({ error: 'Invalid token' }); }
+    if (decoded !== READ_PASS && decoded !== WRITE_PASS) return res.status(401).json({ error: 'Unauthorized' });
+    next();
+}, async (req, res) => {
     const subscription = req.body;
     if (!subscription?.endpoint) return res.status(400).json({ error: 'Invalid subscription' });
 

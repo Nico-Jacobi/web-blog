@@ -170,15 +170,17 @@ export default function PointDetail({ point, trip, onClose }) {
 
                         {/* Content Grid */}
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 md:gap-8">
-                            <div className="lg:col-span-2 bg-white rounded-xl md:rounded-2xl p-4 md:p-8 shadow-lg border border-slate-100">
-                                <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
-                                    <div className="w-1 h-6 md:h-8 bg-orange-500 rounded-full"></div>
-                                    <h3 className="text-lg md:text-2xl font-black text-slate-900">Was hier passiert ist</h3>
+                            {point.description && (
+                                <div className="lg:col-span-2 bg-white rounded-xl md:rounded-2xl p-4 md:p-8 shadow-lg border border-slate-100">
+                                    <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
+                                        <div className="w-1 h-6 md:h-8 bg-orange-500 rounded-full"></div>
+                                        <h3 className="text-lg md:text-2xl font-black text-slate-900">Was hier passiert ist</h3>
+                                    </div>
+                                    <p className="text-slate-700 text-sm md:text-lg leading-relaxed whitespace-pre-wrap">
+                                        {point.description}
+                                    </p>
                                 </div>
-                                <p className="text-slate-700 text-sm md:text-lg leading-relaxed whitespace-pre-wrap">
-                                    {point.description}
-                                </p>
-                            </div>
+                            )}
 
                             <div className="lg:col-span-1 space-y-4 md:space-y-6">
                                 {/* Stopp Nr. - now first */}

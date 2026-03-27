@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 
 export default function MediaLightbox({
@@ -9,43 +9,146 @@ export default function MediaLightbox({
                                       }) {
     const [isDragging, setIsDragging] = useState(false);
     const [dragOffset, setDragOffset] = useState(0);
+    const [scale, setScale] = useState(1);
+    const [panX, setPanX] = useState(0);
+    const [panY, setPanY] = useState(0);
+
     const trackRef = useRef(null);
+
+    // Refs for values needed inside native event listeners (closures don't capture state updates)
     const startX = useRef(0);
+    const isPinching = useRef(false);
+    const lastPinchDist = useRef(0);
+    const panStartTouch = useRef({ x: 0, y: 0 });
+    const panStartOffset = useRef({ x: 0, y: 0 });
+    const scaleRef = useRef(1);
+    const panXRef = useRef(0);
+    const panYRef = useRef(0);
+    const isDraggingRef = useRef(false);
+    const dragOffsetRef = useRef(0);
+    const currentIndexRef = useRef(currentIndex);
+
+    useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
+
+    const resetInteraction = useCallback(() => {
+        scaleRef.current = 1;
+        panXRef.current = 0;
+        panYRef.current = 0;
+        isDraggingRef.current = false;
+        dragOffsetRef.current = 0;
+        isPinching.current = false;
+        setScale(1);
+        setPanX(0);
+        setPanY(0);
+        setDragOffset(0);
+        setIsDragging(false);
+    }, []);
+
+    useEffect(() => {
+        resetInteraction();
+    }, [currentIndex, resetInteraction]);
 
     const sharedButtonStyle = "group bg-white hover:bg-slate-50 p-2 md:p-3 rounded-full shadow-lg transition-all hover:shadow-xl border border-slate-200 outline-offset-2 focus:outline-orange-500";
     const sharedIconStyle = "text-slate-700 group-hover:text-orange-500 transition-colors";
 
-    // Reset drag state when index changes externally
+    const getPinchDist = (touches) => {
+        const dx = touches[0].clientX - touches[1].clientX;
+        const dy = touches[0].clientY - touches[1].clientY;
+        return Math.sqrt(dx * dx + dy * dy);
+    };
+
     useEffect(() => {
-        setDragOffset(0);
-        setIsDragging(false);
-    }, [currentIndex]);
+        const el = trackRef.current;
+        if (!el) return;
 
-    const handleTouchStart = (e) => {
-        setIsDragging(true);
-        startX.current = e.touches[0].clientX;
-    };
+        const onTouchStart = (e) => {
+            if (e.touches.length === 2) {
+                isPinching.current = true;
+                isDraggingRef.current = false;
+                setIsDragging(false);
+                dragOffsetRef.current = 0;
+                setDragOffset(0);
+                lastPinchDist.current = getPinchDist(e.touches);
+            } else if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                if (scaleRef.current > 1) {
+                    panStartTouch.current = { x: touch.clientX, y: touch.clientY };
+                    panStartOffset.current = { x: panXRef.current, y: panYRef.current };
+                } else {
+                    isDraggingRef.current = true;
+                    setIsDragging(true);
+                    startX.current = touch.clientX;
+                }
+            }
+        };
 
-    const handleTouchMove = (e) => {
-        if (!isDragging) return;
-        const currentX = e.touches[0].clientX;
-        const diff = currentX - startX.current;
-        setDragOffset(diff);
-    };
+        const onTouchMove = (e) => {
+            if (e.touches.length === 2) {
+                e.preventDefault();
+                const dist = getPinchDist(e.touches);
+                const delta = dist / lastPinchDist.current;
+                lastPinchDist.current = dist;
+                const newScale = Math.max(1, Math.min(5, scaleRef.current * delta));
+                scaleRef.current = newScale;
+                setScale(newScale);
+            } else if (e.touches.length === 1) {
+                const touch = e.touches[0];
+                if (scaleRef.current > 1) {
+                    e.preventDefault();
+                    const newPanX = panStartOffset.current.x + (touch.clientX - panStartTouch.current.x);
+                    const newPanY = panStartOffset.current.y + (touch.clientY - panStartTouch.current.y);
+                    panXRef.current = newPanX;
+                    panYRef.current = newPanY;
+                    setPanX(newPanX);
+                    setPanY(newPanY);
+                } else if (isDraggingRef.current) {
+                    const diff = touch.clientX - startX.current;
+                    dragOffsetRef.current = diff;
+                    setDragOffset(diff);
+                }
+            }
+        };
 
-    const handleTouchEnd = () => {
-        setIsDragging(false);
-        const threshold = window.innerWidth * 0.2; // Drag 20% to snap
+        const onTouchEnd = (e) => {
+            if (isPinching.current && e.touches.length < 2) {
+                isPinching.current = false;
+                // Snap back to 1 if barely zoomed
+                if (scaleRef.current < 1.15) {
+                    scaleRef.current = 1;
+                    panXRef.current = 0;
+                    panYRef.current = 0;
+                    setScale(1);
+                    setPanX(0);
+                    setPanY(0);
+                }
+                return;
+            }
 
-        if (dragOffset < -threshold && currentIndex < media.length - 1) {
-            onNavigate(currentIndex + 1);
-        } else if (dragOffset > threshold && currentIndex > 0) {
-            onNavigate(currentIndex - 1);
-        }
+            if (isDraggingRef.current && scaleRef.current <= 1) {
+                isDraggingRef.current = false;
+                setIsDragging(false);
+                const threshold = window.innerWidth * 0.2;
+                const offset = dragOffsetRef.current;
+                if (offset < -threshold && currentIndexRef.current < media.length - 1) {
+                    onNavigate(currentIndexRef.current + 1);
+                } else if (offset > threshold && currentIndexRef.current > 0) {
+                    onNavigate(currentIndexRef.current - 1);
+                }
+                dragOffsetRef.current = 0;
+                setDragOffset(0);
+            }
+        };
 
-        // Snap back happens automatically via React state reset in useEffect or below
-        setDragOffset(0);
-    };
+        el.addEventListener('touchstart', onTouchStart, { passive: true });
+        el.addEventListener('touchmove', onTouchMove, { passive: false });
+        el.addEventListener('touchend', onTouchEnd, { passive: true });
+
+        return () => {
+            el.removeEventListener('touchstart', onTouchStart);
+            el.removeEventListener('touchmove', onTouchMove);
+            el.removeEventListener('touchend', onTouchEnd);
+        };
+    }, [media.length, onNavigate]);
 
     // Keyboard navigation
     useEffect(() => {
@@ -99,25 +202,20 @@ export default function MediaLightbox({
             </div>
 
             {/* Slider Track */}
-            {/* Slider Track */}
             <div
                 ref={trackRef}
-                className="absolute inset-y-0 left-0 flex items-center touch-pan-y"
-                onTouchStart={handleTouchStart}
-                onTouchMove={handleTouchMove}
-                onTouchEnd={handleTouchEnd}
+                className="absolute inset-y-0 left-0 flex items-center"
                 style={{
-                    // Use vw for both transform and width to ensure perfect 1:1 screen mapping
                     transform: `translateX(calc(-${currentIndex * 100}vw + ${dragOffset}px))`,
                     transition: isDragging ? 'none' : 'transform 0.3s cubic-bezier(0.25, 1, 0.5, 1)',
                     width: `${media.length * 100}vw`,
-                    willChange: 'transform' // Optimizes animation performance
+                    willChange: 'transform',
+                    touchAction: scale > 1 ? 'none' : 'pan-y',
                 }}
             >
                 {media.map((item, index) => (
                     <div
                         key={index}
-                        // w-screen ensures each slide is exactly the width of the viewport
                         className="h-full w-screen flex-none flex items-center justify-center p-4 md:p-12 relative"
                         onClick={onClose}
                     >
@@ -135,6 +233,12 @@ export default function MediaLightbox({
                                 className="max-w-full max-h-full object-contain shadow-2xl select-none"
                                 draggable={false}
                                 onClick={(e) => e.stopPropagation()}
+                                style={index === currentIndex ? {
+                                    transform: `translate(${panX}px, ${panY}px) scale(${scale})`,
+                                    transformOrigin: 'center center',
+                                    transition: 'transform 0.15s ease-out',
+                                    cursor: scale > 1 ? 'grab' : 'default',
+                                } : {}}
                             />
                         )}
                     </div>

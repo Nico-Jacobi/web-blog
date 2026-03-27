@@ -173,7 +173,7 @@ const MapView = forwardRef(({ activeId, onOpenDetail, onSelectStop, leafletReady
 
             const flyToPoint = () => {
                 const isMobile = window.innerWidth < 768;
-                const zoomLevel = isMobile ? 6 : 8;
+                const zoomLevel = isMobile ? 10 : 12;
                 const pointLatLng = L.latLng(point.lat, point.lng);
                 const targetPoint = map.project(pointLatLng, zoomLevel);
                 const offsetY = isMobile ? map.getSize().y * 0.2 : map.getSize().y * 0.1;

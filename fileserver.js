@@ -349,10 +349,21 @@ app.post('/write', checkAuth, async (req, res) => {
 
         // Auto-notify subscribers when points data is updated
         if (filePath.endsWith('points.json')) {
-            sendPushToAll({
-                title: 'Neuer Stop! 🇦🇺',
-                body: 'Ein neuer Ort wurde zur Reise hinzugefügt.'
-            }).catch(err => console.error('Push notify error:', err.message));
+            try {
+                const points = typeof content === 'string' ? JSON.parse(content) : content;
+                const latest = Array.isArray(points) && points.length > 0
+                    ? points.reduce((a, b) => (b.tripOrder > a.tripOrder ? b : a))
+                    : null;
+                sendPushToAll({
+                    title: 'Jenny hat was Neues gepostet! 🇦🇺',
+                    body: latest?.name || 'Schau dir an, wo es als nächstes hingeht!'
+                }).catch(err => console.error('Push notify error:', err.message));
+            } catch {
+                sendPushToAll({
+                    title: 'Jenny hat was Neues gepostet! 🇦🇺',
+                    body: 'Schau dir an, wo es als nächstes hingeht!'
+                }).catch(err => console.error('Push notify error:', err.message));
+            }
         }
     } catch (err) {
         console.log(`❌ WRITE FAILED: "${filePath}" - ${err.message}`);

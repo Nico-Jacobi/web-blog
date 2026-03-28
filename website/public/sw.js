@@ -1,10 +1,10 @@
 self.addEventListener('push', (event) => {
     const data = event.data?.json() ?? {};
-    const title = data.title || 'Neuer Stop!';
+    const title = data.title || 'Jenny hat was Neues gepostet!';
     const options = {
         body: data.body || 'Ein neuer Ort wurde zur Reise hinzugefügt.',
-        icon: '/vite.svg',
-        badge: '/vite.svg',
+        icon: '/kangaroo.svg',
+        badge: '/kangaroo.svg',
         data: { url: self.location.origin }
     };
     event.waitUntil(self.registration.showNotification(title, options));

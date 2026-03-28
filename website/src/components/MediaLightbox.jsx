@@ -230,6 +230,32 @@ export default function MediaLightbox({
             setScale(newScale);
         };
 
+        const onDblClick = (e) => {
+            e.stopPropagation();
+            if (scaleRef.current > 1) {
+                // Zoom out to 1
+                scaleRef.current = 1;
+                panXRef.current = 0;
+                panYRef.current = 0;
+                setScale(1);
+                setPanX(0);
+                setPanY(0);
+            } else {
+                // Zoom in to 2x, centered on click/tap position
+                const newScale = 2;
+                const cx = e.clientX - window.innerWidth / 2;
+                const cy = e.clientY - window.innerHeight / 2;
+                const newPanX = cx - (cx / 1) * newScale;
+                const newPanY = cy - (cy / 1) * newScale;
+                scaleRef.current = newScale;
+                panXRef.current = newPanX;
+                panYRef.current = newPanY;
+                setScale(newScale);
+                setPanX(newPanX);
+                setPanY(newPanY);
+            }
+        };
+
         el.addEventListener('touchstart', onTouchStart, { passive: true });
         el.addEventListener('touchmove', onTouchMove, { passive: false });
         el.addEventListener('touchend', onTouchEnd, { passive: true });
@@ -237,6 +263,7 @@ export default function MediaLightbox({
         window.addEventListener('mousemove', onMouseMove);
         window.addEventListener('mouseup', onMouseUp);
         el.addEventListener('wheel', onWheel, { passive: false });
+        el.addEventListener('dblclick', onDblClick);
 
         return () => {
             el.removeEventListener('touchstart', onTouchStart);
@@ -246,6 +273,7 @@ export default function MediaLightbox({
             window.removeEventListener('mousemove', onMouseMove);
             window.removeEventListener('mouseup', onMouseUp);
             el.removeEventListener('wheel', onWheel);
+            el.removeEventListener('dblclick', onDblClick);
         };
     }, [media.length, onNavigate]);
 

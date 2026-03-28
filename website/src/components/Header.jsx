@@ -1,11 +1,16 @@
-import React, { useState } from 'react';
-import { Map, Calendar, Route } from 'lucide-react';
+import React, { useState, useRef, useCallback } from 'react';
+import { Map, Calendar, Route, RefreshCw } from 'lucide-react';
 import kangarooIcon from '../../kangaroo.svg';
+
+const PULL_THRESHOLD = 80;
 
 export default function Header({ trip, onMapToggle }) {
     const dateRange = trip?.getDateRange() || '';
     const totalDistance = trip?.getTotalDistance();
     const [bouncing, setBouncing] = useState(false);
+    const [pullDistance, setPullDistance] = useState(0);
+    const [refreshing, setRefreshing] = useState(false);
+    const touchStartY = useRef(null);
 
     const handleKangarooClick = () => {
         if (bouncing) return;
@@ -13,8 +18,43 @@ export default function Header({ trip, onMapToggle }) {
         setTimeout(() => setBouncing(false), 800);
     };
 
+    const onTouchStart = useCallback((e) => {
+        if (refreshing) return;
+        touchStartY.current = e.touches[0].clientY;
+    }, [refreshing]);
+
+    const onTouchMove = useCallback((e) => {
+        if (touchStartY.current === null || refreshing) return;
+        const dy = e.touches[0].clientY - touchStartY.current;
+        if (dy > 0) {
+            setPullDistance(Math.min(dy, PULL_THRESHOLD + 30));
+        } else {
+            setPullDistance(0);
+        }
+    }, [refreshing]);
+
+    const onTouchEnd = useCallback(() => {
+        if (touchStartY.current === null) return;
+        if (pullDistance >= PULL_THRESHOLD && !refreshing) {
+            setRefreshing(true);
+            setPullDistance(PULL_THRESHOLD);
+            setTimeout(() => window.location.reload(), 800);
+        } else {
+            setPullDistance(0);
+        }
+        touchStartY.current = null;
+    }, [pullDistance, refreshing]);
+
+    const pullProgress = Math.min(pullDistance / PULL_THRESHOLD, 1);
+
     return (
-        <header className="h-16 sm:h-20 bg-white border-b border-orange-100 flex items-center justify-between px-3 sm:px-8 shadow-sm shrink-0">
+        <header
+            className="bg-white border-b border-orange-100 shadow-sm shrink-0 select-none"
+            onTouchStart={onTouchStart}
+            onTouchMove={onTouchMove}
+            onTouchEnd={onTouchEnd}
+        >
+            <div className="h-16 sm:h-20 flex items-center justify-between px-3 sm:px-8">
             <div className="flex items-center gap-2 sm:gap-4 min-w-0">
                 {/* Map icon visible on all screens */}
                 <button onClick={onMapToggle} className="lg:hidden flex bg-orange-600 text-white p-1.5 sm:p-2.5 rounded-lg sm:rounded-2xl shadow-orange-200 shadow-lg shrink-0 cursor-pointer">
@@ -69,6 +109,33 @@ export default function Header({ trip, onMapToggle }) {
                     <img src={kangarooIcon} alt="Kangaroo" className="w-6 h-6" />
                 </div>
             </button>
+            </div>
+
+            {/* Pull-to-refresh indicator */}
+            <div
+                className="overflow-hidden flex flex-col items-center justify-center"
+                style={{
+                    height: refreshing ? 48 : pullDistance > 0 ? pullDistance * 0.5 : 0,
+                    transition: pullDistance === 0 || refreshing ? 'height 0.3s ease-out' : 'none',
+                }}
+            >
+                <RefreshCw
+                    className="text-orange-500"
+                    style={{
+                        width: 22,
+                        height: 22,
+                        opacity: refreshing ? 1 : pullProgress,
+                        transform: refreshing ? undefined : `rotate(${pullProgress * 360}deg)`,
+                        transition: pullDistance === 0 ? 'all 0.25s ease-out' : 'none',
+                        animation: refreshing ? 'spin 0.5s linear infinite' : 'none',
+                    }}
+                />
+                {refreshing && (
+                    <span className="text-[10px] text-orange-400 font-medium mt-1" style={{ animation: 'pulse-opacity 1s ease-in-out infinite' }}>
+                        Laden…
+                    </span>
+                )}
+            </div>
         </header>
     );
 }

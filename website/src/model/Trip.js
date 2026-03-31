@@ -1,5 +1,6 @@
 import { apiService } from "../controller/apiService.js";
 import { Point } from "./Point.js";
+import { haversineDistance } from "./geo.js";
 
 export class Trip {
     static #instance = null;
@@ -60,34 +61,18 @@ export class Trip {
             const p2 = this.getPoint(route.to);
 
             if (p1?.lat && p2?.lat) {
-                total += this.#calculateDistance(p1.lat, p1.lng, p2.lat, p2.lng);
+                total += haversineDistance(p1.lat, p1.lng, p2.lat, p2.lng);
             }
         });
 
         return Math.round(total);
     }
 
-    // NEW: Haversine formula for distance calculation
-    #calculateDistance(lat1, lon1, lat2, lon2) {
-        const R = 6371; // Earth's radius in km
-        const dLat = this.#toRad(lat2 - lat1);
-        const dLon = this.#toRad(lon2 - lon1);
-
-        const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(this.#toRad(lat1)) * Math.cos(this.#toRad(lat2)) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
-
-        const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-        return R * c;
-    }
-
-    #toRad(degrees) {
-        return degrees * (Math.PI / 180);
-    }
-
-    destroy() {
-        this.points.forEach(p => p.cleanup());
-        Trip.#instance = null;
+    static destroyInstance() {
+        if (Trip.#instance) {
+            Trip.#instance.points.forEach(p => p.cleanup());
+            Trip.#instance = null;
+        }
     }
 
     getRouteBetween(fromId, toId) {
@@ -104,6 +89,6 @@ export class Trip {
 
         if (!p1?.lat || !p2?.lat) return null;
 
-        return Math.round(this.#calculateDistance(p1.lat, p1.lng, p2.lat, p2.lng));
+        return Math.round(haversineDistance(p1.lat, p1.lng, p2.lat, p2.lng));
     }
 }

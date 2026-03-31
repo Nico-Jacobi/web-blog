@@ -3,6 +3,8 @@
  * Falls back to straight lines for plane/boat or on error.
  */
 
+import { haversineDistanceMeters } from '../model/geo.js';
+
 const OSRM_BASE = 'https://router.project-osrm.org/route/v1';
 
 const MODE_TO_PROFILE = {
@@ -25,15 +27,6 @@ function cacheKey(p1, p2, profile) {
     return `${p1.lat},${p1.lng};${p2.lat},${p2.lng};${profile}`;
 }
 
-function straightLineDistance(p1, p2) {
-    const toRad = d => d * Math.PI / 180;
-    const R = 6371e3;
-    const dLat = toRad(p2.lat - p1.lat);
-    const dLng = toRad(p2.lng - p1.lng);
-    const a = Math.sin(dLat / 2) ** 2
-        + Math.cos(toRad(p1.lat)) * Math.cos(toRad(p2.lat)) * Math.sin(dLng / 2) ** 2;
-    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-}
 
 /**
  * Generate points along a great circle (geodesic) arc between two points.
@@ -98,8 +91,8 @@ export async function fetchRoute(p1, p2, mode) {
         if (waypoints?.length >= 2) {
             const [snapLng1, snapLat1] = waypoints[0].location;
             const [snapLng2, snapLat2] = waypoints[waypoints.length - 1].location;
-            const snap1Dist = straightLineDistance(p1, { lat: snapLat1, lng: snapLng1 });
-            const snap2Dist = straightLineDistance(p2, { lat: snapLat2, lng: snapLng2 });
+            const snap1Dist = haversineDistanceMeters(p1, { lat: snapLat1, lng: snapLng1 });
+            const snap2Dist = haversineDistanceMeters(p2, { lat: snapLat2, lng: snapLng2 });
             if (snap1Dist > MAX_SNAP_DISTANCE || snap2Dist > MAX_SNAP_DISTANCE) {
                 routeCache.set(key, null);
                 return null;
@@ -107,7 +100,7 @@ export async function fetchRoute(p1, p2, mode) {
         }
 
         const routeDistance = data.routes[0].distance; // meters
-        const directDistance = straightLineDistance(p1, p2);
+        const directDistance = haversineDistanceMeters(p1, p2);
 
         // If the road route is absurdly longer than straight-line (e.g. driving
         // around a continent instead of a ferry), fall back to the straight line.

@@ -27,6 +27,7 @@ export default function App() {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState(null);
     const [activeId, setActiveId] = useState(null);
+    const [flyToCounter, setFlyToCounter] = useState(0);
     const [detailId, setDetailId] = useState(null);
     const [token, setToken] = useState(getCookie(AUTH_COOKIE));
     const [mobileShowMap, setMobileShowMap] = useState(false);
@@ -139,12 +140,15 @@ export default function App() {
             })
             .finally(() => setLoading(false));
 
-        return () => trip?.destroy();
+        return () => Trip.destroyInstance();
     }, [token]);
 
     const handleSelectStop = (id) => {
         setActiveId(id);
-        if (id) setMobileShowMap(true);
+        if (id) {
+            setFlyToCounter(c => c + 1);
+            setMobileShowMap(true);
+        }
     };
 
     const handleMobileBack = () => {
@@ -192,6 +196,7 @@ export default function App() {
                     <MapView
                         ref={mapViewRef}
                         activeId={activeId}
+                        flyToCounter={flyToCounter}
                         onOpenDetail={setDetailId}
                         onSelectStop={handleSelectStop}
                         leafletReady={leafletReady}

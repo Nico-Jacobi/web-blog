@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
+import { sharedButtonStyle, sharedIconStyle } from './styles.js';
 
 export default function MediaLightbox({
                                           media,
@@ -29,10 +30,42 @@ export default function MediaLightbox({
     const currentIndexRef = useRef(currentIndex);
     const isInteracting = useRef(false);
     const isMousePanning = useRef(false);
+    const velocityRef = useRef({ x: 0, y: 0 });
+    const lastMoveTime = useRef(0);
+    const lastMovePos = useRef({ x: 0, y: 0 });
+    const momentumRaf = useRef(null);
 
     useEffect(() => { currentIndexRef.current = currentIndex; }, [currentIndex]);
 
+    const stopMomentum = useCallback(() => {
+        if (momentumRaf.current) {
+            cancelAnimationFrame(momentumRaf.current);
+            momentumRaf.current = null;
+        }
+    }, []);
+
+    const startMomentum = useCallback(() => {
+        const friction = 0.95;
+        const minSpeed = 0.3;
+        const animate = () => {
+            const vx = velocityRef.current.x *= friction;
+            const vy = velocityRef.current.y *= friction;
+            if (Math.abs(vx) < minSpeed && Math.abs(vy) < minSpeed) {
+                momentumRaf.current = null;
+                isInteracting.current = false;
+                return;
+            }
+            panXRef.current += vx;
+            panYRef.current += vy;
+            setPanX(panXRef.current);
+            setPanY(panYRef.current);
+            momentumRaf.current = requestAnimationFrame(animate);
+        };
+        momentumRaf.current = requestAnimationFrame(animate);
+    }, []);
+
     const resetInteraction = useCallback(() => {
+        stopMomentum();
         scaleRef.current = 1;
         panXRef.current = 0;
         panYRef.current = 0;
@@ -40,19 +73,17 @@ export default function MediaLightbox({
         dragOffsetRef.current = 0;
         isPinching.current = false;
         isInteracting.current = false;
+        velocityRef.current = { x: 0, y: 0 };
         setScale(1);
         setPanX(0);
         setPanY(0);
         setDragOffset(0);
         setIsDragging(false);
-    }, []);
+    }, [stopMomentum]);
 
     useEffect(() => {
         resetInteraction();
     }, [currentIndex, resetInteraction]);
-
-    const sharedButtonStyle = "group bg-white hover:bg-slate-50 p-2 md:p-3 rounded-full shadow-lg transition-all hover:shadow-xl border border-slate-200 outline-offset-2 focus:outline-orange-500";
-    const sharedIconStyle = "text-slate-700 group-hover:text-orange-500 transition-colors";
 
     const getPinchDist = (touches) => {
         const dx = touches[0].clientX - touches[1].clientX;
@@ -76,8 +107,12 @@ export default function MediaLightbox({
             } else if (e.touches.length === 1) {
                 const touch = e.touches[0];
                 if (scaleRef.current > 1) {
+                    stopMomentum();
                     panStartTouch.current = { x: touch.clientX, y: touch.clientY };
                     panStartOffset.current = { x: panXRef.current, y: panYRef.current };
+                    lastMovePos.current = { x: touch.clientX, y: touch.clientY };
+                    lastMoveTime.current = performance.now();
+                    velocityRef.current = { x: 0, y: 0 };
                 } else {
                     isDraggingRef.current = true;
                     setIsDragging(true);
@@ -115,6 +150,16 @@ export default function MediaLightbox({
                 const touch = e.touches[0];
                 if (scaleRef.current > 1) {
                     e.preventDefault();
+                    const now = performance.now();
+                    const dt = now - lastMoveTime.current;
+                    if (dt > 0) {
+                        velocityRef.current = {
+                            x: (touch.clientX - lastMovePos.current.x) / Math.max(dt, 1) * 16,
+                            y: (touch.clientY - lastMovePos.current.y) / Math.max(dt, 1) * 16,
+                        };
+                    }
+                    lastMovePos.current = { x: touch.clientX, y: touch.clientY };
+                    lastMoveTime.current = now;
                     const newPanX = panStartOffset.current.x + (touch.clientX - panStartTouch.current.x);
                     const newPanY = panStartOffset.current.y + (touch.clientY - panStartTouch.current.y);
                     panXRef.current = newPanX;
@@ -152,6 +197,16 @@ export default function MediaLightbox({
                 return;
             }
 
+            // Start momentum for zoomed-in pan release
+            if (!isPinching.current && scaleRef.current > 1 && e.touches.length === 0) {
+                const speed = Math.sqrt(velocityRef.current.x ** 2 + velocityRef.current.y ** 2);
+                if (speed > 1) {
+                    startMomentum();
+                } else {
+                    isInteracting.current = false;
+                }
+            }
+
             if (isDraggingRef.current && scaleRef.current <= 1) {
                 isDraggingRef.current = false;
                 setIsDragging(false);
@@ -176,10 +231,14 @@ export default function MediaLightbox({
         const onMouseDown = (e) => {
             if (e.button !== 0) return; // left click only
             if (scaleRef.current > 1) {
+                stopMomentum();
                 isMousePanning.current = true;
                 isInteracting.current = true;
                 panStartTouch.current = { x: e.clientX, y: e.clientY };
                 panStartOffset.current = { x: panXRef.current, y: panYRef.current };
+                lastMovePos.current = { x: e.clientX, y: e.clientY };
+                lastMoveTime.current = performance.now();
+                velocityRef.current = { x: 0, y: 0 };
                 e.preventDefault();
             }
         };
@@ -187,6 +246,16 @@ export default function MediaLightbox({
         const onMouseMove = (e) => {
             if (!isMousePanning.current) return;
             e.preventDefault();
+            const now = performance.now();
+            const dt = now - lastMoveTime.current;
+            if (dt > 0) {
+                velocityRef.current = {
+                    x: (e.clientX - lastMovePos.current.x) / Math.max(dt, 1) * 16,
+                    y: (e.clientY - lastMovePos.current.y) / Math.max(dt, 1) * 16,
+                };
+            }
+            lastMovePos.current = { x: e.clientX, y: e.clientY };
+            lastMoveTime.current = now;
             const newPanX = panStartOffset.current.x + (e.clientX - panStartTouch.current.x);
             const newPanY = panStartOffset.current.y + (e.clientY - panStartTouch.current.y);
             panXRef.current = newPanX;
@@ -198,7 +267,12 @@ export default function MediaLightbox({
         const onMouseUp = () => {
             if (isMousePanning.current) {
                 isMousePanning.current = false;
-                isInteracting.current = false;
+                const speed = Math.sqrt(velocityRef.current.x ** 2 + velocityRef.current.y ** 2);
+                if (speed > 1) {
+                    startMomentum();
+                } else {
+                    isInteracting.current = false;
+                }
             }
         };
 
@@ -266,6 +340,7 @@ export default function MediaLightbox({
         el.addEventListener('dblclick', onDblClick);
 
         return () => {
+            stopMomentum();
             el.removeEventListener('touchstart', onTouchStart);
             el.removeEventListener('touchmove', onTouchMove);
             el.removeEventListener('touchend', onTouchEnd);
@@ -275,7 +350,7 @@ export default function MediaLightbox({
             el.removeEventListener('wheel', onWheel);
             el.removeEventListener('dblclick', onDblClick);
         };
-    }, [media.length, onNavigate]);
+    }, [media.length, onNavigate, stopMomentum, startMomentum]);
 
     // Keyboard navigation
     useEffect(() => {

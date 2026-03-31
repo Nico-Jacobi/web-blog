@@ -11,7 +11,7 @@ export const ROUTE_STYLES = {
     },
 
     rv: {
-        color: '#F97316',
+        color: '#16A34A',
         weight: 3,
         opacity: 0.8,
         lineCap: 'round',

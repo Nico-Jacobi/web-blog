@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import { X } from 'lucide-react';
 import {ROUTE_STYLES} from "../model/routeStyles.js";
+import {fetchAllRoutes} from "../controller/routingService.js";
 import Legend from "./Legend.jsx";
 
 
@@ -81,7 +82,9 @@ const MapView = forwardRef(({ activeId, onOpenDetail, onSelectStop, leafletReady
 
         L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png').addTo(map);
 
-        trip.routes.forEach(route => {
+        // Draw straight lines immediately, then replace with real routes
+        const routeLines = [];
+        trip.routes.forEach((route, index) => {
             const p1 = trip.getPoint(route.from);
             const p2 = trip.getPoint(route.to);
 
@@ -91,7 +94,17 @@ const MapView = forwardRef(({ activeId, onOpenDetail, onSelectStop, leafletReady
                     [[p1.lat, p1.lng], [p2.lat, p2.lng]],
                     { ...style, lineJoin: 'round' }
                 ).addTo(map);
+                routeLines[index] = line;
             }
+        });
+
+        // Fetch real road routes and replace straight lines
+        fetchAllRoutes(trip).then(realRoutes => {
+            realRoutes.forEach((coords, index) => {
+                if (routeLines[index]) {
+                    routeLines[index].setLatLngs(coords);
+                }
+            });
         });
 
         trip.points.forEach(point => {

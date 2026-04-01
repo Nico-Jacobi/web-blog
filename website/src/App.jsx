@@ -118,7 +118,8 @@ export default function App() {
                 setTrip(loadedTrip);
 
                 const lastKnown = parseInt(localStorage.getItem('lastKnownPointOrder')) || 0;
-                const maxOrder = Math.max(...loadedTrip.points.map(p => p.order));
+                const orders = loadedTrip.points.map(p => p.order);
+                const maxOrder = orders.length > 0 ? Math.max(...orders) : 0;
                 const newIds = new Set(
                     loadedTrip.points.filter(p => p.order > lastKnown).map(p => p.id)
                 );

@@ -24,7 +24,6 @@ export async function setupPushNotifications(token) {
     try {
         const reg = await navigator.serviceWorker.ready;
 
-        // Already subscribed — just re-send subscription to server to keep it fresh
         let subscription = await reg.pushManager.getSubscription();
 
         if (!subscription) {
@@ -35,6 +34,9 @@ export async function setupPushNotifications(token) {
                 userVisibleOnly: true,
                 applicationServerKey: urlBase64ToUint8Array(VAPID_PUBLIC_KEY)
             });
+        } else {
+            // Already subscribed — skip re-sending to server
+            return;
         }
 
         await fetch(`${API_BASE}/push/subscribe`, {

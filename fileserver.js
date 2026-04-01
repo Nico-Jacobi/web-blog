@@ -342,27 +342,37 @@ app.post('/write', checkAuth, async (req, res) => {
             data = JSON.stringify(content, null, 2);
         }
         
+        // Read previous content BEFORE overwriting (for new-point detection)
+        let prevPoints = [];
+        if (filePath.endsWith('points.json')) {
+            try {
+                const prevData = await fs.readFile(fullPath, 'utf8');
+                const parsed = JSON.parse(prevData);
+                if (Array.isArray(parsed)) prevPoints = parsed;
+            } catch { /* file didn't exist before */ }
+        }
+
         await fs.writeFile(fullPath, data);
         const size = Buffer.byteLength(data);
         console.log(`✅ WRITE SUCCESS: "${filePath}" (${size} bytes)`);
         res.json({ message: "Written", path: filePath });
 
-        // Auto-notify subscribers when points data is updated
+        // Auto-notify subscribers only when a new point is added to points.json
         if (filePath.endsWith('points.json')) {
             try {
                 const points = typeof content === 'string' ? JSON.parse(content) : content;
-                const latest = Array.isArray(points) && points.length > 0
-                    ? points.reduce((a, b) => (b.tripOrder > a.tripOrder ? b : a))
-                    : null;
-                sendPushToAll({
-                    title: 'Jenny hat was Neues gepostet! 🇦🇺',
-                    body: latest?.name || 'Schau dir an, wo es als nächstes hingeht!'
-                }).catch(err => console.error('Push notify error:', err.message));
-            } catch {
-                sendPushToAll({
-                    title: 'Jenny hat was Neues gepostet! 🇦🇺',
-                    body: 'Schau dir an, wo es als nächstes hingeht!'
-                }).catch(err => console.error('Push notify error:', err.message));
+                if (Array.isArray(points) && points.length > prevPoints.length) {
+                    const prevIds = new Set(prevPoints.map(p => p.id));
+                    const newPoints = points.filter(p => !prevIds.has(p.id));
+                    const latest = newPoints.reduce((a, b) =>
+                        ((b.tripOrder ?? -1) > (a.tripOrder ?? -1) ? b : a), newPoints[0]);
+                    sendPushToAll({
+                        title: 'Jenny hat was Neues gepostet! 🇦🇺',
+                        body: latest?.name || 'Schau dir an, wo es als nächstes hingeht!'
+                    }).catch(err => console.error('Push notify error:', err.message));
+                }
+            } catch (err) {
+                console.error('Push notify check failed:', err.message);
             }
         }
     } catch (err) {

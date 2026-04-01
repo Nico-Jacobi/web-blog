@@ -4,7 +4,7 @@ self.addEventListener('push', (event) => {
     const options = {
         body: data.body || 'Ein neuer Ort wurde zur Reise hinzugefügt.',
         icon: '/kangaroo.svg',
-        badge: '/kangaroo.svg',
+        badge: '/kangaroo_96.png',
         data: { url: self.location.origin }
     };
     event.waitUntil(self.registration.showNotification(title, options));

@@ -1,4 +1,4 @@
-import { Car, Plane, Bus, Ship, Footprints, Truck, Compass } from 'lucide-react';
+import { Car, Plane, Bus, Ship, Footprints, Caravan, Compass } from 'lucide-react';
 
 export const ROUTE_STYLES = {
     car: {
@@ -16,7 +16,7 @@ export const ROUTE_STYLES = {
         opacity: 0.8,
         lineCap: 'round',
         label: 'Wohnmobil',
-        icon: Truck
+        icon: Caravan
     },
 
     bus: {

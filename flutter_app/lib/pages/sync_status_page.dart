@@ -24,6 +24,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
 
   bool _isLoading = false;
   bool _isSyncing = false;
+  bool _syncEnabled = true;
   String _statusMessage = '';
 
   List<FileStatus> _fileStatuses = [];
@@ -39,6 +40,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
     setState(() => _isLoading = true);
 
     try {
+      _syncEnabled = await _syncService.isSyncEnabled();
       _syncedFiles = await _syncService.getSyncedFiles();
       final points = await _storageService.loadPoints();
       final trips = await _storageService.loadTrips();
@@ -268,7 +270,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
               children: [
                 Expanded(
                   child: ElevatedButton.icon(
-                    onPressed: _isSyncing ? null : _performSync,
+                    onPressed: (_isSyncing || !_syncEnabled) ? null : _performSync,
                     icon: _isSyncing
                         ? const SizedBox(
                       width: 16,

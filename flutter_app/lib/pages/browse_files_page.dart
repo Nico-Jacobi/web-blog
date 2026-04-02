@@ -5,6 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 import '../services/api_service.dart';
+import '../services/sync_service.dart';
 import '../strings.dart';
 import '../colors.dart';
 import '../widgets/confirm_dialog.dart';
@@ -21,12 +22,16 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
   Map<String, dynamic>? fileData;
   bool isLoading = false;
   bool isDownloading = false;
+  bool _syncEnabled = true;
   String? error;
 
   @override
   void initState() {
     super.initState();
     _loadFiles();
+    SyncService().isSyncEnabled().then((enabled) {
+      if (mounted) setState(() => _syncEnabled = enabled);
+    });
   }
 
   Future<void> _loadFiles() async {
@@ -297,10 +302,12 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
           leading: const Icon(Icons.folder, color: light),
           title: Text(folder['name']),
           subtitle: Text('${AppStrings.modified_prefix}${folder['modified']}'),
-          trailing: IconButton(
-            icon: const Icon(Icons.delete, color: Colors.red),
-            onPressed: () => _confirmDelete(folder['path'], folder['name']),
-          ),
+          trailing: _syncEnabled
+              ? IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => _confirmDelete(folder['path'], folder['name']),
+                )
+              : null,
           onTap: () {
             setState(() => currentPath = folder['path']);
             _loadFiles();
@@ -310,10 +317,12 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
           leading: const Icon(Icons.insert_drive_file, color: primary),
           title: Text(file['name']),
           subtitle: Text('${AppStrings.size_prefix}${file['size']} bytes\n${AppStrings.modified_prefix}${file['modified']}'),
-          trailing: IconButton(
-            icon: const Icon(Icons.delete, color: Colors.red),
-            onPressed: () => _confirmDelete(file['path'], file['name']),
-          ),
+          trailing: _syncEnabled
+              ? IconButton(
+                  icon: const Icon(Icons.delete, color: Colors.red),
+                  onPressed: () => _confirmDelete(file['path'], file['name']),
+                )
+              : null,
         )),
       ],
     );

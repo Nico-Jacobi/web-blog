@@ -89,7 +89,8 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
 
             marker.bindPopup(createPopupContent(point, null, onOpenDetail), {
                 closeButton: false,
-                className: 'modern-popup'
+                className: 'modern-popup',
+                autoPan: false
             });
 
             point.getTitleImage().then(img => {
@@ -118,7 +119,12 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
             if (closestStop && closestStopDist <= maxPx) {
                 mapInteractionRef.current = true;
                 const marker = markersRef.current[closestStop.id];
-                if (marker) marker.openPopup();
+                if (marker) {
+                    const popup = marker.getPopup();
+                    if (popup) popup.options.autoPan = true;
+                    marker.openPopup();
+                    if (popup) popup.options.autoPan = false;
+                }
                 onSelectStop(closestStop.id);
                 return;
             }
@@ -136,7 +142,10 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
             });
 
             if (closestImg && closestImgDist <= maxPx) {
+                const imgPopup = closestImg.getPopup();
+                if (imgPopup) imgPopup.options.autoPan = true;
                 closestImg.openPopup();
+                if (imgPopup) imgPopup.options.autoPan = false;
                 return;
             }
 

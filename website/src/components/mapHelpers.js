@@ -95,7 +95,7 @@ export function addImageGpsMarkers(map, trip, imageMarkersRef) {
 
                     marker.bindPopup(
                         `<img src="${result.blobUrl}" style="width:25vw; min-width:140px; max-width:300px; height:auto; border-radius:8px; display:block;"/>`,
-                        { closeButton: false, className: 'image-gps-popup', maxWidth: 320 }
+                        { closeButton: false, className: 'image-gps-popup', maxWidth: 320, autoPan: false }
                     );
 
                     marker.on('mouseover', function () { this.openPopup(); });

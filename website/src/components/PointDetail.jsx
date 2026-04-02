@@ -67,11 +67,12 @@ export default function PointDetail({ point, trip, onClose }) {
 
             if (point.otherPaths.length > 0) {
                 setLoadingOther(true);
-                const otherUrls = await point.getOtherImages();
-                if (mounted) {
-                    setOtherImageUrls(otherUrls);
-                    setLoadingOther(false);
-                }
+                await point.loadOtherImagesSequentially((loadedSoFar) => {
+                    if (mounted) {
+                        setOtherImageUrls(loadedSoFar);
+                        setLoadingOther(false);
+                    }
+                });
             }
         }
 

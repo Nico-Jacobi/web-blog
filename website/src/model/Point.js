@@ -54,6 +54,21 @@ export class Point {
         return this._otherBlobs;
     }
 
+    async loadOtherImagesSequentially(onImageLoaded) {
+        if (this._otherBlobs) {
+            onImageLoaded(this._otherBlobs);
+            return this._otherBlobs;
+        }
+        const blobs = new Array(this.otherPaths.length).fill(null);
+        for (let i = 0; i < this.otherPaths.length; i++) {
+            const blob = await apiService.fetchBlob(this.otherPaths[i], this.password);
+            blobs[i] = blob;
+            onImageLoaded([...blobs]);
+        }
+        this._otherBlobs = blobs;
+        return blobs;
+    }
+
     cleanup() {
         if (this._titleBlob) URL.revokeObjectURL(this._titleBlob);
         this._otherBlobs?.forEach(b => b && URL.revokeObjectURL(b));

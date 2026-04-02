@@ -77,6 +77,11 @@ class SyncService {
 
   bool get isSyncing => _isSyncing;
 
+  Future<bool> isSyncEnabled() async {
+    await _init();
+    return syncData;
+  }
+
   Future<SyncResult?> syncFromStorage() async {
     await _init();
 

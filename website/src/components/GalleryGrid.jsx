@@ -23,50 +23,49 @@ export default function GalleryGrid({ point, otherImageUrls, loadingOther, onOpe
                     {point.otherPaths.length} {point.otherPaths.length === 1 ? 'DATEI' : 'DATEIEN'}
                 </span>
             </div>
-            {loadingOther ? (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-                    {[...Array(point.otherPaths.length)].map((_, i) => (
-                        <div key={i} className="aspect-square bg-slate-100 rounded-lg md:rounded-xl animate-pulse" />
-                    ))}
-                </div>
-            ) : (
-                <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
-                    {otherImageUrls.map((url, idx) => {
-                        const isVid = isVideo(point.otherPaths[idx]);
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
+                {point.otherPaths.map((path, idx) => {
+                    const url = otherImageUrls[idx];
+                    const isVid = isVideo(path);
 
+                    if (!url) {
                         return (
-                            <div
-                                key={idx}
-                                className="group relative aspect-square rounded-lg md:rounded-xl overflow-hidden cursor-pointer"
-                                onClick={() => onOpenLightbox(idx)}
-                            >
-                                {isVid ? (
-                                    <>
-                                        <video
-                                            src={url}
-                                            className="w-full h-full object-cover"
-                                            muted
-                                            playsInline
-                                        />
-                                        <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
-                                            <div className="bg-white/90 group-hover:bg-orange-500 group-hover:text-white rounded-full p-3 md:p-4 transition-all shadow-lg">
-                                                <Play size={20} className="md:hidden" fill="currentColor" />
-                                                <Play size={24} className="hidden md:block" fill="currentColor" />
-                                            </div>
-                                        </div>
-                                    </>
-                                ) : (
-                                    <img
-                                        src={url}
-                                        alt="Gallery"
-                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
-                                    />
-                                )}
-                            </div>
+                            <div key={idx} className="aspect-square bg-slate-100 rounded-lg md:rounded-xl animate-pulse" />
                         );
-                    })}
-                </div>
-            )}
+                    }
+
+                    return (
+                        <div
+                            key={idx}
+                            className="group relative aspect-square rounded-lg md:rounded-xl overflow-hidden cursor-pointer"
+                            onClick={() => onOpenLightbox(idx)}
+                        >
+                            {isVid ? (
+                                <>
+                                    <video
+                                        src={url}
+                                        className="w-full h-full object-cover"
+                                        muted
+                                        playsInline
+                                    />
+                                    <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
+                                        <div className="bg-white/90 group-hover:bg-orange-500 group-hover:text-white rounded-full p-3 md:p-4 transition-all shadow-lg">
+                                            <Play size={20} className="md:hidden" fill="currentColor" />
+                                            <Play size={24} className="hidden md:block" fill="currentColor" />
+                                        </div>
+                                    </div>
+                                </>
+                            ) : (
+                                <img
+                                    src={url}
+                                    alt="Gallery"
+                                    className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                />
+                            )}
+                        </div>
+                    );
+                })}
+            </div>
         </div>
     );
 }

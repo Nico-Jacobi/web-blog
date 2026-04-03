@@ -50,7 +50,7 @@ export const ROUTE_STYLES = {
 
     plane: {
         color: '#22D3EE',
-        weight: 3.5,     // slightly dominant, not obese
+        weight: 3.5,
         opacity: 0.85,
         lineCap: 'round',
         dashArray: '8,6',

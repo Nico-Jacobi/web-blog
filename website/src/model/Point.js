@@ -2,8 +2,7 @@ import {apiService} from "../controller/apiService.js";
 
 export class Point {
     constructor(data, password) {
-
-        this.password = password; // Store it here
+        this.password = password;
 
         this.id = data.id;
         this.title = data.name || 'Untitled';
@@ -21,7 +20,6 @@ export class Point {
         this._otherBlobs = null;
     }
 
-    // NEW: Parse date string to Date object
     getParsedDate() {
         if (!this.date) return null;
 
@@ -39,7 +37,6 @@ export class Point {
     async getTitleImage() {
         if (this._titleBlob) return this._titleBlob;
         if (!this.imagePath) return null;
-        // ADDED: this.password
         this._titleBlob = await apiService.fetchBlob(this.imagePath, this.password);
         return this._titleBlob;
     }
@@ -47,7 +44,6 @@ export class Point {
     async getOtherImages() {
         if (this._otherBlobs) return this._otherBlobs;
         const blobs = await Promise.all(
-            // ADDED: this.password
             this.otherPaths.map(path => apiService.fetchBlob(path, this.password))
         );
         this._otherBlobs = blobs.filter(b => b !== null);

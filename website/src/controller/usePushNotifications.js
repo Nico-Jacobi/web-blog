@@ -1,5 +1,4 @@
-const VAPID_PUBLIC_KEY = 'BOjyu53x_por-j-_XIBbBSfMjaBFad7hQTKA3wgsLgpmib3wSUfdOjmw5LDzed-ADHL2_cQNN3-dDqJ2Duabf0U';
-const API_BASE = 'https://api.1ej.de';
+import { API_BASE, VAPID_PUBLIC_KEY } from '../constants.js';
 
 function urlBase64ToUint8Array(base64String) {
     const padding = '='.repeat((4 - base64String.length % 4) % 4);

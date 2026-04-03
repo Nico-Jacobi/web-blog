@@ -5,8 +5,8 @@ import { haversineDistance } from "./geo.js";
 export class Trip {
     static #instance = null;
 
-    constructor(pointsData, routesData, password) { // Added password
-        this.password = password; // Save for image loading
+    constructor(pointsData, routesData, password) {
+        this.password = password;
         this.points = pointsData.map(p => new Point(p, password)).sort((a, b) => a.order - b.order);
 
         this.routes = routesData.map(r => ({
@@ -16,11 +16,11 @@ export class Trip {
         }));
     }
 
-    static async getInstance(password) { // Accept password
+    static async getInstance(password) {
         if (!this.#instance) {
             const [p, r] = await Promise.all([
-                apiService.fetchJson('points.json', password), // Pass password
-                apiService.fetchJson('trips.json', password)   // Pass password
+                apiService.fetchJson('points.json', password),
+                apiService.fetchJson('trips.json', password)
             ]);
             this.#instance = new Trip(p, r, password);
         }
@@ -31,7 +31,6 @@ export class Trip {
         return this.points.find(p => p.id === id);
     }
 
-    // NEW: Get date range of the trip
     getDateRange() {
         const dates = this.points
             .map(p => p.getParsedDate())
@@ -52,7 +51,6 @@ export class Trip {
         return `${formatDate(start)} - ${formatDate(end)}`;
     }
 
-    // NEW: Calculate total distance using Haversine formula
     getTotalDistance() {
         let total = 0;
 
@@ -82,7 +80,6 @@ export class Trip {
         );
     }
 
-// NEW: Calculate distance between two points
     getDistanceBetween(fromId, toId) {
         const p1 = this.getPoint(fromId);
         const p2 = this.getPoint(toId);

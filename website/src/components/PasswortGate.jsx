@@ -18,7 +18,6 @@ export default function PasswordGate({ onPasswordSubmit, authError }) {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         placeholder="Passwort"
-                        /* Added text-slate-900 for black points */
                         className={`w-full px-4 py-3 rounded-xl border outline-none transition-all text-slate-900 ${
                             authError ? 'border-red-500 bg-red-50' : 'border-slate-200 focus:border-orange-500'
                         }`}

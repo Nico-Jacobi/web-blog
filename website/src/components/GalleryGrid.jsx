@@ -1,13 +1,8 @@
 import React from 'react';
 import { Image as ImageIcon, Play } from 'lucide-react';
+import { isVideo } from '../utils.js';
 
-function isVideo(path) {
-    if (!path) return false;
-    const lower = path.toLowerCase();
-    return lower.endsWith('.mp4') || lower.endsWith('.mov') || lower.endsWith('.webm');
-}
-
-export default function GalleryGrid({ point, otherImageUrls, loadingOther, onOpenLightbox }) {
+export default function GalleryGrid({ point, otherImageUrls, onOpenLightbox }) {
     if (point.otherPaths.length === 0) return null;
 
     return (

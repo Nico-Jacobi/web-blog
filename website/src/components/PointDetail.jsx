@@ -4,12 +4,7 @@ import MediaLightbox from './MediaLightbox.jsx';
 import HeroSection from './HeroSection.jsx';
 import GalleryGrid from './GalleryGrid.jsx';
 import { sharedButtonStyle, sharedIconStyle } from './styles.js';
-
-function isVideo(path) {
-    if (!path) return false;
-    const lower = path.toLowerCase();
-    return lower.endsWith('.mp4') || lower.endsWith('.mov') || lower.endsWith('.webm');
-}
+import { isVideo } from '../utils.js';
 
 function getTravelDay(point, trip) {
     const startDate = trip?.points?.[0]?.getParsedDate();
@@ -21,7 +16,6 @@ function getTravelDay(point, trip) {
 export default function PointDetail({ point, trip, onClose }) {
     const [titleImageUrl, setTitleImageUrl] = useState(null);
     const [otherImageUrls, setOtherImageUrls] = useState([]);
-    const [loadingOther, setLoadingOther] = useState(false);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
     const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
 
@@ -66,12 +60,8 @@ export default function PointDetail({ point, trip, onClose }) {
             if (mounted) setTitleImageUrl(titleUrl);
 
             if (point.otherPaths.length > 0) {
-                setLoadingOther(true);
                 await point.loadOtherImagesSequentially((loadedSoFar) => {
-                    if (mounted) {
-                        setOtherImageUrls(loadedSoFar);
-                        setLoadingOther(false);
-                    }
+                    if (mounted) setOtherImageUrls(loadedSoFar);
                 });
             }
         }
@@ -147,7 +137,6 @@ export default function PointDetail({ point, trip, onClose }) {
                         <GalleryGrid
                             point={point}
                             otherImageUrls={otherImageUrls}
-                            loadingOther={loadingOther}
                             onOpenLightbox={(idx) => {
                                 setCurrentMediaIndex(idx);
                                 setIsLightboxOpen(true);

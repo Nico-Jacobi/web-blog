@@ -1,6 +1,5 @@
 import exifr from 'exifr';
-
-const API_BASE = 'https://api.1ej.de';
+import { API_BASE } from '../constants.js';
 
 export const apiService = {
     async fetchJson(file, token) {

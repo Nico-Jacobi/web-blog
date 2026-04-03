@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
-import Legend from "./Legend.jsx";
-import { createPopupContent, drawRoutes, addImageGpsMarkers, buildMarkerHtml } from './mapHelpers.js';
+import Legend from './Legend.jsx';
+import { createPopupContent, drawRoutes, addImageGpsMarkers, buildMarkerHtml, findClosestMarker } from './mapHelpers.js';
 
 const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop, leafletReady, trip, newPointIds }, ref) => {
     const mapRef = useRef(null);
@@ -10,6 +10,7 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
     const mapInteractionRef = useRef(false);
 
     const [containerReady, setContainerReady] = useState(false);
+    const [mapReady, setMapReady] = useState(false);
     const usedModes = trip ? [...new Set(trip.routes.map(r => r.mode))] : [];
 
     useImperativeHandle(ref, () => ({
@@ -21,7 +22,7 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
         }
     }));
 
-    // Wait until container has actual dimensions before initializing map
+    // Wait until container has actual dimensions
     useEffect(() => {
         const el = mapRef.current;
         if (!el) return;
@@ -44,12 +45,18 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
         if (!leafletReady || !containerReady || !mapRef.current || mapInstance.current || !trip) return;
 
         const L = window.L;
-        const map = L.map(mapRef.current, {
-            zoomControl: false
+        const map = L.map(mapRef.current, { zoomControl: false, doubleClickZoom: false });
+
+        let lastClickTime = 0;
+        map.on('click', (e) => {
+            const now = Date.now();
+            if (now - lastClickTime < 200) {
+                map.zoomIn(1, { animate: true });
+            }
+            lastClickTime = now;
         });
 
         const initialBounds = calculateBounds(L, trip.points.filter(p => p.lat && p.lng));
-
         if (initialBounds?.isValid()) {
             map.fitBounds(initialBounds, { padding: [40, 40], maxZoom: 10 });
         } else {
@@ -65,95 +72,12 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
 
         drawRoutes(map, trip);
         addImageGpsMarkers(map, trip, imageMarkersRef);
-
-        // Add point markers
-        trip.points.forEach(point => {
-            if (!point.lat || !point.lng) return;
-
-            const marker = L.marker([point.lat, point.lng], {
-                zIndexOffset: 1000,
-                icon: L.divIcon({
-                    className: 'custom-marker',
-                    html: buildMarkerHtml(newPointIds.has(point.id)),
-                    iconSize: [36, 36],
-                    iconAnchor: [18, 18]
-                })
-            }).addTo(map);
-
-            marker.on('click', () => { mapInteractionRef.current = true; });
-            marker.on('mouseover', function () {
-                mapInteractionRef.current = true;
-                this.openPopup();
-            });
-            marker.on('popupopen', () => { onSelectStop(point.id); });
-
-            marker.bindPopup(createPopupContent(point, null, onOpenDetail), {
-                closeButton: false,
-                className: 'modern-popup',
-                autoPan: false
-            });
-
-            point.getTitleImage().then(img => {
-                marker.setPopupContent(createPopupContent(point, img, onOpenDetail));
-            });
-
-            markersRef.current[point.id] = marker;
-        });
-
-        map.on('click', (e) => {
-            const maxPx = 60;
-
-            // Check stop points first (they take priority)
-            let closestStop = null;
-            let closestStopDist = Infinity;
-            trip.points.forEach(point => {
-                if (!point.lat || !point.lng) return;
-                const px = map.latLngToContainerPoint([point.lat, point.lng]);
-                const dist = px.distanceTo(e.containerPoint);
-                if (dist < closestStopDist) {
-                    closestStopDist = dist;
-                    closestStop = point;
-                }
-            });
-
-            if (closestStop && closestStopDist <= maxPx) {
-                mapInteractionRef.current = true;
-                const marker = markersRef.current[closestStop.id];
-                if (marker) {
-                    const popup = marker.getPopup();
-                    if (popup) popup.options.autoPan = true;
-                    marker.openPopup();
-                    if (popup) popup.options.autoPan = false;
-                }
-                onSelectStop(closestStop.id);
-                return;
-            }
-
-            // Then check image points
-            let closestImg = null;
-            let closestImgDist = Infinity;
-            imageMarkersRef.current.forEach(marker => {
-                const px = map.latLngToContainerPoint(marker.getLatLng());
-                const dist = px.distanceTo(e.containerPoint);
-                if (dist < closestImgDist) {
-                    closestImgDist = dist;
-                    closestImg = marker;
-                }
-            });
-
-            if (closestImg && closestImgDist <= maxPx) {
-                const imgPopup = closestImg.getPopup();
-                if (imgPopup) imgPopup.options.autoPan = true;
-                closestImg.openPopup();
-                if (imgPopup) imgPopup.options.autoPan = false;
-                return;
-            }
-
-            onSelectStop(null);
-        });
+        addPointMarkers(L, map, trip, newPointIds, markersRef, mapInteractionRef, onSelectStop, onOpenDetail);
+        setupClickHandler(map, trip, markersRef, imageMarkersRef, mapInteractionRef, activeId, onSelectStop);
 
         const observer = new ResizeObserver(() => map.invalidateSize());
         observer.observe(mapRef.current);
+        setMapReady(true);
         return () => observer.disconnect();
     }, [leafletReady, containerReady, trip, onOpenDetail, onSelectStop]);
 
@@ -193,7 +117,7 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
 
             return () => clearTimeout(timer);
         }
-    }, [activeId, flyToCounter, trip]);
+    }, [activeId, flyToCounter, trip, mapReady]);
 
     return (
         <div className="flex flex-col h-full bg-slate-100 p-2 sm:p-4 gap-2 sm:gap-3">
@@ -206,6 +130,72 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
         </div>
     );
 });
+
+function addPointMarkers(L, map, trip, newPointIds, markersRef, mapInteractionRef, onSelectStop, onOpenDetail) {
+    trip.points.forEach(point => {
+        if (!point.lat || !point.lng) return;
+
+        const marker = L.marker([point.lat, point.lng], {
+            zIndexOffset: 1000,
+            icon: L.divIcon({
+                className: 'custom-marker',
+                html: buildMarkerHtml(newPointIds.has(point.id)),
+                iconSize: [36, 36],
+                iconAnchor: [18, 18]
+            })
+        }).addTo(map);
+
+        marker.on('click', () => { mapInteractionRef.current = true; });
+        marker.on('mouseover', function () {
+            mapInteractionRef.current = true;
+            this.openPopup();
+        });
+        marker.on('popupopen', () => { onSelectStop(point.id); });
+
+        marker.bindPopup(createPopupContent(point, null, onOpenDetail), {
+            closeButton: false,
+            className: 'modern-popup',
+            autoPan: false
+        });
+
+        point.getTitleImage().then(img => {
+            marker.setPopupContent(createPopupContent(point, img, onOpenDetail));
+        });
+
+        markersRef.current[point.id] = marker;
+    });
+}
+
+function setupClickHandler(map, trip, markersRef, imageMarkersRef, mapInteractionRef, activeId, onSelectStop) {
+    map.on('click', (e) => {
+        const hit = findClosestMarker(map, e.containerPoint, trip, markersRef, imageMarkersRef);
+
+        if (hit?.type === 'stop') {
+            const marker = markersRef.current[hit.target.id];
+            if (marker) {
+                if (marker.isPopupOpen()) {
+                    marker.closePopup();
+                    onSelectStop(null);
+                    return;
+                }
+                mapInteractionRef.current = true;
+                const popup = marker.getPopup();
+                if (popup) popup.options.autoPan = true;
+                marker.openPopup();
+                if (popup) popup.options.autoPan = false;
+                onSelectStop(hit.target.id);
+            }
+            return;
+        }
+
+        if (hit?.type === 'image') {
+            hit.target.fire('click');
+            return;
+        }
+
+        onSelectStop(null);
+    });
+}
 
 function calculateBounds(L, validPoints) {
     if (validPoints.length > 2) {

@@ -121,23 +121,19 @@ export async function fetchRoute(p1, p2, mode) {
 }
 
 /**
- * Fetch all routes for a trip in parallel.
- * Returns a Map<routeIndex, latlngs[]> for routes that got real geometry.
+ * Fetch routes for a trip one-by-one from latest to first.
+ * Calls onRoute(index, coords) as each route resolves so it can be drawn immediately.
  */
-export async function fetchAllRoutes(trip) {
-    const results = new Map();
-
-    const promises = trip.routes.map(async (route, index) => {
+export async function fetchAllRoutes(trip, onRoute) {
+    for (let index = 0; index < trip.routes.length; index++) {
+        const route = trip.routes[index];
         const p1 = trip.getPoint(route.from);
         const p2 = trip.getPoint(route.to);
-        if (!p1?.lat || !p2?.lat) return;
+        if (!p1?.lat || !p2?.lat) continue;
 
         const coords = await fetchRoute(p1, p2, route.mode);
-        if (coords) {
-            results.set(index, coords);
-        }
-    });
-
-    await Promise.all(promises);
-    return results;
+        // Fall back to straight line if no accurate route available
+        const finalCoords = coords || [[p1.lat, p1.lng], [p2.lat, p2.lng]];
+        onRoute(index, finalCoords, route.mode);
+    }
 }

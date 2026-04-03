@@ -1,6 +1,6 @@
-import { ROUTE_STYLES } from "../model/routeStyles.js";
-import { fetchAllRoutes } from "../controller/routingService.js";
-import { apiService } from "../controller/apiService.js";
+import { ROUTE_STYLES } from '../model/routeStyles.js';
+import { fetchAllRoutes } from '../controller/routingService.js';
+import { apiService } from '../controller/apiService.js';
 
 export function createPopupContent(point, img, onOpenDetail) {
     const popupDiv = document.createElement('div');
@@ -48,28 +48,10 @@ export function createPopupContent(point, img, onOpenDetail) {
 
 export function drawRoutes(map, trip) {
     const L = window.L;
-    const routeLines = [];
 
-    trip.routes.forEach((route, index) => {
-        const p1 = trip.getPoint(route.from);
-        const p2 = trip.getPoint(route.to);
-
-        if (p1.lat && p2.lat) {
-            const style = ROUTE_STYLES[route.mode] || ROUTE_STYLES.car;
-            const line = L.polyline(
-                [[p1.lat, p1.lng], [p2.lat, p2.lng]],
-                { ...style, lineJoin: 'round' }
-            ).addTo(map);
-            routeLines[index] = line;
-        }
-    });
-
-    fetchAllRoutes(trip).then(realRoutes => {
-        realRoutes.forEach((coords, index) => {
-            if (routeLines[index]) {
-                routeLines[index].setLatLngs(coords);
-            }
-        });
+    fetchAllRoutes(trip, (index, coords, mode) => {
+        const style = ROUTE_STYLES[mode] || ROUTE_STYLES.car;
+        L.polyline(coords, { ...style, lineJoin: 'round' }).addTo(map);
     });
 }
 
@@ -98,8 +80,23 @@ export function addImageGpsMarkers(map, trip, imageMarkersRef) {
                         { closeButton: false, className: 'image-gps-popup', maxWidth: 320, autoPan: false }
                     );
 
-                    marker.on('mouseover', function () { this.openPopup(); });
-                    marker.on('mouseout', function () { this.closePopup(); });
+                    marker.on('mouseover', function () {
+                        if (!this._suppressHover) this.openPopup();
+                    });
+                    marker.on('mouseout', function () {
+                        this._suppressHover = false;
+                        if (!this._clickOpen) this.closePopup();
+                    });
+                    marker.on('click', function () {
+                        if (this._clickOpen) {
+                            this._clickOpen = false;
+                            this._suppressHover = true;
+                            this.closePopup();
+                        } else {
+                            this._clickOpen = true;
+                            this.openPopup();
+                        }
+                    });
 
                     imageMarkersRef.current.push(marker);
                 }
@@ -109,13 +106,53 @@ export function addImageGpsMarkers(map, trip, imageMarkersRef) {
 }
 
 export function buildMarkerHtml(isNew) {
+    const dot = `<div style="background:#F97316; width:18px; height:18px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 5px rgba(0,0,0,0.3);"></div>`;
     if (isNew) {
         return `<div style="position:relative; width:36px; height:36px; display:flex; align-items:center; justify-content:center;">
                      <div style="position:absolute; width:28px; height:28px; border-radius:50%; border:2px solid #F97316; opacity:0.6; animation:pulse-ring 2s ease-out infinite;"></div>
-                     <div style="background:#F97316; width:18px; height:18px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 5px rgba(0,0,0,0.3);"></div>
+                     ${dot}
                    </div>`;
     }
-    return `<div style="width:36px; height:36px; display:flex; align-items:center; justify-content:center;">
-                     <div style="background:#F97316; width:18px; height:18px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 5px rgba(0,0,0,0.3);"></div>
-                   </div>`;
+    return `<div style="width:36px; height:36px; display:flex; align-items:center; justify-content:center;">${dot}</div>`;
+}
+
+/**
+ * Finds the closest point or image marker within maxPx of a click.
+ * Returns { type: 'stop'|'image', target, distance } or null.
+ */
+export function findClosestMarker(map, containerPoint, trip, markersRef, imageMarkersRef, maxPx = 60) {
+    let closestStop = null;
+    let closestStopDist = Infinity;
+
+    trip.points.forEach(point => {
+        if (!point.lat || !point.lng) return;
+        const px = map.latLngToContainerPoint([point.lat, point.lng]);
+        const dist = px.distanceTo(containerPoint);
+        if (dist < closestStopDist) {
+            closestStopDist = dist;
+            closestStop = point;
+        }
+    });
+
+    if (closestStop && closestStopDist <= maxPx) {
+        return { type: 'stop', target: closestStop, distance: closestStopDist };
+    }
+
+    let closestImg = null;
+    let closestImgDist = Infinity;
+
+    imageMarkersRef.current.forEach(marker => {
+        const px = map.latLngToContainerPoint(marker.getLatLng());
+        const dist = px.distanceTo(containerPoint);
+        if (dist < closestImgDist) {
+            closestImgDist = dist;
+            closestImg = marker;
+        }
+    });
+
+    if (closestImg && closestImgDist <= maxPx) {
+        return { type: 'image', target: closestImg, distance: closestImgDist };
+    }
+
+    return null;
 }

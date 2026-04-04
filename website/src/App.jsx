@@ -39,11 +39,25 @@ export default function App() {
     };
 
     const handleMobileBack = () => {
-        setMobileShowMap(false);
-        setActiveId(null);
+        if (window.history.state?.view === 'map') {
+            window.history.back();
+        } else {
+            setMobileShowMap(false);
+            setActiveId(null);
+        }
     };
 
-    const handleOpenDetail = (id) => setDetailId(prev => prev === id ? null : id);
+    const handleOpenDetail = (id) => {
+        if (detailId === id) {
+            if (window.history.state?.view === 'detail') {
+                window.history.back();
+            } else {
+                setDetailId(null);
+            }
+        } else {
+            setDetailId(id);
+        }
+    };
 
     const activePoint = detailId ? trip?.getPoint(detailId) : null;
 
@@ -91,7 +105,13 @@ export default function App() {
                     />
                 </main>
             </div>
-            {activePoint && <PointDetail point={activePoint} trip={trip} onClose={() => setDetailId(null)} />}
+            {activePoint && <PointDetail point={activePoint} trip={trip} onClose={() => {
+                if (window.history.state?.view === 'detail') {
+                    window.history.back();
+                } else {
+                    setDetailId(null);
+                }
+            }} />}
         </div>
     );
 }

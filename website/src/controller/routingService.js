@@ -125,7 +125,7 @@ export async function fetchRoute(p1, p2, mode) {
  * Calls onRoute(index, coords) as each route resolves so it can be drawn immediately.
  */
 export async function fetchAllRoutes(trip, onRoute) {
-    for (let index = 0; index < trip.routes.length; index++) {
+    for (let index = trip.routes.length - 1; index >= 0; index--) {
         const route = trip.routes[index];
         const p1 = trip.getPoint(route.from);
         const p2 = trip.getPoint(route.to);

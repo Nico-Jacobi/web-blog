@@ -24,6 +24,8 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
   bool isDownloading = false;
   bool _syncEnabled = true;
   String? error;
+  String _searchQuery = '';
+  final TextEditingController _searchController = TextEditingController();
 
   @override
   void initState() {
@@ -253,6 +255,33 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
               ],
             ),
           ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: TextField(
+              controller: _searchController,
+              decoration: InputDecoration(
+                hintText: 'Dateiname suchen…',
+                prefixIcon: const Icon(Icons.search, color: primary),
+                suffixIcon: _searchQuery.isNotEmpty
+                    ? IconButton(
+                        icon: const Icon(Icons.clear),
+                        onPressed: () {
+                          _searchController.clear();
+                          setState(() => _searchQuery = '');
+                        },
+                      )
+                    : null,
+                isDense: true,
+                contentPadding: const EdgeInsets.symmetric(vertical: 10),
+                border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(12),
+                  borderSide: const BorderSide(color: primary, width: 2),
+                ),
+              ),
+              onChanged: (value) => setState(() => _searchQuery = value),
+            ),
+          ),
           Expanded(
             child: isLoading
                 ? const Center(child: CircularProgressIndicator(color: primary))
@@ -278,6 +307,11 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
     );
   }
 
+  bool _matchesSearch(String name) {
+    if (_searchQuery.isEmpty) return false;
+    return name.toLowerCase().contains(_searchQuery.toLowerCase());
+  }
+
   Widget _buildFileList() {
     if (fileData == null) return Center(child: Text(AppStrings.noData_text));
     final folders = fileData!['folders'] as List? ?? [];
@@ -298,32 +332,52 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
               _loadFiles();
             },
           ),
-        ...folders.map((folder) => ListTile(
-          leading: const Icon(Icons.folder, color: light),
-          title: Text(folder['name']),
-          subtitle: Text('${AppStrings.modified_prefix}${folder['modified']}'),
-          trailing: _syncEnabled
-              ? IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => _confirmDelete(folder['path'], folder['name']),
-                )
-              : null,
-          onTap: () {
-            setState(() => currentPath = folder['path']);
-            _loadFiles();
-          },
-        )),
-        ...files.map((file) => ListTile(
-          leading: const Icon(Icons.insert_drive_file, color: primary),
-          title: Text(file['name']),
-          subtitle: Text('${AppStrings.size_prefix}${file['size']} bytes\n${AppStrings.modified_prefix}${file['modified']}'),
-          trailing: _syncEnabled
-              ? IconButton(
-                  icon: const Icon(Icons.delete, color: Colors.red),
-                  onPressed: () => _confirmDelete(file['path'], file['name']),
-                )
-              : null,
-        )),
+        ...folders.map((folder) {
+          final matches = _matchesSearch(folder['name']);
+          return ListTile(
+            tileColor: matches ? accent.withValues(alpha: 0.15) : null,
+            leading: Icon(Icons.folder, color: matches ? accent : light),
+            title: Text(
+              folder['name'],
+              style: TextStyle(
+                fontWeight: matches ? FontWeight.bold : FontWeight.normal,
+                color: matches ? accent : null,
+              ),
+            ),
+            subtitle: Text('${AppStrings.modified_prefix}${folder['modified']}'),
+            trailing: _syncEnabled
+                ? IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => _confirmDelete(folder['path'], folder['name']),
+                  )
+                : null,
+            onTap: () {
+              setState(() => currentPath = folder['path']);
+              _loadFiles();
+            },
+          );
+        }),
+        ...files.map((file) {
+          final matches = _matchesSearch(file['name']);
+          return ListTile(
+            tileColor: matches ? accent.withValues(alpha: 0.15) : null,
+            leading: Icon(Icons.insert_drive_file, color: matches ? accent : primary),
+            title: Text(
+              file['name'],
+              style: TextStyle(
+                fontWeight: matches ? FontWeight.bold : FontWeight.normal,
+                color: matches ? accent : null,
+              ),
+            ),
+            subtitle: Text('${AppStrings.size_prefix}${file['size']} bytes\n${AppStrings.modified_prefix}${file['modified']}'),
+            trailing: _syncEnabled
+                ? IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () => _confirmDelete(file['path'], file['name']),
+                  )
+                : null,
+          );
+        }),
       ],
     );
   }

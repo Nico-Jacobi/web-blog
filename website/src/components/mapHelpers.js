@@ -120,7 +120,7 @@ export function buildMarkerHtml(isNew) {
  * Finds the closest point or image marker within maxPx of a click.
  * Returns { type: 'stop'|'image', target, distance } or null.
  */
-export function findClosestMarker(map, containerPoint, trip, markersRef, imageMarkersRef, maxPx = 60) {
+export function findClosestMarker(map, containerPoint, trip, markersRef, imageMarkersRef, maxPx = 120) {
     let closestStop = null;
     let closestStopDist = Infinity;
 
@@ -134,10 +134,6 @@ export function findClosestMarker(map, containerPoint, trip, markersRef, imageMa
         }
     });
 
-    if (closestStop && closestStopDist <= maxPx) {
-        return { type: 'stop', target: closestStop, distance: closestStopDist };
-    }
-
     let closestImg = null;
     let closestImgDist = Infinity;
 
@@ -150,9 +146,16 @@ export function findClosestMarker(map, containerPoint, trip, markersRef, imageMa
         }
     });
 
-    if (closestImg && closestImgDist <= maxPx) {
-        return { type: 'image', target: closestImg, distance: closestImgDist };
+    const hasStop = closestStop && closestStopDist <= maxPx;
+    const hasImg = closestImg && closestImgDist <= maxPx;
+
+    if (hasStop && hasImg) {
+        return closestStopDist < closestImgDist * 0.5
+            ? { type: 'stop', target: closestStop, distance: closestStopDist }
+            : { type: 'image', target: closestImg, distance: closestImgDist };
     }
+    if (hasStop) return { type: 'stop', target: closestStop, distance: closestStopDist };
+    if (hasImg) return { type: 'image', target: closestImg, distance: closestImgDist };
 
     return null;
 }

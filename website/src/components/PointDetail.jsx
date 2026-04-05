@@ -16,6 +16,7 @@ function getTravelDay(point, trip) {
 export default function PointDetail({ point, trip, onClose }) {
     const [titleImageUrl, setTitleImageUrl] = useState(null);
     const [otherImageUrls, setOtherImageUrls] = useState([]);
+    const [galleryDoneLoading, setGalleryDoneLoading] = useState(false);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
     const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
 
@@ -54,6 +55,7 @@ export default function PointDetail({ point, trip, onClose }) {
 
         setTitleImageUrl(null);
         setOtherImageUrls([]);
+        setGalleryDoneLoading(false);
 
         async function loadImages() {
             const titleUrl = await point.getTitleImage();
@@ -63,6 +65,7 @@ export default function PointDetail({ point, trip, onClose }) {
                 await point.loadOtherImagesSequentially((loadedSoFar) => {
                     if (mounted) setOtherImageUrls(loadedSoFar);
                 });
+                if (mounted) setGalleryDoneLoading(true);
             }
         }
 
@@ -137,6 +140,7 @@ export default function PointDetail({ point, trip, onClose }) {
                         <GalleryGrid
                             point={point}
                             otherImageUrls={otherImageUrls}
+                            doneLoading={galleryDoneLoading}
                             onOpenLightbox={(idx) => {
                                 setCurrentMediaIndex(idx);
                                 setIsLightboxOpen(true);

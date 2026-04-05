@@ -12,10 +12,17 @@ export const apiService = {
 
     async fetchBlob(path, token) {
         const clean = path.startsWith('/') ? path.slice(1) : path;
-        const res = await fetch(`${API_BASE}/files/images/${clean}`, {
-            headers: { 'X-Auth-Token': btoa(token) }
-        });
-        return res.ok ? URL.createObjectURL(await res.blob()) : null;
+        const url = `${API_BASE}/files/images/${clean}`;
+        const headers = { 'X-Auth-Token': btoa(token) };
+        try {
+            const res = await fetch(url, { headers });
+            if (res.ok) return URL.createObjectURL(await res.blob());
+            if (res.status === 404) {
+                const retry = await fetch(url, { headers, cache: 'reload' });
+                if (retry.ok) return URL.createObjectURL(await retry.blob());
+            }
+        } catch (e) { /* network error */ }
+        return null;
     },
 
     async fetchImageGps(path, token) {

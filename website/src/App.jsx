@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { ArrowLeft } from 'lucide-react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -9,6 +9,7 @@ import { useLeaflet } from './controller/useLeaflet.js';
 import { useTripLoader } from './controller/useTripLoader.js';
 import { useHistoryNavigation } from './controller/useHistoryNavigation.js';
 import { registerServiceWorker } from './controller/usePushNotifications.js';
+import { slugify } from './controller/router.js';
 
 export default function App() {
     const { trip, loading, error, newPointIds, initialActiveId, login } = useTripLoader();
@@ -21,14 +22,31 @@ export default function App() {
     const leafletReady = useLeaflet();
     const mapViewRef = useRef(null);
 
-    useHistoryNavigation({ detailId, setDetailId, mobileShowMap, setMobileShowMap, setActiveId });
+    // Slug ↔ ID resolution using trip data
+    const resolveSlug = useCallback((slug) => {
+        if (!trip) return null;
+        return trip.points.find(p => slugify(p.title) === slug)?.id ?? null;
+    }, [trip]);
+
+    const getSlug = useCallback((id) => {
+        if (!trip) return null;
+        const point = trip.getPoint(id);
+        return point ? slugify(point.title) : null;
+    }, [trip]);
+
+    const { applyInitialHash } = useHistoryNavigation({
+        detailId, setDetailId, mobileShowMap, setMobileShowMap, setActiveId,
+        resolveSlug, getSlug,
+    });
 
     useEffect(() => { registerServiceWorker(); }, []);
 
-    // Set initial active point once trip loads
+    // Once trip loads: apply URL hash first, fall back to initialActiveId
     useEffect(() => {
-        if (initialActiveId) setActiveId(initialActiveId);
-    }, [initialActiveId]);
+        if (!trip) return;
+        applyInitialHash();
+        if (!detailId && initialActiveId) setActiveId(initialActiveId);
+    }, [trip, initialActiveId, applyInitialHash]);
 
     const handleSelectStop = (id) => {
         setActiveId(id);
@@ -39,21 +57,12 @@ export default function App() {
     };
 
     const handleMobileBack = () => {
-        if (window.history.state?.view === 'map') {
-            window.history.back();
-        } else {
-            setMobileShowMap(false);
-            setActiveId(null);
-        }
+        window.history.back();
     };
 
     const handleOpenDetail = (id) => {
         if (detailId === id) {
-            if (window.history.state?.view === 'detail') {
-                window.history.back();
-            } else {
-                setDetailId(null);
-            }
+            setDetailId(null);
         } else {
             setDetailId(id);
         }
@@ -106,11 +115,7 @@ export default function App() {
                 </main>
             </div>
             {activePoint && <PointDetail point={activePoint} trip={trip} onClose={() => {
-                if (window.history.state?.view === 'detail') {
-                    window.history.back();
-                } else {
-                    setDetailId(null);
-                }
+                setDetailId(null);
             }} />}
         </div>
     );

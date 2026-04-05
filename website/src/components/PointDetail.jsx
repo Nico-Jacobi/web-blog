@@ -29,7 +29,10 @@ export default function PointDetail({ point, trip, onClose }) {
 
     useEffect(() => {
         if (isLightboxOpen) {
-            window.history.pushState({ view: 'lightbox' }, '');
+            // Push a history entry so that browser-back closes the lightbox.
+            // We append a temporary hash fragment to preserve the current stop hash.
+            const currentHash = window.location.hash;
+            window.history.pushState({ view: 'lightbox' }, '', currentHash);
 
             const handleLightboxPop = () => {
                 setIsLightboxOpen(false);

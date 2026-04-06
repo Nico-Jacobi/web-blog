@@ -120,7 +120,7 @@ export function buildMarkerHtml(isNew) {
  * Finds the closest point or image marker within maxPx of a click.
  * Returns { type: 'stop'|'image', target, distance } or null.
  */
-export function findClosestMarker(map, containerPoint, trip, markersRef, imageMarkersRef, maxPx = 120) {
+export function findClosestMarker(map, containerPoint, trip, markersRef, imageMarkersRef, maxPx = 80) {
     let closestStop = null;
     let closestStopDist = Infinity;
 

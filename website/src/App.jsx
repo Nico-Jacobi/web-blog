@@ -57,7 +57,9 @@ export default function App() {
     };
 
     const handleMobileBack = () => {
-        window.history.back();
+        setDetailId(null);
+        setMobileShowMap(false);
+        setActiveId(null);
     };
 
     const handleOpenDetail = (id) => {

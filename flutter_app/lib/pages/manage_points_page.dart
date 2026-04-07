@@ -28,7 +28,14 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
   final StorageService _storage = StorageService();
   List<InterestPoint> _points = [];
   List<TripElement> _tripElements = [];
+  Map<int, TripElement> _tripsByDestination = {};
   bool _isLoading = true;
+
+  void _rebuildTripIndex() {
+    _tripsByDestination = {
+      for (final t in _tripElements) t.pointId2: t,
+    };
+  }
 
   @override
   void initState() {
@@ -70,6 +77,7 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
       setState(() {
         _points = points;
         _tripElements = data['trips'] as List<TripElement>;
+        _rebuildTripIndex();
       });
     } catch (e) {
       _showErrorSnackBar('${AppStrings.error_loading_points} $e');
@@ -190,6 +198,7 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
         }
       }
       _tripElements = newTripElements;
+      _rebuildTripIndex();
     });
 
     _saveData();
@@ -328,16 +337,17 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
 
           if (index > 0) {
             final prevPoint = _points[index - 1];
-            tripBefore = _tripElements.firstWhere(
-                  (t) => t.pointId1 == prevPoint.id && t.pointId2 == point.id,
-              orElse: () {
-                final newTrip = TripElement(
-                    pointId1: prevPoint.id, pointId2: point.id);
-                _tripElements.add(newTrip);
-                _saveData();
-                return newTrip;
-              },
-            );
+            final existing = _tripsByDestination[point.id];
+            if (existing != null && existing.pointId1 == prevPoint.id) {
+              tripBefore = existing;
+            } else {
+              final newTrip = TripElement(
+                  pointId1: prevPoint.id, pointId2: point.id);
+              _tripElements.add(newTrip);
+              _tripsByDestination[point.id] = newTrip;
+              _saveData();
+              tripBefore = newTrip;
+            }
           }
 
           return PointWithRouteCard(

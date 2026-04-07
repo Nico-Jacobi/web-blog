@@ -45,7 +45,7 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
         if (!leafletReady || !containerReady || !mapRef.current || mapInstance.current || !trip) return;
 
         const L = window.L;
-        const map = L.map(mapRef.current, { zoomControl: false, doubleClickZoom: false });
+        const map = L.map(mapRef.current, { zoomControl: false, doubleClickZoom: false, closePopupOnClick: false });
 
         let lastClickTime = 0;
         map.on('click', (e) => {
@@ -79,7 +79,8 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
         observer.observe(mapRef.current);
         setMapReady(true);
         return () => observer.disconnect();
-    }, [leafletReady, containerReady, trip, onOpenDetail, onSelectStop]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [leafletReady, containerReady, trip]);
 
     // Fly to active point
     useEffect(() => {
@@ -145,7 +146,10 @@ function addPointMarkers(L, map, trip, newPointIds, markersRef, mapInteractionRe
             })
         }).addTo(map);
 
-        marker.on('click', () => { mapInteractionRef.current = true; });
+        marker.on('click', (e) => {
+            mapInteractionRef.current = true;
+            L.DomEvent.stopPropagation(e);
+        });
         marker.on('mouseover', function () {
             mapInteractionRef.current = true;
             this.openPopup();

@@ -45,27 +45,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
       final points = await _storageService.loadPoints();
       final trips = await _storageService.loadTrips();
 
-      final fileStatuses = <FileStatus>[];
       final appDir = await getApplicationDocumentsDirectory();
-
-      // Add data files using DataFile class
-      final pointsData = DataFile.points;
-      fileStatuses.add(FileStatus(
-        path: pointsData.name,  // "points.json"
-        type: FileType.metadata,
-        isSynced: true,
-        size: await pointsData.size(),
-        exists: await pointsData.exists(),
-      ));
-
-      final tripsData = DataFile.trips;
-      fileStatuses.add(FileStatus(
-        path: tripsData.name,  // "trips.json"
-        type: FileType.metadata,
-        isSynced: true,
-        size: await tripsData.size(),
-        exists: await tripsData.exists(),
-      ));
 
       // Collect all media filenames
       final allMediaFilenames = <String>{};
@@ -76,16 +56,48 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
         allMediaFilenames.addAll(point.otherMediaPaths);
       }
 
-      // Add media files using MediaFile class
-      for (final filename in allMediaFilenames) {
-        final media = MediaFile.fromFilenameSync(filename, appDir.path);
+      final pointsData = DataFile.points;
+      final tripsData = DataFile.trips;
+      final mediaList = allMediaFilenames
+          .map((f) => MediaFile.fromFilenameSync(f, appDir.path))
+          .toList();
 
+      // Parallelize all size/exists I/O
+      final sizes = await Future.wait([
+        pointsData.size(),
+        tripsData.size(),
+        ...mediaList.map((m) => m.size()),
+      ]);
+      final exists = await Future.wait([
+        pointsData.exists(),
+        tripsData.exists(),
+        ...mediaList.map((m) => m.exists()),
+      ]);
+
+      final fileStatuses = <FileStatus>[
+        FileStatus(
+          path: pointsData.name,
+          type: FileType.metadata,
+          isSynced: true,
+          size: sizes[0],
+          exists: exists[0],
+        ),
+        FileStatus(
+          path: tripsData.name,
+          type: FileType.metadata,
+          isSynced: true,
+          size: sizes[1],
+          exists: exists[1],
+        ),
+      ];
+      final filenamesList = allMediaFilenames.toList();
+      for (var i = 0; i < mediaList.length; i++) {
         fileStatuses.add(FileStatus(
-          path: media.filename,  // Just filename
+          path: mediaList[i].filename,
           type: FileType.image,
-          isSynced: _syncedFiles.contains(filename),
-          size: await media.size(),
-          exists: await media.exists(),
+          isSynced: _syncedFiles.contains(filenamesList[i]),
+          size: sizes[i + 2],
+          exists: exists[i + 2],
         ));
       }
 

@@ -35,13 +35,11 @@ export function createPopupContent(point, img, onOpenDetail) {
             </button>
         </div>`;
 
-    setTimeout(() => {
-        const btn = popupDiv.querySelector(`#detail-btn-${point.id}`);
-        if (btn) btn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            onOpenDetail(point.id);
-        });
-    }, 0);
+    const btn = popupDiv.querySelector(`#detail-btn-${point.id}`);
+    if (btn) btn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        onOpenDetail(point.id);
+    });
 
     return popupDiv;
 }
@@ -55,8 +53,19 @@ export function drawRoutes(map, trip) {
     });
 }
 
+export const IMAGE_MARKER_MIN_ZOOM = 9;
+
 export function addImageGpsMarkers(map, trip, imageMarkersRef) {
     const L = window.L;
+
+    const updateVisibility = () => {
+        const show = map.getZoom() >= IMAGE_MARKER_MIN_ZOOM;
+        imageMarkersRef.current.forEach(m => {
+            const el = m.getElement();
+            if (el) el.style.display = show ? '' : 'none';
+        });
+    };
+    map.on('zoomend', updateVisibility);
 
     trip.points.forEach(point => {
         const allPaths = [
@@ -99,6 +108,8 @@ export function addImageGpsMarkers(map, trip, imageMarkersRef) {
                     });
 
                     imageMarkersRef.current.push(marker);
+                    const el = marker.getElement();
+                    if (el && map.getZoom() < IMAGE_MARKER_MIN_ZOOM) el.style.display = 'none';
                 }
             });
         });
@@ -137,7 +148,8 @@ export function findClosestMarker(map, containerPoint, trip, markersRef, imageMa
     let closestImg = null;
     let closestImgDist = Infinity;
 
-    imageMarkersRef.current.forEach(marker => {
+    const imagesVisible = map.getZoom() >= IMAGE_MARKER_MIN_ZOOM;
+    if (imagesVisible) imageMarkersRef.current.forEach(marker => {
         const px = map.latLngToContainerPoint(marker.getLatLng());
         const dist = px.distanceTo(containerPoint);
         if (dist < closestImgDist) {

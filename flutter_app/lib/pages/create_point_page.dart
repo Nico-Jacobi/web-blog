@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
@@ -50,9 +49,6 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
   InterestPoint? _lastPoint;
   TripMethod _selectedMethod = TripMethod.car;
 
-  // Track if user has made any changes
-  bool _hasUnsavedChanges = false;
-
   // Store original values for edit mode
   String _originalName = '';
   String _originalShortDesc = '';
@@ -61,7 +57,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
   String _originalLon = '';
   String _originalDate = '';
   String? _originalTitleImagePath;
-  List<String> _originalOtherMediaPaths = [];
+  Set<String> _originalOtherMediaPaths = {};
   TripMethod _originalTravelMethod = TripMethod.car;
 
   @override
@@ -74,14 +70,6 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       ),
     );
 
-    // Add listeners to text controllers
-    _nameCtrl.addListener(_markAsChanged);
-    _shortDescCtrl.addListener(_markAsChanged);
-    _descCtrl.addListener(_markAsChanged);
-    _latCtrl.addListener(_markAsChanged);
-    _lonCtrl.addListener(_markAsChanged);
-    _dateCtrl.addListener(_markAsChanged);
-
     if (widget.existingPoint != null) {
       _isEditMode = true;
       _loadExistingPoint(widget.existingPoint!);
@@ -90,11 +78,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     }
   }
 
-  void _markAsChanged() {
-    if (!_hasUnsavedChanges) {
-      setState(() => _hasUnsavedChanges = true);
-    }
-  }
+  void _markAsChanged() {}
 
   bool _hasActualChanges() {
     if (!_isEditMode) {
@@ -176,7 +160,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       return MediaFile.fromFilenameSync(filename, appDir.path);
     }).toList();
 
-    _originalOtherMediaPaths = _otherMedia.map((media) => media.file.path).toList();
+    _originalOtherMediaPaths = _otherMedia.map((media) => media.file.path).toSet();
 
     setState(() {});
   }
@@ -258,18 +242,6 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
         if (normalized.isNotEmpty) _dateCtrl.text = normalized;
       }
 
-      // Debug: dump all GPS-related tags
-      final gpsTags = tags.entries.where((e) => e.key.contains('GPS')).toList();
-      debugPrint('=== GPS EXIF DEBUG for ${path.basename(image.path)} ===');
-      for (final entry in gpsTags) {
-        final tag = entry.value;
-        debugPrint('  ${entry.key}: printable="${tag.printable}" '
-            'type=${tag.values.runtimeType} values=${tag.values.toList()}');
-      }
-      if (gpsTags.isEmpty) {
-        debugPrint('  (no GPS tags found)');
-      }
-
       double? convertToDecimal(IfdTag? tag, IfdTag? ref) {
         if (tag == null || ref == null) return null;
         try {
@@ -283,14 +255,10 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
           double d = _toDouble(values[0]);
           double m = _toDouble(values[1]);
           double s = _toDouble(values[2]);
-          debugPrint('  -> d=$d m=$m s=$s (raw: ${values[0]} ${values[1]} ${values[2]})');
           double res = d + (m / 60.0) + (s / 3600.0);
           if (res.isNaN || res.isInfinite) return null;
           // Treat 0.0 as missing data (0°0'0" is in the Atlantic Ocean)
-          if (res == 0.0) {
-            debugPrint('  -> result is 0.0, treating as missing GPS data');
-            return null;
-          }
+          if (res == 0.0) return null;
           final refStr = ref.printable.toUpperCase();
           return (refStr.contains('S') || refStr.contains('W')) ? -res : res;
         } catch (e) {
@@ -302,13 +270,8 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       double? lat = convertToDecimal(tags['GPS GPSLatitude'], tags['GPS GPSLatitudeRef']);
       double? lon = convertToDecimal(tags['GPS GPSLongitude'], tags['GPS GPSLongitudeRef']);
 
-      debugPrint('  => lat=$lat, lon=$lon');
-      debugPrint('=== END GPS DEBUG ===');
-
       if (_latCtrl.text.isEmpty && lat != null) _latCtrl.text = lat.toStringAsFixed(6);
       if (_lonCtrl.text.isEmpty && lon != null) _lonCtrl.text = lon.toStringAsFixed(6);
-
-      setState(() {});
     } catch (e) {
       debugPrint('Error extracting metadata: $e');
     }
@@ -370,69 +333,9 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     }
   }
 
-  Future<void> _pickOtherMedia2() async {
-    try {
-      FilePickerResult? result = await FilePicker.platform.pickFiles(
-        allowMultiple: true,
-        type: FileType.media, // Images and Videos
-      );
-
-      if (result != null) {
-        List<MediaFile> newFiles = [];
-        for (var path in result.paths) {
-          if (path != null) {
-            File f = File(path);
-            if (!_otherMedia.any((m) => m.file.path == f.path)) {
-              newFiles.add(MediaFile(f, _isVideoExtension(path)));
-            }
-          }
-        }
-
-        if (newFiles.isNotEmpty) {
-          _markAsChanged();
-          setState(() => _otherMedia.addAll(newFiles));
-        }
-      }
-    } catch (e) {
-      debugPrint("Picker error: $e");
-    }
-  }
-
   bool _isVideoExtension(String path) {
     final ext = path.toLowerCase();
     return ext.endsWith('.mp4') || ext.endsWith('.mov') || ext.endsWith('.avi');
-  }
-
-  Future<void> _pickImages() async {
-    final List<XFile> picked = await _picker.pickMultiImage();
-    if (picked.isNotEmpty) {
-      List<MediaFile> newFiles = [];
-      for (var xf in picked) {
-        File f = File(xf.path);
-        if (!_otherMedia.any((media) => media.file.path == f.path)) {
-          newFiles.add(MediaFile(f, false));
-          if (newFiles.length == 1) await _extractMetadata(f);
-        }
-      }
-      if (newFiles.isNotEmpty) {
-        _markAsChanged();
-        setState(() => _otherMedia.addAll(newFiles));
-      }
-    }
-  }
-
-  Future<void> _pickVideo() async {
-    final XFile? video = await _picker.pickVideo(
-      source: ImageSource.gallery,
-    );
-
-    if (video != null) {
-      File f = File(video.path);
-      if (!_otherMedia.any((media) => media.file.path == f.path)) {
-        _markAsChanged();
-        setState(() => _otherMedia.add(MediaFile(f, true)));
-      }
-    }
   }
 
   Future<void> _pickCoordinatesOnMap() async {

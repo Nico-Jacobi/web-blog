@@ -237,20 +237,13 @@ class SyncService {
     if (await _hasContentChanged('data/trips.json', tripsJson)) return true;
 
     // 2. Check if any image path is missing from the sync state
-    //final appDir = await getApplicationDocumentsDirectory();
-
     for (var point in points) {
-      // Construct the full path because that's what File() needs and
-      // likely what _syncedFilesWithSize is currently using as a key.
-      final fullTitlePath = p.join(point.titleImagePath);
-
-      if (point.titleImagePath.isNotEmpty && !_syncedFilesWithSize.containsKey(fullTitlePath)) {
+      if (point.titleImagePath.isNotEmpty &&
+          !_syncedFilesWithSize.containsKey(point.titleImagePath)) {
         return true;
       }
-
       for (var name in point.otherMediaPaths) {
-        final fullOtherPath = p.join(name);
-        if (!_syncedFilesWithSize.containsKey(fullOtherPath)) return true;
+        if (!_syncedFilesWithSize.containsKey(name)) return true;
       }
     }
 

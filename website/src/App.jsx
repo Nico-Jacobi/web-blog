@@ -34,19 +34,19 @@ export default function App() {
         return point ? slugify(point.title) : null;
     }, [trip]);
 
-    const { applyInitialHash } = useHistoryNavigation({
+    const { applyInitialPath } = useHistoryNavigation({
         detailId, setDetailId, mobileShowMap, setMobileShowMap, setActiveId,
         resolveSlug, getSlug,
     });
 
     useEffect(() => { registerServiceWorker(); }, []);
 
-    // Once trip loads: apply URL hash first, fall back to initialActiveId
+    // Once trip loads: apply initial URL path first, fall back to initialActiveId
     useEffect(() => {
         if (!trip) return;
-        applyInitialHash();
+        applyInitialPath();
         if (!detailId && initialActiveId) setActiveId(initialActiveId);
-    }, [trip, initialActiveId, applyInitialHash]);
+    }, [trip, initialActiveId, applyInitialPath]);
 
     const handleSelectStop = (id) => {
         setActiveId(id);

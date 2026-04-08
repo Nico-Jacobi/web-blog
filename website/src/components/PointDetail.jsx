@@ -59,6 +59,36 @@ export default function PointDetail({ point, trip, onClose }) {
         return () => window.removeEventListener('keydown', handleKeyDown);
     }, [isLightboxOpen, onClose]);
 
+    const pullStateRef = React.useRef({ startY: null, pulling: false });
+    const [pullDistance, setPullDistance] = useState(0);
+    const PULL_THRESHOLD = 80;
+
+    const handleTouchStart = (e) => {
+        const el = e.currentTarget;
+        if (el.scrollTop <= 0) {
+            pullStateRef.current = { startY: e.touches[0].clientY, pulling: true };
+        }
+    };
+
+    const handleTouchMove = (e) => {
+        if (!pullStateRef.current.pulling) return;
+        const delta = e.touches[0].clientY - pullStateRef.current.startY;
+        if (delta > 0) {
+            setPullDistance(Math.min(delta, PULL_THRESHOLD * 1.5));
+        } else {
+            setPullDistance(0);
+        }
+    };
+
+    const handleTouchEnd = () => {
+        if (pullStateRef.current.pulling && pullDistance >= PULL_THRESHOLD) {
+            window.location.reload();
+            return;
+        }
+        pullStateRef.current = { startY: null, pulling: false };
+        setPullDistance(0);
+    };
+
     if (!point) return null;
 
     return (
@@ -73,7 +103,24 @@ export default function PointDetail({ point, trip, onClose }) {
                     <X size={24} className={`hidden md:block ${sharedIconStyle}`}/>
                 </button>
 
-                <div className="h-full w-full overflow-y-auto pt-6 md:pt-10">
+                {pullDistance > 0 && (
+                    <div
+                        className="fixed top-0 left-0 right-0 z-[5005] flex justify-center items-center pointer-events-none"
+                        style={{ height: `${pullDistance}px` }}
+                    >
+                        <div className={`text-orange-600 text-sm font-bold ${pullDistance >= PULL_THRESHOLD ? 'opacity-100' : 'opacity-60'}`}>
+                            {pullDistance >= PULL_THRESHOLD ? 'Loslassen zum Neuladen' : 'Zum Neuladen ziehen'}
+                        </div>
+                    </div>
+                )}
+
+                <div
+                    className="h-full w-full overflow-y-auto pt-6 md:pt-10"
+                    onTouchStart={handleTouchStart}
+                    onTouchMove={handleTouchMove}
+                    onTouchEnd={handleTouchEnd}
+                    style={{ transform: pullDistance > 0 ? `translateY(${pullDistance}px)` : undefined }}
+                >
                     <div className="max-w-6xl mx-auto p-4 md:p-6 lg:p-12">
                         <HeroSection point={point} titleImageUrl={titleImageUrl} />
 

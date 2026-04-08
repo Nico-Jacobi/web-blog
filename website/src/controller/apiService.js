@@ -27,9 +27,7 @@ export function imageUrl(path) {
  */
 export function thumbUrl(path) {
     const clean = path.startsWith('/') ? path.slice(1) : path;
-    const m = clean.match(/^images\/(.+)$/);
-    if (!m) return imageUrl(clean);
-    const rest = m[1];
+    const rest = clean.replace(/^images\//, '');
     const ext = (rest.match(/\.([^.\/]+)$/)?.[1] || '').toLowerCase();
     // Sharp without libheif can't decode HEIC/HEIF, so fall back.
     const supported = ['jpg', 'jpeg', 'png', 'webp'];

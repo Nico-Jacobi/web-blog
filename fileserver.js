@@ -271,6 +271,7 @@ app.get(/^\/files\/images\/\.thumbs\/.+\.webp$/i, checkAuth, async (req, res, ne
 });
 
 app.use('/files', checkAuth, express.static(UPLOAD_DIR, {
+    dotfiles: 'allow',
     setHeaders: (res, filePath) => {
         if (path.extname(filePath).toLowerCase() === '.json') {
             res.setHeader('Cache-Control', 'no-store');

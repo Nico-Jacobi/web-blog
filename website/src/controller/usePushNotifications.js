@@ -17,6 +17,21 @@ export async function registerServiceWorker() {
     }
 }
 
+/**
+ * Push the encoded auth token to the service worker so it can inject
+ * it into image requests for caching.  Safe to call repeatedly.
+ */
+export async function sendAuthToServiceWorker(token) {
+    if (!token || !('serviceWorker' in navigator)) return;
+    try {
+        const reg = await navigator.serviceWorker.ready;
+        const target = navigator.serviceWorker.controller || reg.active;
+        if (target) target.postMessage({ type: 'auth', token: btoa(token) });
+    } catch (err) {
+        console.error('SW auth handshake failed:', err);
+    }
+}
+
 export async function setupPushNotifications(token) {
     if (!('serviceWorker' in navigator) || !('PushManager' in window)) return;
 

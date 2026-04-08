@@ -67,10 +67,7 @@ export class Trip {
     }
 
     static destroyInstance() {
-        if (Trip.#instance) {
-            Trip.#instance.points.forEach(p => p.cleanup());
-            Trip.#instance = null;
-        }
+        Trip.#instance = null;
     }
 
     getRouteBetween(fromId, toId) {

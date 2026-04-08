@@ -9,6 +9,9 @@ export default function HeroSection({ point, titleImageUrl }) {
                     <img
                         src={titleImageUrl}
                         alt={point.title}
+                        loading="eager"
+                        fetchpriority="high"
+                        decoding="async"
                         className="w-full h-[40vh] md:h-[60vh] object-cover"
                     />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />

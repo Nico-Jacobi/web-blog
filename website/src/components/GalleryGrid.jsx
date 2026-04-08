@@ -4,6 +4,7 @@ import { isVideo } from '../utils.js';
 
 export default function GalleryGrid({ point, otherImageUrls, onOpenLightbox }) {
     if (point.otherPaths.length === 0) return null;
+    const otherThumbUrls = point.otherThumbUrls;
 
     return (
         <div className="mt-4 md:mt-8 bg-white rounded-xl md:rounded-2xl p-4 md:p-8 shadow-lg border border-slate-100">
@@ -21,18 +22,13 @@ export default function GalleryGrid({ point, otherImageUrls, onOpenLightbox }) {
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">
                 {point.otherPaths.map((path, idx) => {
                     const url = otherImageUrls[idx];
+                    const thumbForGrid = otherThumbUrls[idx];
                     const isVid = isVideo(path);
-
-                    if (!url) {
-                        return (
-                            <div key={idx} className="aspect-square bg-slate-100 rounded-lg md:rounded-xl animate-pulse" />
-                        );
-                    }
 
                     return (
                         <div
                             key={idx}
-                            className="group relative aspect-square rounded-lg md:rounded-xl overflow-hidden cursor-pointer"
+                            className="group relative aspect-square rounded-lg md:rounded-xl overflow-hidden cursor-pointer bg-slate-100"
                             onClick={() => onOpenLightbox(idx)}
                         >
                             {isVid ? (
@@ -42,6 +38,7 @@ export default function GalleryGrid({ point, otherImageUrls, onOpenLightbox }) {
                                         className="w-full h-full object-cover"
                                         muted
                                         playsInline
+                                        preload="metadata"
                                     />
                                     <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
                                         <div className="bg-white/90 group-hover:bg-orange-500 group-hover:text-white rounded-full p-3 md:p-4 transition-all shadow-lg">
@@ -52,8 +49,10 @@ export default function GalleryGrid({ point, otherImageUrls, onOpenLightbox }) {
                                 </>
                             ) : (
                                 <img
-                                    src={url}
+                                    src={thumbForGrid}
                                     alt="Gallery"
+                                    loading="lazy"
+                                    decoding="async"
                                     className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
                                 />
                             )}

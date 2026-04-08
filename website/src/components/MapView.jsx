@@ -156,14 +156,10 @@ function addPointMarkers(L, map, trip, newPointIds, markersRef, mapInteractionRe
         });
         marker.on('popupopen', () => { onSelectStop(point.id); });
 
-        marker.bindPopup(createPopupContent(point, null, onOpenDetail), {
+        marker.bindPopup(createPopupContent(point, point.titleThumbUrl, onOpenDetail), {
             closeButton: false,
             className: 'modern-popup',
             autoPan: false
-        });
-
-        point.getTitleImage().then(img => {
-            marker.setPopupContent(createPopupContent(point, img, onOpenDetail));
         });
 
         markersRef.current[point.id] = marker;

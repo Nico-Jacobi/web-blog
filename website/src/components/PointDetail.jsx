@@ -14,9 +14,8 @@ function getTravelDay(point, trip) {
 }
 
 export default function PointDetail({ point, trip, onClose }) {
-    const [titleImageUrl, setTitleImageUrl] = useState(null);
-    const [otherImageUrls, setOtherImageUrls] = useState([]);
-    const [galleryDoneLoading, setGalleryDoneLoading] = useState(false);
+    const titleImageUrl = point?.titleImageUrl ?? null;
+    const otherImageUrls = useMemo(() => point?.otherImageUrls ?? [], [point]);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
     const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
 
@@ -51,30 +50,6 @@ export default function PointDetail({ point, trip, onClose }) {
         document.body.style.overflow = 'hidden';
         return () => { document.body.style.overflow = ''; };
     }, []);
-
-    useEffect(() => {
-        if (!point) return;
-        let mounted = true;
-
-        setTitleImageUrl(null);
-        setOtherImageUrls([]);
-        setGalleryDoneLoading(false);
-
-        async function loadImages() {
-            const titleUrl = await point.getTitleImage();
-            if (mounted) setTitleImageUrl(titleUrl);
-
-            if (point.otherPaths.length > 0) {
-                await point.loadOtherImagesSequentially((loadedSoFar) => {
-                    if (mounted) setOtherImageUrls(loadedSoFar);
-                });
-                if (mounted) setGalleryDoneLoading(true);
-            }
-        }
-
-        loadImages();
-        return () => { mounted = false; };
-    }, [point]);
 
     useEffect(() => {
         const handleKeyDown = (e) => {
@@ -143,7 +118,6 @@ export default function PointDetail({ point, trip, onClose }) {
                         <GalleryGrid
                             point={point}
                             otherImageUrls={otherImageUrls}
-                            doneLoading={galleryDoneLoading}
                             onOpenLightbox={(idx) => {
                                 setCurrentMediaIndex(idx);
                                 setIsLightboxOpen(true);

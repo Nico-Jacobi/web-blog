@@ -40,6 +40,11 @@ export default function Sidebar({ activeId, onSelectStop, onOpenDetail, trip, ne
                     const isFirstNew = !foundFirstNew && newPointIds.has(point.id);
                     if (isFirstNew) foundFirstNew = true;
 
+                    // Load images newest→oldest: newest 5 get high priority,
+                    // since the sidebar auto-scrolls to the newest point.
+                    const fromEnd = trip.points.length - 1 - index;
+                    const priority = fromEnd < 5 ? 'high' : fromEnd < 15 ? 'auto' : 'low';
+
                     return (
                         <React.Fragment key={point.id}>
                             <div ref={isFirstNew ? firstNewRef : null}>
@@ -47,6 +52,7 @@ export default function Sidebar({ activeId, onSelectStop, onOpenDetail, trip, ne
                                     point={point}
                                     isActive={activeId === point.id}
                                     isNew={newPointIds.has(point.id)}
+                                    priority={priority}
                                     onInfoClick={() => onOpenDetail(point.id)}
                                     onMapClick={() => onSelectStop(point.id)}
                                 />

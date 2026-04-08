@@ -1,12 +1,9 @@
-import React, { useState, useEffect } from 'react';
+import React from 'react';
 import { Calendar, MapPin } from 'lucide-react';
 
-export default function StopCard({ point, isActive, isNew, onInfoClick, onMapClick }) {
-    const [image, setImage] = useState(null);
-
-    useEffect(() => {
-        point.getTitleImage().then(setImage);
-    }, [point]);
+export default function StopCard({ point, isActive, isNew, priority = 'auto', onInfoClick, onMapClick }) {
+    const image = point.titleThumbUrl;
+    const eager = priority === 'high';
 
     return (
         <div
@@ -20,9 +17,16 @@ export default function StopCard({ point, isActive, isNew, onInfoClick, onMapCli
             <div className="flex gap-4 items-center">
                 <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0">
                     {image ? (
-                        <img src={image} alt={point.title} className="w-full h-full object-cover" />
+                        <img
+                            src={image}
+                            alt={point.title}
+                            loading={eager ? 'eager' : 'lazy'}
+                            decoding="async"
+                            fetchpriority={priority}
+                            className="w-full h-full object-cover"
+                        />
                     ) : (
-                        <div className="w-full h-full animate-pulse bg-slate-200" />
+                        <div className="w-full h-full bg-slate-200" />
                     )}
                 </div>
 

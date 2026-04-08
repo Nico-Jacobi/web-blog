@@ -1,4 +1,4 @@
-import {apiService} from "../controller/apiService.js";
+import { imageUrl, thumbUrl } from "../controller/apiService.js";
 
 export class Point {
     constructor(data, password) {
@@ -15,9 +15,6 @@ export class Point {
 
         this.imagePath = data.titleImagePath || null;
         this.otherPaths = data.otherImagePaths || [];
-
-        this._titleBlob = null;
-        this._otherBlobs = null;
     }
 
     getParsedDate() {
@@ -34,41 +31,23 @@ export class Point {
         return new Date(year, month, day);
     }
 
-    async getTitleImage() {
-        if (this._titleBlob) return this._titleBlob;
-        if (!this.imagePath) return null;
-        this._titleBlob = await apiService.fetchBlob(this.imagePath, this.password);
-        return this._titleBlob;
+    /** Direct URL for the title image (full size), or null if none. */
+    get titleImageUrl() {
+        return this.imagePath ? imageUrl(this.imagePath) : null;
     }
 
-    async getOtherImages() {
-        if (this._otherBlobs) return this._otherBlobs;
-        const blobs = await Promise.all(
-            this.otherPaths.map(path => apiService.fetchBlob(path, this.password))
-        );
-        // Only cache if everything loaded — otherwise a transient 404 would stick.
-        const filtered = blobs.filter(b => b !== null);
-        if (filtered.length === this.otherPaths.length) this._otherBlobs = filtered;
-        return filtered;
+    /** Thumbnail URL for the title image (small, for cards/lists). */
+    get titleThumbUrl() {
+        return this.imagePath ? thumbUrl(this.imagePath) : null;
     }
 
-    async loadOtherImagesSequentially(onImageLoaded) {
-        if (this._otherBlobs) {
-            onImageLoaded(this._otherBlobs);
-            return this._otherBlobs;
-        }
-        const blobs = new Array(this.otherPaths.length).fill(null);
-        for (let i = 0; i < this.otherPaths.length; i++) {
-            const blob = await apiService.fetchBlob(this.otherPaths[i], this.password);
-            blobs[i] = blob;
-            onImageLoaded([...blobs]);
-        }
-        if (blobs.every(b => b !== null)) this._otherBlobs = blobs;
-        return blobs;
+    /** Direct URLs for the gallery images (full size, for lightbox). */
+    get otherImageUrls() {
+        return this.otherPaths.map(p => imageUrl(p));
     }
 
-    cleanup() {
-        if (this._titleBlob) URL.revokeObjectURL(this._titleBlob);
-        this._otherBlobs?.forEach(b => b && URL.revokeObjectURL(b));
+    /** Thumbnail URLs for gallery images (for the grid preview). */
+    get otherThumbUrls() {
+        return this.otherPaths.map(p => thumbUrl(p));
     }
 }

@@ -46,8 +46,10 @@ export class Point {
         const blobs = await Promise.all(
             this.otherPaths.map(path => apiService.fetchBlob(path, this.password))
         );
-        this._otherBlobs = blobs.filter(b => b !== null);
-        return this._otherBlobs;
+        // Only cache if everything loaded — otherwise a transient 404 would stick.
+        const filtered = blobs.filter(b => b !== null);
+        if (filtered.length === this.otherPaths.length) this._otherBlobs = filtered;
+        return filtered;
     }
 
     async loadOtherImagesSequentially(onImageLoaded) {
@@ -61,7 +63,7 @@ export class Point {
             blobs[i] = blob;
             onImageLoaded([...blobs]);
         }
-        this._otherBlobs = blobs;
+        if (blobs.every(b => b !== null)) this._otherBlobs = blobs;
         return blobs;
     }
 

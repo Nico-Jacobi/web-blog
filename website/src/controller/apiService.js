@@ -13,14 +13,14 @@ export const apiService = {
     async fetchBlob(path, token) {
         const clean = path.startsWith('/') ? path.slice(1) : path;
         const url = `${API_BASE}/files/images/${clean}`;
-        const headers = { 'X-Auth-Token': btoa(token) };
         try {
-            const res = await fetch(url, { headers });
+            // cache: 'no-cache' revalidates with the server every time, so a previously
+            // cached 404 won't keep masking an image that exists now.
+            const res = await fetch(url, {
+                headers: { 'X-Auth-Token': btoa(token) },
+                cache: 'no-cache'
+            });
             if (res.ok) return URL.createObjectURL(await res.blob());
-            if (res.status === 404) {
-                const retry = await fetch(url, { headers, cache: 'reload' });
-                if (retry.ok) return URL.createObjectURL(await retry.blob());
-            }
         } catch (e) { /* network error */ }
         return null;
     },
@@ -28,7 +28,8 @@ export const apiService = {
     async fetchImageGps(path, token) {
         const clean = path.startsWith('/') ? path.slice(1) : path;
         const res = await fetch(`${API_BASE}/files/images/${clean}`, {
-            headers: { 'X-Auth-Token': btoa(token) }
+            headers: { 'X-Auth-Token': btoa(token) },
+            cache: 'no-cache'
         });
         if (!res.ok) return null;
         try {

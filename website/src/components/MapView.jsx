@@ -112,7 +112,10 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
                 const offsetY = isMobile ? map.getSize().y * 0.2 : map.getSize().y * 0.1;
                 const newCenter = map.unproject(targetPoint.subtract([0, offsetY]), zoomLevel);
 
-                map.once('moveend', () => marker.openPopup());
+                map.once('moveend', () => {
+                    mapInteractionRef.current = true;
+                    marker.openPopup();
+                });
                 map.flyTo(newCenter, zoomLevel, { duration: 1, easeLinearity: 0.25 });
             }, 100);
 

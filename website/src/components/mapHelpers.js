@@ -55,7 +55,7 @@ export function drawRoutes(map, trip) {
 
 export const IMAGE_MARKER_MIN_ZOOM = 9;
 
-export function addImageGpsMarkers(map, trip, imageMarkersRef) {
+export function addImageGpsMarkers(map, trip, imageMarkersRef, onImageFullscreen) {
     const L = window.L;
 
     const updateVisibility = () => {
@@ -85,9 +85,15 @@ export function addImageGpsMarkers(map, trip, imageMarkersRef) {
                     }).addTo(map);
 
                     marker.bindPopup(
-                        `<img src="${result.blobUrl}" style="width:25vw; min-width:140px; max-width:300px; height:auto; border-radius:8px; display:block;"/>`,
+                        `<img src="${result.blobUrl}" style="width:25vw; min-width:140px; max-width:300px; height:auto; border-radius:8px; display:block; cursor:pointer;" data-fullscreen-src="${result.blobUrl}"/>`,
                         { closeButton: false, className: 'image-gps-popup', maxWidth: 320, autoPan: false }
                     );
+
+                    marker.on('popupopen', () => {
+                        const popup = marker.getPopup();
+                        const img = popup?.getElement()?.querySelector('img[data-fullscreen-src]');
+                        if (img) img.onclick = () => onImageFullscreen(img.dataset.fullscreenSrc);
+                    });
 
                     marker.on('mouseover', function () {
                         if (!this._suppressHover) this.openPopup();
@@ -131,7 +137,7 @@ export function buildMarkerHtml(isNew) {
  * Finds the closest point or image marker within maxPx of a click.
  * Returns { type: 'stop'|'image', target, distance } or null.
  */
-export function findClosestMarker(map, containerPoint, trip, markersRef, imageMarkersRef, maxPx = 80) {
+export function findClosestMarker(map, containerPoint, trip, markersRef, imageMarkersRef, maxPx = 50) {
     let closestStop = null;
     let closestStopDist = Infinity;
 

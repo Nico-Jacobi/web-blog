@@ -11,6 +11,7 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
 
     const [containerReady, setContainerReady] = useState(false);
     const [mapReady, setMapReady] = useState(false);
+    const [fullscreenImage, setFullscreenImage] = useState(null);
     const usedModes = trip ? [...new Set(trip.routes.map(r => r.mode))] : [];
 
     useImperativeHandle(ref, () => ({
@@ -71,7 +72,7 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
         }).addTo(map);
 
         drawRoutes(map, trip);
-        addImageGpsMarkers(map, trip, imageMarkersRef);
+        addImageGpsMarkers(map, trip, imageMarkersRef, (src) => setFullscreenImage(src));
         addPointMarkers(L, map, trip, newPointIds, markersRef, mapInteractionRef, onSelectStop, onOpenDetail);
         setupClickHandler(map, trip, markersRef, imageMarkersRef, mapInteractionRef, activeId, onSelectStop);
 
@@ -131,6 +132,20 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
             <div className="shrink-0">
                 <Legend usedModes={usedModes} />
             </div>
+            {fullscreenImage && (
+                <div
+                    className="fixed inset-0 z-[6000] bg-black/95 backdrop-blur-md flex items-center justify-center"
+                    onClick={() => setFullscreenImage(null)}
+                >
+                    <img
+                        src={fullscreenImage}
+                        alt="Fullscreen"
+                        className="max-w-full max-h-full object-contain select-none"
+                        draggable={false}
+                        onClick={(e) => e.stopPropagation()}
+                    />
+                </div>
+            )}
         </div>
     );
 });
@@ -196,6 +211,12 @@ function setupClickHandler(map, trip, markersRef, imageMarkersRef, mapInteractio
             return;
         }
 
+        imageMarkersRef.current.forEach(m => {
+            if (m._clickOpen) {
+                m._clickOpen = false;
+                m.closePopup();
+            }
+        });
         onSelectStop(null);
     });
 }

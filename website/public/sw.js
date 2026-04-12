@@ -7,7 +7,7 @@
 // Cross-origin: this SW is served from 1ej.de but proxies image requests
 // to api.1ej.de.  CORS is enabled server-side without restrictions.
 
-const IMAGE_CACHE = 'images-v1';
+const IMAGE_CACHE = 'images-v2';
 const API_HOST = 'api.1ej.de';
 const IMAGE_PATH_PREFIX = '/files/images/';
 
@@ -109,35 +109,50 @@ self.addEventListener('fetch', (event) => {
 });
 
 async function handleImageRequest(request) {
+    const url = new URL(request.url);
+    const isVid = /\.(mp4|mov|webm)$/i.test(url.pathname);
+
     const cache = await caches.open(IMAGE_CACHE);
 
-    // Cache-first: serve from cache without touching the network.
-    // Images are content-addressed by path, so they're effectively immutable.
-    const cached = await cache.match(request);
-    if (cached) return cached;
+    // Cache-first for images.  Videos are excluded — browsers use Range
+    // requests for playback and the Cache API matches on URL alone, so a
+    // cached partial (206) response would be served for every subsequent
+    // Range, breaking playback.
+    if (!isVid) {
+        const cached = await cache.match(request);
+        if (cached) return cached;
+    }
 
-    // Cache miss → fetch with injected auth header.  We can't pass the
-    // page's <img> request through directly because <img> can't set
-    // custom headers; we re-issue it here so the auth check passes.
+    // Cache miss (or video) → fetch with injected auth header.  We can't
+    // pass the page's <img>/<video> request through directly because
+    // those elements can't set custom headers; we re-issue it here so
+    // the auth check passes.
     const token = await waitForAuthToken();
     const headers = new Headers(request.headers);
     if (token) headers.set('X-Auth-Token', token);
 
     let response;
-    try {
-        response = await fetch(request.url, {
-            method: 'GET',
-            headers,
-            mode: 'cors',
-            credentials: 'omit',
-        });
-    } catch (err) {
-        // Network failure — return a synthetic error so <img> shows broken state.
-        return new Response('', { status: 504, statusText: 'Image fetch failed' });
+    for (let attempt = 0; attempt <= 1; attempt++) {
+        try {
+            response = await fetch(request.url, {
+                method: 'GET',
+                headers,
+                mode: 'cors',
+                credentials: 'omit',
+            });
+            break;
+        } catch (err) {
+            if (attempt === 1) {
+                // Both attempts failed — return a synthetic error.
+                return new Response('', { status: 504, statusText: 'Image fetch failed' });
+            }
+            // Wait briefly before retrying (transient network/CORS failure).
+            await new Promise(r => setTimeout(r, 1000));
+        }
     }
 
-    // Only cache successful, opaque-free responses.
-    if (response.ok) {
+    // Only cache successful image responses (not videos — see above).
+    if (response.ok && !isVid) {
         // Clone before caching — body can only be read once.
         cache.put(request, response.clone()).catch(() => {});
     }

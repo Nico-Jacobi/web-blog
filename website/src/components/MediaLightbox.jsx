@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { sharedButtonStyle, sharedIconStyle } from './styles.js';
 import { useLightboxGestures } from '../controller/useLightboxGestures.js';
@@ -18,6 +18,16 @@ export default function MediaLightbox({ media, currentIndex, onClose, onNavigate
         onNavigate,
         onClose,
     });
+
+    useEffect(() => {
+        if (!trackRef.current) return;
+        const slides = trackRef.current.children;
+        for (let i = 0; i < slides.length; i++) {
+            if (i === currentIndex) continue;
+            const video = slides[i].querySelector('video');
+            if (video) video.pause();
+        }
+    }, [currentIndex]);
 
     if (!media || media.length === 0) return null;
 
@@ -82,23 +92,34 @@ export default function MediaLightbox({ media, currentIndex, onClose, onNavigate
                                     src={item.url}
                                     controls
                                     preload="none"
-                                    className="max-w-full max-h-full object-contain shadow-2xl bg-black"
+                                    className="w-full h-full object-contain shadow-2xl bg-black"
                                     onClick={(e) => e.stopPropagation()}
                                 />
                             ) : (
-                                <img
-                                    src={item.url}
-                                    alt={`Slide ${index}`}
-                                    className="max-w-full max-h-full object-contain shadow-2xl select-none"
-                                    draggable={false}
-                                    onClick={(e) => e.stopPropagation()}
-                                    style={index === currentIndex ? {
-                                        transform: `translate(${panX}px, ${panY}px) scale(${scale})`,
-                                        transformOrigin: 'center center',
-                                        transition: isInteracting.current ? 'none' : 'transform 0.15s ease-out',
-                                        cursor: scale > 1 ? 'grab' : 'default',
-                                    } : {}}
-                                />
+                                <>
+                                    {item.thumbUrl && item.thumbUrl !== item.url && (
+                                        <img
+                                            src={item.thumbUrl}
+                                            alt=""
+                                            aria-hidden="true"
+                                            className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 max-w-full max-h-full object-contain opacity-70 blur-sm select-none pointer-events-none"
+                                            draggable={false}
+                                        />
+                                    )}
+                                    <img
+                                        src={item.url}
+                                        alt={`Slide ${index}`}
+                                        className="relative max-w-full max-h-full object-contain shadow-2xl select-none"
+                                        draggable={false}
+                                        onClick={(e) => e.stopPropagation()}
+                                        style={index === currentIndex ? {
+                                            transform: `translate(${panX}px, ${panY}px) scale(${scale})`,
+                                            transformOrigin: 'center center',
+                                            transition: isInteracting.current ? 'none' : 'transform 0.15s ease-out',
+                                            cursor: scale > 1 ? 'grab' : 'default',
+                                        } : {}}
+                                    />
+                                </>
                             ))}
                         </div>
                     );

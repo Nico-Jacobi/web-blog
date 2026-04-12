@@ -1,6 +1,32 @@
-import React from 'react';
+import React, { useRef, useState, useEffect } from 'react';
 import { Image as ImageIcon, Play } from 'lucide-react';
 import { isVideo } from '../utils.js';
+
+function LazyVideo({ src, className, ...props }) {
+    const ref = useRef(null);
+    const [visible, setVisible] = useState(false);
+
+    useEffect(() => {
+        const el = ref.current;
+        if (!el) return;
+        const observer = new IntersectionObserver(
+            ([entry]) => { if (entry.isIntersecting) { setVisible(true); observer.disconnect(); } },
+            { rootMargin: '200px' }
+        );
+        observer.observe(el);
+        return () => observer.disconnect();
+    }, []);
+
+    return (
+        <video
+            ref={ref}
+            src={visible ? src : undefined}
+            className={className}
+            preload="metadata"
+            {...props}
+        />
+    );
+}
 
 export default function GalleryGrid({ point, otherImageUrls, onOpenLightbox }) {
     if (point.otherPaths.length === 0) return null;
@@ -33,12 +59,11 @@ export default function GalleryGrid({ point, otherImageUrls, onOpenLightbox }) {
                         >
                             {isVid ? (
                                 <>
-                                    <video
+                                    <LazyVideo
                                         src={url}
                                         className="w-full h-full object-cover"
                                         muted
                                         playsInline
-                                        preload="metadata"
                                     />
                                     <div className="absolute inset-0 bg-black/30 group-hover:bg-black/40 transition-colors flex items-center justify-center">
                                         <div className="bg-white/90 group-hover:bg-orange-500 group-hover:text-white rounded-full p-3 md:p-4 transition-all shadow-lg">

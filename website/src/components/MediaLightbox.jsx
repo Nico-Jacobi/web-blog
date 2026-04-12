@@ -69,36 +69,40 @@ export default function MediaLightbox({ media, currentIndex, onClose, onNavigate
                     touchAction: scale > 1 ? 'none' : 'pan-y',
                 }}
             >
-                {media.map((item, index) => (
-                    <div
-                        key={index}
-                        className="h-full w-screen flex-none flex items-center justify-center p-4 md:p-12 relative"
-                        onClick={onClose}
-                    >
-                        {item.isVideo ? (
-                            <video
-                                src={item.url}
-                                controls
-                                className="max-w-full max-h-full object-contain shadow-2xl bg-black"
-                                onClick={(e) => e.stopPropagation()}
-                            />
-                        ) : (
-                            <img
-                                src={item.url}
-                                alt={`Slide ${index}`}
-                                className="max-w-full max-h-full object-contain shadow-2xl select-none"
-                                draggable={false}
-                                onClick={(e) => e.stopPropagation()}
-                                style={index === currentIndex ? {
-                                    transform: `translate(${panX}px, ${panY}px) scale(${scale})`,
-                                    transformOrigin: 'center center',
-                                    transition: isInteracting.current ? 'none' : 'transform 0.15s ease-out',
-                                    cursor: scale > 1 ? 'grab' : 'default',
-                                } : {}}
-                            />
-                        )}
-                    </div>
-                ))}
+                {media.map((item, index) => {
+                    const nearby = Math.abs(index - currentIndex) <= 1;
+                    return (
+                        <div
+                            key={index}
+                            className="h-full w-screen flex-none flex items-center justify-center p-4 md:p-12 relative"
+                            onClick={onClose}
+                        >
+                            {nearby && (item.isVideo ? (
+                                <video
+                                    src={item.url}
+                                    controls
+                                    preload="none"
+                                    className="max-w-full max-h-full object-contain shadow-2xl bg-black"
+                                    onClick={(e) => e.stopPropagation()}
+                                />
+                            ) : (
+                                <img
+                                    src={item.url}
+                                    alt={`Slide ${index}`}
+                                    className="max-w-full max-h-full object-contain shadow-2xl select-none"
+                                    draggable={false}
+                                    onClick={(e) => e.stopPropagation()}
+                                    style={index === currentIndex ? {
+                                        transform: `translate(${panX}px, ${panY}px) scale(${scale})`,
+                                        transformOrigin: 'center center',
+                                        transition: isInteracting.current ? 'none' : 'transform 0.15s ease-out',
+                                        cursor: scale > 1 ? 'grab' : 'default',
+                                    } : {}}
+                                />
+                            ))}
+                        </div>
+                    );
+                })}
             </div>
         </div>
     );

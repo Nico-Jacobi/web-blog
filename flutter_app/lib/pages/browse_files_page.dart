@@ -5,7 +5,6 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 import '../services/api_service.dart';
-import '../services/sync_service.dart';
 import '../strings.dart';
 import '../colors.dart';
 import '../widgets/confirm_dialog.dart';
@@ -22,7 +21,6 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
   Map<String, dynamic>? fileData;
   bool isLoading = false;
   bool isDownloading = false;
-  bool _syncEnabled = true;
   String? error;
   String _searchQuery = '';
   final TextEditingController _searchController = TextEditingController();
@@ -31,9 +29,6 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
   void initState() {
     super.initState();
     _loadFiles();
-    SyncService().isSyncEnabled().then((enabled) {
-      if (mounted) setState(() => _syncEnabled = enabled);
-    });
   }
 
   Future<void> _loadFiles() async {
@@ -307,19 +302,22 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
     );
   }
 
-  bool _matchesSearch(String name) {
-    if (_searchQuery.isEmpty) return false;
-    return name.toLowerCase().contains(_searchQuery.toLowerCase());
-  }
-
   Widget _buildFileList() {
     if (fileData == null) return Center(child: Text(AppStrings.noData_text));
-    final folders = fileData!['folders'] as List? ?? [];
-    final files = fileData!['files'] as List? ?? [];
+    final allFolders = fileData!['folders'] as List? ?? [];
+    final allFiles = fileData!['files'] as List? ?? [];
+
+    final bool filtering = _searchQuery.isNotEmpty;
+    final folders = filtering
+        ? allFolders.where((f) => (f['name'] as String).toLowerCase().contains(_searchQuery.toLowerCase())).toList()
+        : allFolders;
+    final files = filtering
+        ? allFiles.where((f) => (f['name'] as String).toLowerCase().contains(_searchQuery.toLowerCase())).toList()
+        : allFiles;
 
     return ListView(
       children: [
-        if (currentPath != '/')
+        if (!filtering && currentPath != '/')
           ListTile(
             leading: const Icon(Icons.arrow_upward, color: dark),
             title: Text(AppStrings.parent_folder),
@@ -333,24 +331,14 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
             },
           ),
         ...folders.map((folder) {
-          final matches = _matchesSearch(folder['name']);
           return ListTile(
-            tileColor: matches ? accent.withValues(alpha: 0.15) : null,
-            leading: Icon(Icons.folder, color: matches ? accent : light),
-            title: Text(
-              folder['name'],
-              style: TextStyle(
-                fontWeight: matches ? FontWeight.bold : FontWeight.normal,
-                color: matches ? accent : null,
-              ),
-            ),
+            leading: const Icon(Icons.folder, color: light),
+            title: Text(folder['name']),
             subtitle: Text('${AppStrings.modified_prefix}${folder['modified']}'),
-            trailing: _syncEnabled
-                ? IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _confirmDelete(folder['path'], folder['name']),
-                  )
-                : null,
+            trailing: IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () => _confirmDelete(folder['path'], folder['name']),
+            ),
             onTap: () {
               setState(() => currentPath = folder['path']);
               _loadFiles();
@@ -358,24 +346,14 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
           );
         }),
         ...files.map((file) {
-          final matches = _matchesSearch(file['name']);
           return ListTile(
-            tileColor: matches ? accent.withValues(alpha: 0.15) : null,
-            leading: Icon(Icons.insert_drive_file, color: matches ? accent : primary),
-            title: Text(
-              file['name'],
-              style: TextStyle(
-                fontWeight: matches ? FontWeight.bold : FontWeight.normal,
-                color: matches ? accent : null,
-              ),
-            ),
+            leading: const Icon(Icons.insert_drive_file, color: primary),
+            title: Text(file['name']),
             subtitle: Text('${AppStrings.size_prefix}${file['size']} bytes\n${AppStrings.modified_prefix}${file['modified']}'),
-            trailing: _syncEnabled
-                ? IconButton(
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: () => _confirmDelete(file['path'], file['name']),
-                  )
-                : null,
+            trailing: IconButton(
+              icon: const Icon(Icons.delete, color: Colors.red),
+              onPressed: () => _confirmDelete(file['path'], file['name']),
+            ),
           );
         }),
       ],

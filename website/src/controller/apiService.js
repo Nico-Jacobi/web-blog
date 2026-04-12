@@ -7,7 +7,7 @@ import { API_BASE } from '../constants.js';
 // param, which becomes part of the cache key everywhere — Cloudflare,
 // browser HTTP cache, and our own service worker cache — so a bump
 // invalidates everyone at once without touching the JSON schema.
-const CACHE_BUST = 'v2';
+const CACHE_BUST = 'v3';
 
 /** Build the canonical image URL for a stored path. */
 export function imageUrl(path) {

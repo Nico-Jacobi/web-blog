@@ -52,6 +52,8 @@ const THUMB_DIR = '.thumbs';
 const THUMB_WIDTH = 480;       // px, longer edge ish
 const THUMB_QUALITY = 75;      // webp quality
 const IMAGE_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif']);
+const VIDEO_EXTS = new Set(['.mp4', '.mov', '.webm']);
+const MEDIA_EXTS = ['.jpg', '.jpeg', '.png', '.webp', '.heic', '.heif', '.mp4', '.mov', '.webm'];
 const THUMB_SUPPORTED_EXTS = new Set(['.jpg', '.jpeg', '.png', '.webp']); // sharp w/o libheif
 
 // --- PUSH HELPERS ---
@@ -122,6 +124,72 @@ const sanitizePath = (userPath = '') => {
     if (!fullPath.startsWith(UPLOAD_DIR)) throw new Error('Invalid path');
     return fullPath;
 };
+
+// ── MAGIC-BYTE CONTENT DETECTION ─────────────────────────────────────
+// Legacy Flutter apps sometimes upload videos with .jpg extensions
+// (pickMultipleMedia returns temp paths without original extension).
+// Detect the real type from file header bytes so we can rename on upload.
+async function detectRealExt(absPath) {
+    let fd;
+    try {
+        fd = await fs.open(absPath, 'r');
+        const buf = Buffer.alloc(12);
+        await fd.read(buf, 0, 12, 0);
+
+        // JPEG: FF D8 FF
+        if (buf[0] === 0xFF && buf[1] === 0xD8 && buf[2] === 0xFF) return '.jpg';
+        // PNG: 89 50 4E 47
+        if (buf[0] === 0x89 && buf[1] === 0x50 && buf[2] === 0x4E && buf[3] === 0x47) return '.png';
+        // WebP: RIFF....WEBP
+        if (buf.toString('ascii', 0, 4) === 'RIFF' && buf.toString('ascii', 8, 12) === 'WEBP') return '.webp';
+        // MP4/MOV: ftyp at bytes 4-7
+        if (buf.toString('ascii', 4, 8) === 'ftyp') return '.mp4';
+        // WebM/MKV: EBML header 1A 45 DF A3
+        if (buf[0] === 0x1A && buf[1] === 0x45 && buf[2] === 0xDF && buf[3] === 0xA3) return '.webm';
+
+        return null; // unknown
+    } catch {
+        return null;
+    } finally {
+        if (fd) await fd.close();
+    }
+}
+
+// Check whether the claimed extension matches the real content.
+// Returns the correct absolute path (renamed) or the original if fine.
+async function fixExtensionIfNeeded(absPath) {
+    const claimedExt = path.extname(absPath).toLowerCase();
+    const realExt = await detectRealExt(absPath);
+    if (!realExt || realExt === claimedExt) return absPath;
+    // .jpeg and .jpg are equivalent
+    if ((claimedExt === '.jpeg' && realExt === '.jpg') ||
+        (claimedExt === '.jpg' && realExt === '.jpeg')) return absPath;
+
+    const corrected = absPath.replace(/\.[^.]+$/, realExt);
+    await fs.rename(absPath, corrected);
+    const relOld = path.relative(UPLOAD_DIR, absPath).replace(/\\/g, '/');
+    const relNew = path.relative(UPLOAD_DIR, corrected).replace(/\\/g, '/');
+    console.log(`🔄 Renamed mismatched file: ${relOld} → ${relNew}`);
+    return corrected;
+}
+
+// Given a filename under images/, find the actual file on disk even if
+// the extension was corrected.  Returns the real filename or the
+// original if the file exists as-is.
+async function resolveMediaFilename(filename) {
+    const absPath = path.join(UPLOAD_DIR, 'images', filename);
+    try { await fs.access(absPath); return filename; } catch { /* missing */ }
+
+    const stem = filename.replace(/\.[^.]+$/, '');
+    for (const ext of MEDIA_EXTS) {
+        const alt = stem + ext;
+        try {
+            await fs.access(path.join(UPLOAD_DIR, 'images', alt));
+            return alt;
+        } catch { continue; }
+    }
+    return filename; // not found anywhere, return original
+}
 
 // ── THUMBNAIL HELPERS ─────────────────────────────────────────────────
 // Map an original image rel path to its thumbnail rel path:
@@ -270,6 +338,44 @@ app.get(/^\/files\/images\/\.thumbs\/.+\.webp$/i, checkAuth, async (req, res, ne
     return next();
 });
 
+// ── DATA JSON PATH REWRITING ─────────────────────────────────────────
+// Legacy apps upload videos with image extensions.  The upload handler
+// renames them, but the JSON data file still references the old name.
+// Intercept data-JSON responses and resolve every media path to the
+// actual filename on disk so the website renders <video> vs <img>
+// correctly based on the extension.
+app.get('/files/data/:file', checkAuth, async (req, res, next) => {
+    if (!req.params.file.endsWith('.json')) return next();
+    let absPath;
+    try { absPath = sanitizePath('data/' + req.params.file); } catch { return next(); }
+    let raw;
+    try { raw = await fs.readFile(absPath, 'utf8'); } catch { return next(); }
+
+    let data;
+    try { data = JSON.parse(raw); } catch { return next(); }
+
+    if (Array.isArray(data.points)) {
+        let changed = false;
+        for (const pt of data.points) {
+            if (pt.titleImagePath) {
+                const resolved = await resolveMediaFilename(pt.titleImagePath);
+                if (resolved !== pt.titleImagePath) { pt.titleImagePath = resolved; changed = true; }
+            }
+            if (Array.isArray(pt.otherImagePaths)) {
+                for (let i = 0; i < pt.otherImagePaths.length; i++) {
+                    const resolved = await resolveMediaFilename(pt.otherImagePaths[i]);
+                    if (resolved !== pt.otherImagePaths[i]) { pt.otherImagePaths[i] = resolved; changed = true; }
+                }
+            }
+        }
+        if (changed) console.log(`🔄 Rewrote media paths in ${req.params.file}`);
+    }
+
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Content-Type', 'application/json');
+    res.json(data);
+});
+
 app.use('/files', checkAuth, express.static(UPLOAD_DIR, {
     dotfiles: 'allow',
     setHeaders: (res, filePath) => {
@@ -330,7 +436,9 @@ app.get('/list', checkAuth, async (req, res) => {
     }
 });
 
-// Single file verification
+// Single file verification — also checks alternative extensions so
+// legacy apps that uploaded e.g. video.jpg (renamed to video.mp4 by
+// the server) won't re-upload endlessly.
 app.post('/verify', checkAuth, async (req, res) => {
     const { path: filePath } = req.body;
     try {
@@ -341,6 +449,15 @@ app.post('/verify', checkAuth, async (req, res) => {
             res.json({ exists: true, size: stats.size, path: filePath });
         } catch (err) {
             if (err.code !== 'ENOENT') throw err;
+            // Check if the file was renamed to a different extension.
+            const stem = fullPath.replace(/\.[^.]+$/, '');
+            for (const ext of MEDIA_EXTS) {
+                try {
+                    const stats = await fs.stat(stem + ext);
+                    console.log(`✅ VERIFY: "${filePath}" found as ${path.basename(stem + ext)} (${stats.size} bytes)`);
+                    return res.json({ exists: true, size: stats.size, path: filePath });
+                } catch { continue; }
+            }
             console.log(`❌ VERIFY: "${filePath}" not found`);
             res.json({ exists: false, path: filePath });
         }
@@ -365,15 +482,30 @@ app.post('/verify-batch', checkAuth, async (req, res) => {
     for (const filePath of paths) {
         try {
             const fullPath = sanitizePath(filePath);
-            const stats = await fs.stat(fullPath);
-            results[filePath] = { exists: true, size: stats.size };
-        } catch (err) {
-            if (err.code === 'ENOENT') {
-                results[filePath] = { exists: false };
-            } else {
-                console.log(`❌ Verify error for "${filePath}": ${err.message}`);
-                results[filePath] = { exists: false, error: err.message };
+            let found = false;
+            try {
+                const stats = await fs.stat(fullPath);
+                results[filePath] = { exists: true, size: stats.size };
+                found = true;
+            } catch (err) {
+                if (err.code !== 'ENOENT') throw err;
             }
+            // Check alternative extensions (file may have been renamed).
+            if (!found) {
+                const stem = fullPath.replace(/\.[^.]+$/, '');
+                for (const ext of MEDIA_EXTS) {
+                    try {
+                        const stats = await fs.stat(stem + ext);
+                        results[filePath] = { exists: true, size: stats.size };
+                        found = true;
+                        break;
+                    } catch { continue; }
+                }
+            }
+            if (!found) results[filePath] = { exists: false };
+        } catch (err) {
+            console.log(`❌ Verify error for "${filePath}": ${err.message}`);
+            results[filePath] = { exists: false, error: err.message };
         }
     }
     
@@ -423,27 +555,45 @@ app.post('/upload', checkAuth, (req, res) => {
             return;
         }
 
-        writeStream = createWriteStream(uploadPath);
-        
+        // Write to a temp file first so a dropped connection never leaves a
+        // partial file at the final path.  Only rename to uploadPath on success.
+        const tempPath = uploadPath + '.tmp';
+        writeStream = createWriteStream(tempPath);
+
         file.on('data', (chunk) => {
             totalBytes += chunk.length;
         });
-        
+
         file.pipe(writeStream);
         file.resume();
 
-        writeStream.on('finish', () => {
+        writeStream.on('finish', async () => {
+            // Atomically promote the temp file to the final path.
+            try {
+                await fs.rename(tempPath, uploadPath);
+            } catch (renameErr) {
+                console.error(`❌ Rename failed: ${renameErr.message}`);
+                fs.rm(tempPath, { force: true }).catch(() => {});
+                if (!responseSent && !res.headersSent) {
+                    responseSent = true;
+                    res.status(500).json({ error: 'Upload finalization failed' });
+                }
+                return;
+            }
             console.log(`✅ Upload complete: ${uploadPath.replace(UPLOAD_DIR, '')} (${totalBytes} bytes)`);
             if (!responseSent && !res.headersSent) {
                 responseSent = true;
                 res.json({ message: 'Uploaded', size: totalBytes });
             }
+            // Fix mismatched extensions (legacy apps upload videos as .jpg).
+            const corrected = await fixExtensionIfNeeded(uploadPath).catch(() => uploadPath);
             // Async thumbnail generation — don't block the response.
-            maybeGenerateThumbForUpload(uploadPath);
+            maybeGenerateThumbForUpload(corrected);
         });
 
         writeStream.on('error', (err) => {
             console.error(`❌ Write error: ${err.message}`);
+            fs.rm(tempPath, { force: true }).catch(() => {});
             if (!responseSent && !res.headersSent) {
                 responseSent = true;
                 res.status(500).json({ error: 'Write failed' });
@@ -460,7 +610,11 @@ app.post('/upload', checkAuth, (req, res) => {
     });
 
     req.on('close', () => {
-        if (!responseSent) console.log(`⚠️ Client disconnected during upload`);
+        if (!responseSent) {
+            console.log(`⚠️ Client disconnected during upload`);
+            // Clean up the partial temp file so the final path is never corrupted.
+            if (uploadPath) fs.rm(uploadPath + '.tmp', { force: true }).catch(() => {});
+        }
     });
 
     req.pipe(bb);

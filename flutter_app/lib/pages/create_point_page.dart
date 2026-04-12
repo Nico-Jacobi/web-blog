@@ -122,6 +122,9 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
 
   @override
   void dispose() {
+    // Cancel any in-progress video compression so the codec doesn't stay
+    // locked if the user closes the page mid-compression.
+    VideoCompress.cancelCompression();
     _nameCtrl.dispose();
     _shortDescCtrl.dispose();
     _descCtrl.dispose();
@@ -315,7 +318,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
         for (var xf in picked) {
           final f = File(xf.path);
           if (!_otherMedia.any((m) => m.file.path == f.path)) {
-            newFiles.add(MediaFile(f, _isVideoExtension(xf.path)));
+            newFiles.add(MediaFile(f, _isVideoXFile(xf)));
             filesToCheck.add(f);
           }
         }
@@ -336,6 +339,16 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
   bool _isVideoExtension(String path) {
     final ext = path.toLowerCase();
     return ext.endsWith('.mp4') || ext.endsWith('.mov') || ext.endsWith('.avi');
+  }
+
+  /// Detect video using XFile's mimeType (set by the platform picker)
+  /// with file-extension fallback.  pickMultipleMedia() on Android can
+  /// return temp paths without the original extension, so mimeType is
+  /// the only reliable signal.
+  bool _isVideoXFile(XFile xf) {
+    final mime = xf.mimeType?.toLowerCase() ?? '';
+    if (mime.startsWith('video/')) return true;
+    return _isVideoExtension(xf.path);
   }
 
   Future<void> _pickCoordinatesOnMap() async {
@@ -481,7 +494,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       try {
         final info = await VideoCompress.compressVideo(
           media.file.path,
-          quality: VideoQuality.MediumQuality,
+          quality: VideoQuality.HighestQuality,
           deleteOrigin: false, // Keep original until we're done
           includeAudio: true,
         );
@@ -541,31 +554,33 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     );
   }
 
-  Widget _buildMediaThumbnail(MediaFile media) {
+  Widget _buildMediaThumbnailExpanded(MediaFile media) {
     if (!media.isVideo) {
       return Image.file(
         media.file,
-        width: 100,
-        height: 100,
+        width: double.infinity,
+        height: double.infinity,
         fit: BoxFit.cover,
       );
     } else {
-      // For videos, show first frame as thumbnail (non-interactive)
       return FutureBuilder<VideoPlayerController>(
         future: _getVideoController(media.file),
         builder: (context, snapshot) {
           if (snapshot.connectionState == ConnectionState.done && snapshot.hasData) {
-            return SizedBox(
-              width: 100,
-              height: 100,
-              child: IgnorePointer(  // ← ADD THIS: Disables all interaction
-                child: VideoPlayer(snapshot.data!),
+            return IgnorePointer(
+              child: SizedBox.expand(
+                child: FittedBox(
+                  fit: BoxFit.cover,
+                  child: SizedBox(
+                    width: snapshot.data!.value.size.width,
+                    height: snapshot.data!.value.size.height,
+                    child: VideoPlayer(snapshot.data!),
+                  ),
+                ),
               ),
             );
           }
           return Container(
-            width: 100,
-            height: 100,
             color: Colors.black87,
             child: const Center(
               child: Icon(Icons.videocam, color: Colors.white, size: 40),
@@ -669,66 +684,67 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                 ],
               ),
               if (_otherMedia.isNotEmpty)
-                SizedBox(
-                  height: 100,
-                  child: ReorderableListView(
-                    scrollDirection: Axis.horizontal,
-                    onReorder: (oldIdx, newIdx) {
-                      setState(() {
-                        if (newIdx > oldIdx) newIdx -= 1;
-                        final item = _otherMedia.removeAt(oldIdx);
-                        _otherMedia.insert(newIdx, item);
-                      });
-                      _markAsChanged();
-                    },
-                    children: _otherMedia.asMap().entries.map((entry) {
-                      return Container(
-                        key: ValueKey(entry.value.file.path),
-                        margin: const EdgeInsets.only(right: 8),
-                        child: Stack(
-                          children: [
-                            ClipRRect(
-                              borderRadius: BorderRadius.circular(12),
-                              child: _buildMediaThumbnail(entry.value),
-                            ),
-                            // Video indicator
-                            if (entry.value.isVideo)
-                              Positioned(
-                                bottom: 4,
-                                right: 4,
-                                child: Container(
-                                  padding: const EdgeInsets.all(4),
-                                  decoration: BoxDecoration(
-                                    color: Colors.black54,
-                                    borderRadius: BorderRadius.circular(4),
-                                  ),
-                                  child: const Icon(
-                                    Icons.play_circle_outline,
-                                    color: Colors.white,
-                                    size: 20,
-                                  ),
-                                ),
-                              ),
-                            // Delete button
-                            Positioned(
-                              right: 0,
-                              top: 0,
-                              child: GestureDetector(
-                                onTap: () {
-                                  setState(() => _otherMedia.removeAt(entry.key));
-                                  _markAsChanged();
-                                },
-                                child: Container(
-                                  color: Colors.black54,
-                                  child: const Icon(Icons.close, color: Colors.white, size: 16),
-                                ),
-                              ),
-                            )
-                          ],
-                        ),
-                      );
-                    }).toList(),
+                GridView.builder(
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                    crossAxisCount: 3,
+                    crossAxisSpacing: 8,
+                    mainAxisSpacing: 8,
+                    childAspectRatio: 1,
                   ),
+                  itemCount: _otherMedia.length,
+                  itemBuilder: (context, index) {
+                    final media = _otherMedia[index];
+                    return Stack(
+                      key: ValueKey(media.file.path),
+                      fit: StackFit.expand,
+                      children: [
+                        ClipRRect(
+                          borderRadius: BorderRadius.circular(12),
+                          child: _buildMediaThumbnailExpanded(media),
+                        ),
+                        if (media.isVideo)
+                          Positioned(
+                            bottom: 6,
+                            left: 6,
+                            child: Container(
+                              padding: const EdgeInsets.all(4),
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                borderRadius: BorderRadius.circular(6),
+                              ),
+                              child: const Icon(
+                                Icons.play_circle_outline,
+                                color: Colors.white,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: GestureDetector(
+                            onTap: () {
+                              setState(() => _otherMedia.removeAt(index));
+                              _markAsChanged();
+                            },
+                            child: Container(
+                              decoration: const BoxDecoration(
+                                color: Colors.black54,
+                                borderRadius: BorderRadius.only(
+                                  topRight: Radius.circular(12),
+                                  bottomLeft: Radius.circular(8),
+                                ),
+                              ),
+                              padding: const EdgeInsets.all(4),
+                              child: const Icon(Icons.close, color: Colors.white, size: 18),
+                            ),
+                          ),
+                        ),
+                      ],
+                    );
+                  },
                 ),
               const SizedBox(height: 24),
               if (!_isEditMode && _lastPoint != null)

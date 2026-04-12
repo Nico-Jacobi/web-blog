@@ -20,8 +20,10 @@ export default function PointDetail({ point, trip, onClose }) {
     const [currentMediaIndex, setCurrentMediaIndex] = useState(0);
 
     const lightboxMedia = useMemo(() => {
+        const thumbUrls = point.otherThumbUrls;
         return otherImageUrls.map((url, idx) => ({
             url,
+            thumbUrl: thumbUrls[idx],
             isVideo: isVideo(point.otherPaths[idx])
         }));
     }, [otherImageUrls, point]);

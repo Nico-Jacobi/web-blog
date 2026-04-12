@@ -26,21 +26,12 @@ class MediaFile {
     return path.join(appDirPath, filename);
   }
 
-  /// Returns the normalized file extension
+  /// Returns the normalized file extension.
+  /// Images always get .jpg because _compressImage() outputs JPEG format.
+  /// Videos always get .mp4 because VideoCompress outputs MP4.
   String get extension {
-    final ext = path.extension(file.path).toLowerCase();
-
-    // Normalize video extensions to .mp4
-    if (isVideo) {
-      return '.mp4';
-    }
-
-    // Normalize image extensions to .jpg
-    if (ext == '.jpeg' || ext == '.jpg') {
-      return '.jpg';
-    }
-
-    return ext;
+    if (isVideo) return '.mp4';
+    return '.jpg';
   }
 
   /// Returns true if this is an image file

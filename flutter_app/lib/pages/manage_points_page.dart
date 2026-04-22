@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart' as path;
-import 'package:path_provider/path_provider.dart';
 
 import '../colors.dart'; // Using the theme colors
+import '../services/blog_paths.dart';
 import '../model/interest_point.dart';
 import '../model/media_file.dart';
 import '../model/trip.dart';
@@ -59,7 +59,7 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
     setState(() => _isLoading = true);
     try {
       final data = await _storage.loadPointsAndTrips();
-      final appDir = await getApplicationDocumentsDirectory();
+      final appDir = await BlogPaths.dir();
 
       final allPoints = data['points'] as List<InterestPoint>;
       final allTrips  = data['trips']  as List<TripElement>;

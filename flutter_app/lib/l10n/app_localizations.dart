@@ -473,7 +473,7 @@ abstract class AppLocalizations {
   /// No description provided for @appHeroTitle.
   ///
   /// In de, this message translates to:
-  /// **'Australien Blog'**
+  /// **'Mein Blog'**
   String get appHeroTitle;
 
   /// No description provided for @addPointButton.
@@ -871,6 +871,294 @@ abstract class AppLocalizations {
   /// In de, this message translates to:
   /// **'Die Emus haben die Daten nach Hause gebracht.'**
   String get notifSync6;
+
+  /// No description provided for @loginTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Anmelden'**
+  String get loginTitle;
+
+  /// No description provided for @loginUsernameLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Benutzername'**
+  String get loginUsernameLabel;
+
+  /// No description provided for @loginPasswordLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Passwort'**
+  String get loginPasswordLabel;
+
+  /// No description provided for @loginButton.
+  ///
+  /// In de, this message translates to:
+  /// **'Anmelden'**
+  String get loginButton;
+
+  /// No description provided for @loginNoAccountLink.
+  ///
+  /// In de, this message translates to:
+  /// **'Noch kein Account? Jetzt erstellen'**
+  String get loginNoAccountLink;
+
+  /// No description provided for @registerTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Blog erstellen'**
+  String get registerTitle;
+
+  /// No description provided for @registerUsernameLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Benutzername'**
+  String get registerUsernameLabel;
+
+  /// No description provided for @registerUsernameError.
+  ///
+  /// In de, this message translates to:
+  /// **'Mindestens 3 Zeichen'**
+  String get registerUsernameError;
+
+  /// No description provided for @registerPasswordLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Passwort'**
+  String get registerPasswordLabel;
+
+  /// No description provided for @registerPasswordError.
+  ///
+  /// In de, this message translates to:
+  /// **'Mindestens 8 Zeichen'**
+  String get registerPasswordError;
+
+  /// No description provided for @registerBlogTitleLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Blog-Titel'**
+  String get registerBlogTitleLabel;
+
+  /// No description provided for @registerBlogTitleError.
+  ///
+  /// In de, this message translates to:
+  /// **'Pflichtfeld'**
+  String get registerBlogTitleError;
+
+  /// No description provided for @registerBlogSlugLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'URL-Slug'**
+  String get registerBlogSlugLabel;
+
+  /// No description provided for @registerBlogSlugHelper.
+  ///
+  /// In de, this message translates to:
+  /// **'Wird in deiner Blog-URL verwendet, z. B. /anna-trip'**
+  String get registerBlogSlugHelper;
+
+  /// No description provided for @registerBlogSlugError.
+  ///
+  /// In de, this message translates to:
+  /// **'3-32 Zeichen, klein, Buchstaben, Zahlen, _ oder -'**
+  String get registerBlogSlugError;
+
+  /// No description provided for @registerReadPasswordLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Lese-Passwort (optional)'**
+  String get registerReadPasswordLabel;
+
+  /// No description provided for @registerReadPasswordHelper.
+  ///
+  /// In de, this message translates to:
+  /// **'Besucher deines Blogs brauchen es zum Anschauen'**
+  String get registerReadPasswordHelper;
+
+  /// No description provided for @registerSubmitButton.
+  ///
+  /// In de, this message translates to:
+  /// **'Blog erstellen'**
+  String get registerSubmitButton;
+
+  /// No description provided for @registerBackToLogin.
+  ///
+  /// In de, this message translates to:
+  /// **'Schon ein Account? Anmelden'**
+  String get registerBackToLogin;
+
+  /// No description provided for @settingsAccountSection.
+  ///
+  /// In de, this message translates to:
+  /// **'Account'**
+  String get settingsAccountSection;
+
+  /// No description provided for @settingsLoggedInAs.
+  ///
+  /// In de, this message translates to:
+  /// **'Angemeldet als {username}'**
+  String settingsLoggedInAs(String username);
+
+  /// No description provided for @settingsBlogSlugLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Blog: /{slug}'**
+  String settingsBlogSlugLabel(String slug);
+
+  /// No description provided for @settingsLogoutButton.
+  ///
+  /// In de, this message translates to:
+  /// **'Abmelden'**
+  String get settingsLogoutButton;
+
+  /// No description provided for @settingsLogoutConfirm.
+  ///
+  /// In de, this message translates to:
+  /// **'Von diesem Account abmelden? Lokale Daten auf diesem Gerät werden gelöscht.'**
+  String get settingsLogoutConfirm;
+
+  /// No description provided for @settingsBlogLink.
+  ///
+  /// In de, this message translates to:
+  /// **'Blog-Einstellungen'**
+  String get settingsBlogLink;
+
+  /// No description provided for @blogSettingsTitle.
+  ///
+  /// In de, this message translates to:
+  /// **'Blog-Einstellungen'**
+  String get blogSettingsTitle;
+
+  /// No description provided for @blogSettingsAppearance.
+  ///
+  /// In de, this message translates to:
+  /// **'Darstellung'**
+  String get blogSettingsAppearance;
+
+  /// No description provided for @blogSettingsTitleLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Titel'**
+  String get blogSettingsTitleLabel;
+
+  /// No description provided for @blogSettingsTitleRequired.
+  ///
+  /// In de, this message translates to:
+  /// **'Pflichtfeld'**
+  String get blogSettingsTitleRequired;
+
+  /// No description provided for @blogSettingsSubtitleLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Untertitel'**
+  String get blogSettingsSubtitleLabel;
+
+  /// No description provided for @blogSettingsDateRangeLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Zeitraum'**
+  String get blogSettingsDateRangeLabel;
+
+  /// No description provided for @blogSettingsDateRangeHelper.
+  ///
+  /// In de, this message translates to:
+  /// **'Freitext neben dem Titel, z. B. \'März 2026 — Aug 2026\''**
+  String get blogSettingsDateRangeHelper;
+
+  /// No description provided for @blogSettingsOwnerLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Anzeigename'**
+  String get blogSettingsOwnerLabel;
+
+  /// No description provided for @blogSettingsLanguageLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Standardsprache'**
+  String get blogSettingsLanguageLabel;
+
+  /// No description provided for @blogSettingsThemeSection.
+  ///
+  /// In de, this message translates to:
+  /// **'Farbschema'**
+  String get blogSettingsThemeSection;
+
+  /// No description provided for @blogSettingsThemePrimaryLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Primärfarbe'**
+  String get blogSettingsThemePrimaryLabel;
+
+  /// No description provided for @blogSettingsThemeAccentLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Akzentfarbe'**
+  String get blogSettingsThemeAccentLabel;
+
+  /// No description provided for @blogSettingsThemeHelper.
+  ///
+  /// In de, this message translates to:
+  /// **'Farbname (orange, slate, purple…) oder beliebige CSS-Farbe, die die Website kennt'**
+  String get blogSettingsThemeHelper;
+
+  /// No description provided for @blogSettingsPushSection.
+  ///
+  /// In de, this message translates to:
+  /// **'Push-Benachrichtigungen'**
+  String get blogSettingsPushSection;
+
+  /// No description provided for @blogSettingsPushTextLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Benachrichtigungstext'**
+  String get blogSettingsPushTextLabel;
+
+  /// No description provided for @blogSettingsPushTextHelper.
+  ///
+  /// In de, this message translates to:
+  /// **'{owner} als Platzhalter für den Anzeigenamen verwenden'**
+  String blogSettingsPushTextHelper(Object owner);
+
+  /// No description provided for @blogSettingsReadPwSection.
+  ///
+  /// In de, this message translates to:
+  /// **'Lese-Passwort'**
+  String get blogSettingsReadPwSection;
+
+  /// No description provided for @blogSettingsReadPwHasOne.
+  ///
+  /// In de, this message translates to:
+  /// **'Ein Lese-Passwort ist gesetzt. Besucher brauchen es zum Anschauen.'**
+  String get blogSettingsReadPwHasOne;
+
+  /// No description provided for @blogSettingsReadPwNone.
+  ///
+  /// In de, this message translates to:
+  /// **'Kein Lese-Passwort gesetzt — der Blog ist öffentlich auf der Website sichtbar.'**
+  String get blogSettingsReadPwNone;
+
+  /// No description provided for @blogSettingsChangeReadPw.
+  ///
+  /// In de, this message translates to:
+  /// **'Lese-Passwort ändern'**
+  String get blogSettingsChangeReadPw;
+
+  /// No description provided for @blogSettingsReadPwNewLabel.
+  ///
+  /// In de, this message translates to:
+  /// **'Neues Lese-Passwort'**
+  String get blogSettingsReadPwNewLabel;
+
+  /// No description provided for @blogSettingsClearReadPw.
+  ///
+  /// In de, this message translates to:
+  /// **'Lese-Passwort entfernen'**
+  String get blogSettingsClearReadPw;
+
+  /// No description provided for @blogSettingsClearReadPwHelper.
+  ///
+  /// In de, this message translates to:
+  /// **'Macht den Blog für jeden mit der URL öffentlich zugänglich.'**
+  String get blogSettingsClearReadPwHelper;
 }
 
 class _AppLocalizationsDelegate

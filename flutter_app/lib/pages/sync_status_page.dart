@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:path_provider/path_provider.dart';
 import '../model/data_file.dart';
 import '../model/media_file.dart';
+import '../services/blog_paths.dart';
 import '../services/storage_service.dart';
 import '../services/sync_service.dart';
 import 'package:australien_blog_app/l10n/app_localizations.dart';
@@ -44,7 +44,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
       final points = await _storageService.loadPoints();
       final trips = await _storageService.loadTrips();
 
-      final appDir = await getApplicationDocumentsDirectory();
+      final appDir = await BlogPaths.dir();
 
       // Collect all media filenames
       final allMediaFilenames = <String>{};

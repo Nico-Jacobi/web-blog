@@ -1,9 +1,11 @@
-// main.dart
 import 'dart:math';
 
+import 'package:australien_blog_app/pages/blog_settings_page.dart';
 import 'package:australien_blog_app/pages/create_point_page.dart';
+import 'package:australien_blog_app/pages/login_page.dart';
 import 'package:australien_blog_app/pages/manage_points_page.dart';
 import 'package:australien_blog_app/pages/sync_status_page.dart';
+import 'package:australien_blog_app/services/auth_service.dart';
 import 'package:australien_blog_app/services/storage_service.dart';
 import 'package:australien_blog_app/services/sync_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -19,11 +21,9 @@ import 'pages/browse_files_page.dart';
 import 'pages/settings_page.dart';
 import 'providers/language_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import '../api_keys.dart';
-
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
-FlutterLocalNotificationsPlugin();
+    FlutterLocalNotificationsPlugin();
 
 bool useModernPicker = true;
 
@@ -31,13 +31,12 @@ void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   const AndroidInitializationSettings initializationSettingsAndroid =
-  AndroidInitializationSettings('@mipmap/ic_launcher');
+      AndroidInitializationSettings('@mipmap/ic_launcher');
 
   const InitializationSettings initializationSettings =
-  InitializationSettings(android: initializationSettingsAndroid);
+      InitializationSettings(android: initializationSettingsAndroid);
 
   await flutterLocalNotificationsPlugin.initialize(initializationSettings);
-
 
   SystemChrome.setSystemUIOverlayStyle(const SystemUiOverlayStyle(
     systemNavigationBarColor: Colors.transparent,
@@ -45,40 +44,30 @@ void main() async {
     systemNavigationBarIconBrightness: Brightness.dark,
   ));
 
+  await Workmanager().initialize(callbackDispatcher, isInDebugMode: false);
 
-  await Workmanager().initialize(
-      callbackDispatcher,
-      isInDebugMode: false // Set to false for release
-  );
-
-  // Register a periodic task (runs roughly every 15-30 mins depending on OS)
   await Workmanager().registerPeriodicTask(
     "1",
     "syncTask",
-    frequency: const Duration(minutes: 25), // once per
+    frequency: const Duration(minutes: 25),
     constraints: Constraints(
-      networkType: NetworkType.connected, // Only run if internet is on
+      networkType: NetworkType.connected,
       requiresBatteryNotLow: true,
     ),
   );
 
-  // This enables edge-to-edge mode for Android
   SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
-
-
 
   final languageProvider = LanguageProvider();
   await languageProvider.load();
 
   SystemChrome.setPreferredOrientations([
-    DeviceOrientation.portraitUp,   // portrait only
-    // DeviceOrientation.portraitDown, // optional: allow upside-down
+    DeviceOrientation.portraitUp,
   ]).then((_) async {
-
     final prefs = await SharedPreferences.getInstance();
-    baseUrl = prefs.getString('base_url') ?? baseUrl;
-    authToken = prefs.getString('auth_token') ?? authToken;
     useModernPicker = prefs.getBool('use_modern_picker') ?? false;
+
+    await AuthService().bootstrap();
 
     StorageService.updatePickerImplementation();
 
@@ -92,96 +81,78 @@ void main() async {
       ),
     );
   });
-
 }
-
 
 class MyApp extends StatelessWidget {
   const MyApp({super.key});
 
   @override
   Widget build(BuildContext context) {
-    // main.dart
     return Consumer<LanguageProvider>(
       builder: (context, langProvider, child) => MaterialApp(
-      locale: langProvider.locale,
-      supportedLocales: AppLocalizations.supportedLocales,
-      localizationsDelegates: AppLocalizations.localizationsDelegates,
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        useMaterial3: true,
-        // Basis-Farben
-        primaryColor: primary,
-        scaffoldBackgroundColor: Colors.grey[50],
-
-        // AppBar Styling (passend zur StartPage)
-        appBarTheme: const AppBarTheme(
-          backgroundColor: accent,
-          foregroundColor: Colors.white,
-          elevation: 0,
-          centerTitle: true,
-        ),
-
-        // Textfelder zentral stylen (Umrandung & Fokus)
-        inputDecorationTheme: InputDecorationTheme(
-          filled: true,
-          fillColor: Colors.white,
-          labelStyle: const TextStyle(color: Colors.grey),
-          floatingLabelStyle: const TextStyle(color: primary, fontWeight: FontWeight.bold),
-
-          // Rand wenn nicht ausgewählt
-          enabledBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: pale, width: 1.5),
-          ),
-
-          // Rand wenn reingeklickt wird (Lila wird durch Primary ersetzt)
-          focusedBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: primary, width: 2),
-          ),
-
-          // Rand bei Fehlern
-          errorBorder: OutlineInputBorder(
-            borderRadius: BorderRadius.circular(16),
-            borderSide: const BorderSide(color: Colors.red, width: 1.5),
-          ),
-          contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-        ),
-
-        // Cursor Farbe
-        textSelectionTheme: const TextSelectionThemeData(
-          cursorColor: primary,
-          selectionColor: pale,
-          selectionHandleColor: primary,
-        ),
-
-        // Standard-Buttons (ElevatedButton)
-        elevatedButtonTheme: ElevatedButtonThemeData(
-          style: ElevatedButton.styleFrom(
+        locale: langProvider.locale,
+        supportedLocales: AppLocalizations.supportedLocales,
+        localizationsDelegates: AppLocalizations.localizationsDelegates,
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          useMaterial3: true,
+          primaryColor: primary,
+          scaffoldBackgroundColor: Colors.grey[50],
+          appBarTheme: const AppBarTheme(
             backgroundColor: accent,
             foregroundColor: Colors.white,
-            minimumSize: const Size(double.infinity, 50),
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-            elevation: 2,
+            elevation: 0,
+            centerTitle: true,
+          ),
+          inputDecorationTheme: InputDecorationTheme(
+            filled: true,
+            fillColor: Colors.white,
+            labelStyle: const TextStyle(color: Colors.grey),
+            floatingLabelStyle: const TextStyle(color: primary, fontWeight: FontWeight.bold),
+            enabledBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: pale, width: 1.5),
+            ),
+            focusedBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: primary, width: 2),
+            ),
+            errorBorder: OutlineInputBorder(
+              borderRadius: BorderRadius.circular(16),
+              borderSide: const BorderSide(color: Colors.red, width: 1.5),
+            ),
+            contentPadding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+          ),
+          textSelectionTheme: const TextSelectionThemeData(
+            cursorColor: primary,
+            selectionColor: pale,
+            selectionHandleColor: primary,
+          ),
+          elevatedButtonTheme: ElevatedButtonThemeData(
+            style: ElevatedButton.styleFrom(
+              backgroundColor: accent,
+              foregroundColor: Colors.white,
+              minimumSize: const Size(double.infinity, 50),
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              elevation: 2,
+            ),
           ),
         ),
+        builder: _buildGlobalSyncOverlay,
+        home: const _AuthGate(),
+        routes: {
+          '/start': (context) => const StartPage(),
+          '/upload_point': (context) => const AddInterestPointPage(),
+          '/manage_points': (context) => const ManagePointsPage(),
+          '/browse_files': (context) => const BrowseFilesPage(),
+          '/settings': (context) => const SettingsPage(),
+          '/blog_settings': (context) => const BlogSettingsPage(),
+          '/sync_files': (context) => const SyncStatusPage(),
+        },
       ),
-      builder: _buildGlobalSyncOverlay,
-      home: const StartPage(),
-      routes: {
-        '/start': (context) => const StartPage(),
-        '/upload_point': (context) => const AddInterestPointPage(),
-        '/manage_points': (context) => const ManagePointsPage(),
-        '/browse_files': (context) => const BrowseFilesPage(),
-        '/settings': (context) => const SettingsPage(),
-        '/sync_files': (context) => const SyncStatusPage(),
-      },
-    ),
     );
   }
 
-  // Extracted Global Overlay Method
   Widget _buildGlobalSyncOverlay(BuildContext context, Widget? child) {
     return Stack(
       children: [
@@ -198,7 +169,7 @@ class MyApp extends StatelessWidget {
                 child: Container(
                   padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   decoration: BoxDecoration(
-                    color: Colors.black87, // Slightly darker for text legibility
+                    color: Colors.black87,
                     borderRadius: BorderRadius.circular(20),
                   ),
                   child: Row(
@@ -229,57 +200,83 @@ class MyApp extends StatelessWidget {
   }
 }
 
+/// Routes the user to the correct first screen based on auth state. Listens
+/// to [AuthService] so login/logout transitions take effect immediately.
+class _AuthGate extends StatefulWidget {
+  const _AuthGate();
+  @override
+  State<_AuthGate> createState() => _AuthGateState();
+}
+
+class _AuthGateState extends State<_AuthGate> {
+  @override
+  void initState() {
+    super.initState();
+    AuthService().addListener(_onAuthChanged);
+  }
+
+  @override
+  void dispose() {
+    AuthService().removeListener(_onAuthChanged);
+    super.dispose();
+  }
+
+  void _onAuthChanged() {
+    if (mounted) setState(() {});
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AuthService().isLoggedIn ? const StartPage() : const LoginPage();
+  }
+}
 
 @pragma('vm:entry-point')
 void callbackDispatcher() {
   Workmanager().executeTask((task, inputData) async {
-    // do your sync
+    // Background sync needs auth to be loaded in this isolate too.
+    await AuthService().bootstrap();
+    if (!AuthService().isLoggedIn) return Future.value(true);
 
     if (await SyncService().hasUnsyncedChanges()) {
       bool success = await SyncService().syncFromStorage() != null;
 
-
-      // Send notification
       const AndroidNotificationDetails androidPlatformChannelSpecifics =
-      AndroidNotificationDetails(
-          'sync_channel', 'Sync Notifications',
-          channelDescription: 'Notifies when sync completes',
-          importance: Importance.max,
-          priority: Priority.high,
-          ticker: 'ticker');
+          AndroidNotificationDetails(
+              'sync_channel', 'Sync Notifications',
+              channelDescription: 'Notifies when sync completes',
+              importance: Importance.max,
+              priority: Priority.high,
+              ticker: 'ticker');
       const NotificationDetails platformChannelSpecifics =
-      NotificationDetails(android: androidPlatformChannelSpecifics);
+          NotificationDetails(android: androidPlatformChannelSpecifics);
 
       final prefs = await SharedPreferences.getInstance();
       final lang = prefs.getString('app_language') ?? 'de';
       final isEn = lang == 'en';
 
-      final funMessagesDE = [
-        'Alle Kängurus wurden erfolgreich durchs Kabel geschubst.',
-        'Deine Koalas sind sicher im Cloud-Eukalyptus gelandet.',
-        'Krokodile abgewehrt, Daten erfolgreich hochgeladen.',
-        'Daten-Roadtrip beendet. Alles sicher verstaut!',
-        'Wombats haben deine Dateien artgerecht vergraben.',
-        'Die Emus haben die Daten nach Hause gebracht.',
+      final messagesDE = [
+        'Daten erfolgreich hochgeladen.',
+        'Synchronisation abgeschlossen.',
+        'Alle Änderungen sind sicher in der Cloud.',
+        'Dein Blog ist auf dem neuesten Stand.',
       ];
-      final funMessagesEN = [
-        'All kangaroos successfully pushed through the cable.',
-        'Your koalas have safely landed in the cloud eucalyptus.',
-        'Crocodiles repelled, data successfully uploaded.',
-        'Data road trip complete. Everything stored safely!',
-        'Wombats have buried your files in their natural habitat.',
-        'The emus have brought the data home.',
+      final messagesEN = [
+        'Data uploaded successfully.',
+        'Sync complete.',
+        'All your changes are safely in the cloud.',
+        'Your blog is up to date.',
       ];
 
-      final funMessages = isEn ? funMessagesEN : funMessagesDE;
-      final randomText = funMessages[Random().nextInt(funMessages.length)];
+      final messages = isEn ? messagesEN : messagesDE;
+      final randomText = messages[Random().nextInt(messages.length)];
 
       await flutterLocalNotificationsPlugin.show(
         0,
         success
             ? (isEn ? 'Sync complete' : 'Sync abgeschlossen')
             : (isEn ? 'Sync failed' : 'Sync fehlgeschlagen'),
-        success ? randomText : (isEn ? 'The kangaroos escaped.' : 'Die Kängurus sind entwischt.'),
+        success ? randomText : (isEn ? 'Sync did not complete.' : 'Sync wurde nicht abgeschlossen.'),
         platformChannelSpecifics,
       );
     }

@@ -4,47 +4,58 @@ import 'dart:io';
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
-import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api_keys.dart';
 import '../model/data_file.dart';
 import '../model/interest_point.dart';
 import '../model/media_file.dart';
 import '../model/trip.dart';
+import 'auth_service.dart';
+import 'blog_paths.dart';
 import 'storage_service.dart';
 
 class SyncService {
-  // singleton
   SyncService._internal();
   static final SyncService _instance = SyncService._internal();
   factory SyncService() => _instance;
 
   final ValueNotifier<bool> syncProgress = ValueNotifier<bool>(false);
-
-  /// Increments whenever a sync pulled in remote changes (items from other
-  /// clients with newer updatedAt). Pages that display points/trips should
-  /// listen and reload from storage.
   final ValueNotifier<int> remoteChangesNotifier = ValueNotifier<int>(0);
 
-
   File? _syncStateFile;
-  Map<String, int> _syncedFilesWithSize = {}; // path -> file size
+  Map<String, int> _syncedFilesWithSize = {};
 
-  // SYNC LOCK - Prevents concurrent syncs
   bool _isSyncing = false;
   bool syncData = true;
+  String? _initializedForBlogId;
   final StorageService _storageService = StorageService();
 
-  Future<void> _init() async {
+  Future<bool> _ensureLoggedIn() async {
+    if (!AuthService().isLoggedIn) {
+      print('[SYNC] ⚠️ Not logged in — sync skipped');
+      return false;
+    }
+    return true;
+  }
 
+  Future<void> _init() async {
     final prefs = await SharedPreferences.getInstance();
     syncData = prefs.getBool('sync_data') ?? syncData;
 
+    final activeId = AuthService().currentBlog?.id;
+    if (_syncStateFile != null && _initializedForBlogId == activeId) return;
 
-    if (_syncStateFile != null) return;
-    print('[SYNC] Initializing SyncService...');
-    final appDir = await getApplicationDocumentsDirectory();
-    _syncStateFile = File('${appDir.path}/sync_state.json');
+    if (activeId == null) {
+      _syncStateFile = null;
+      _syncedFilesWithSize = {};
+      _initializedForBlogId = null;
+      return;
+    }
+
+    print('[SYNC] Initializing SyncService for blog $activeId...');
+    final dir = await BlogPaths.dir();
+    _syncStateFile = File(p.join(dir.path, 'sync_state.json'));
+    _syncedFilesWithSize = {};
 
     if (await _syncStateFile!.exists()) {
       final data = jsonDecode(await _syncStateFile!.readAsString());
@@ -60,15 +71,17 @@ class SyncService {
     } else {
       print('[SYNC] No previous sync state found');
     }
+    _initializedForBlogId = activeId;
   }
 
   Future<void> _markAsSynced(String filePath, int fileSize) async {
-    final fileName = p.basename(filePath); // Store only 'img_123.jpg'
+    final fileName = p.basename(filePath);
     _syncedFilesWithSize[fileName] = fileSize;
     await _saveSyncState();
   }
 
   Future<void> _saveSyncState() async {
+    if (_syncStateFile == null) return;
     await _syncStateFile!.writeAsString(jsonEncode({
       'syncedFiles': _syncedFilesWithSize,
       'lastSync': DateTime.now().toIso8601String(),
@@ -88,6 +101,7 @@ class SyncService {
   }
 
   Future<SyncResult?> syncFromStorage() async {
+    if (!await _ensureLoggedIn()) return null;
     await _init();
 
     if (!syncData) {
@@ -106,23 +120,26 @@ class SyncService {
     }
 
     try {
-      syncProgress.value = true; // Notifies listeners
+      syncProgress.value = true;
       _isSyncing = true;
       print('[SYNC] 🔒 Sync lock acquired');
 
       final points = await _storageService.loadPoints();
       final trips = await _storageService.loadTrips();
 
-      final result = await sync(points, trips);
-      return result;
+      return await sync(points, trips);
     } finally {
       _isSyncing = false;
-      syncProgress.value = false; // Notifies listeners
+      syncProgress.value = false;
       print('[SYNC] 🔓 Sync lock released');
     }
   }
 
-  // --- SERVER VERIFICATION ---
+  Map<String, String> _authHeaders(String token, {bool json = false}) {
+    final h = <String, String>{'Authorization': 'Bearer $token'};
+    if (json) h['Content-Type'] = 'application/json';
+    return h;
+  }
 
   Future<bool> _verifyOnServer(String localPath) async {
     try {
@@ -133,14 +150,11 @@ class SyncService {
       final filename = p.basename(localPath);
       final serverPath = 'images/$filename';
 
-      final response = await http.post(
-        Uri.parse('$baseUrl/verify'),
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': authToken,
-        },
-        body: jsonEncode({'path': serverPath}),
-      );
+      final response = await AuthService().authedRequest((token) => http.post(
+            Uri.parse('$baseUrl/me/blog/verify'),
+            headers: _authHeaders(token, json: true),
+            body: jsonEncode({'path': serverPath}),
+          ));
 
       if (response.statusCode == 200) {
         final data = jsonDecode(response.body);
@@ -163,7 +177,7 @@ class SyncService {
     const timeoutDuration = Duration(seconds: 30);
 
     try {
-      final pathMap = <String, String>{}; // server path -> local path
+      final pathMap = <String, String>{};
       final serverPaths = <String>[];
 
       for (final localPath in localPaths) {
@@ -174,14 +188,11 @@ class SyncService {
       }
 
       print('[SYNC] Batch verifying ${serverPaths.length} files...');
-      final response = await http.post(
-        Uri.parse('$baseUrl/verify-batch'),
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': authToken,
-        },
-        body: jsonEncode({'paths': serverPaths}),
-      ).timeout(timeoutDuration);
+      final response = await AuthService().authedRequest((token) => http.post(
+            Uri.parse('$baseUrl/me/blog/verify-batch'),
+            headers: _authHeaders(token, json: true),
+            body: jsonEncode({'paths': serverPaths}),
+          )).timeout(timeoutDuration);
 
       if (response.statusCode == 200) {
         final results = jsonDecode(response.body) as Map<String, dynamic>;
@@ -220,28 +231,24 @@ class SyncService {
   }
 
   Future<bool> hasUnsyncedChanges() async {
+    if (!await _ensureLoggedIn()) return false;
     await _init();
 
     if (!syncData) {
       print('[SYNC] ⚠️ Syncing disabled');
       return false;
     }
-
-    if (isSyncing){
-      return false;
-    }
+    if (isSyncing) return false;
 
     final points = await _storageService.loadPoints();
     final trips = await _storageService.loadTrips();
 
-    // 1. Check if JSON data has changed via hash
     final pointsJson = jsonEncode(points.map((e) => e.toJson()).toList());
     final tripsJson = jsonEncode(trips.map((e) => e.toJson()).toList());
 
     if (await _hasContentChanged('data/points.json', pointsJson)) return true;
     if (await _hasContentChanged('data/trips.json', tripsJson)) return true;
 
-    // 2. Check if any image path is missing from the sync state
     for (var point in points) {
       if (point.titleImagePath.isNotEmpty &&
           !_syncedFilesWithSize.containsKey(point.titleImagePath)) {
@@ -251,7 +258,6 @@ class SyncService {
         if (!_syncedFilesWithSize.containsKey(name)) return true;
       }
     }
-
     return false;
   }
 
@@ -267,21 +273,14 @@ class SyncService {
         print('[SYNC] Individual verify failed for $localPath: $e');
         results[localPath] = false;
       }
-
-      await Future.delayed(Duration(milliseconds: 100));
+      await Future.delayed(const Duration(milliseconds: 100));
     }
-
     return results;
   }
 
-  // --- MAIN SYNC FUNCTION ---
   Future<SyncResult> sync(List<InterestPoint> points, List<TripElement> trips) async {
-
     if (!syncData) {
-      return SyncResult(
-        success: false,
-        message: '[SYNC] ⚠️ Syncing disabled',
-      );
+      return SyncResult(success: false, message: '[SYNC] ⚠️ Syncing disabled');
     }
 
     print('[SYNC] ========== Starting Sync ==========');
@@ -292,29 +291,21 @@ class SyncService {
     int failCount = 0;
     int skippedCount = 0;
 
-    // 1. Collect all images
     print('[SYNC] --- Phase 1: Image Sync ---');
-    // Collect all images (these are names from JSON)
-// 1. Collect all image NAMES from JSON (around line 150)
     final imageNames = <String>{};
     for (var point in points) {
       if (point.titleImagePath.isNotEmpty) imageNames.add(point.titleImagePath);
       imageNames.addAll(point.otherMediaPaths);
     }
 
-// Create MediaFile objects to get server paths
-    final appDir = await getApplicationDocumentsDirectory();
-    final mediaFiles = imageNames.map((filename) =>
-        MediaFile.fromFilenameSync(filename, appDir.path)
-    ).toList();
+    final blogDir = await BlogPaths.dir();
+    final mediaFiles = imageNames
+        .map((filename) => MediaFile.fromFilenameSync(filename, blogDir.path))
+        .toList();
 
-// Get absolute paths for verification
     final absolutePaths = mediaFiles.map((m) => m.file.path).toList();
-
-// 2. Batch verify
     final verificationResults = await _batchVerifyOnServer(absolutePaths);
 
-// 3. Filter to get media that needs uploading
     final mediaToUpload = mediaFiles.where((media) {
       final verified = verificationResults[media.file.path] ?? false;
       if (verified) {
@@ -327,39 +318,30 @@ class SyncService {
     print('[SYNC] Need to upload ${mediaToUpload.length} media files');
     skippedCount = mediaFiles.length - mediaToUpload.length;
 
-// 4. Upload using MediaFile
     for (int i = 0; i < mediaToUpload.length; i++) {
       final media = mediaToUpload[i];
       print('[SYNC] Uploading ${i + 1}/${mediaToUpload.length}: ${media.filename}');
-
       final result = await _uploadFile(media.filename);
-      if (result['success']) {
-        print('[SYNC] ✓ Upload request completed');
-      } else {
-        print('[SYNC] ✗ Upload request failed');
-      }
+      print(result['success'] ? '[SYNC] ✓ Upload request completed' : '[SYNC] ✗ Upload request failed');
     }
 
-// 5. Verify everything and count actual successes
     final uploadAttemptPaths = mediaToUpload.map((m) => m.file.path).toList();
     print('[SYNC] Verifying ${uploadAttemptPaths.length} uploads...');
-
     final verifyResults = await _batchVerifyOnServer(uploadAttemptPaths);
 
     int verifiedCount = 0;
     for (final entry in verifyResults.entries) {
-      if (entry.value) { // entry.key is the absolute path, value is boolean
+      if (entry.value) {
         verifiedCount++;
         final file = File(entry.key);
         if (await file.exists()) {
-          final size = await file.length();
-          await _markAsSynced(entry.key, size);
+          await _markAsSynced(entry.key, await file.length());
         }
       }
     }
 
     successCount += verifiedCount;
-    int currentBatchFailures = mediaToUpload.length - verifiedCount;
+    final currentBatchFailures = mediaToUpload.length - verifiedCount;
     failCount += currentBatchFailures;
 
     print('[SYNC] Verification: $verifiedCount/${mediaToUpload.length} confirmed on server');
@@ -367,11 +349,9 @@ class SyncService {
       print('[SYNC] ⚠️ $currentBatchFailures images failed to upload or verify');
     }
 
-    // 6. Sync Data JSONs (always — server merges and may return remote changes)
     print('[SYNC] --- Phase 2: Data Sync (merge) ---');
     final pointsJson = points.map((e) => e.toJson()).toList();
     final tripsJson = trips.map((e) => e.toJson()).toList();
-
     final pointsContent = jsonEncode(pointsJson);
     final tripsContent = jsonEncode(tripsJson);
 
@@ -389,8 +369,7 @@ class SyncService {
         final mergedContent = jsonEncode(merged);
         if (mergedContent != pointsContent) {
           print('[SYNC] Server returned merged points differing from local, applying...');
-          final pointsFile = await pointsData.file;
-          await pointsFile.writeAsString(mergedContent);
+          await (await pointsData.file).writeAsString(mergedContent);
           remoteChanged = true;
         }
         await _saveContentHash('data/points.json', mergedContent);
@@ -413,8 +392,7 @@ class SyncService {
         final mergedContent = jsonEncode(merged);
         if (mergedContent != tripsContent) {
           print('[SYNC] Server returned merged trips differing from local, applying...');
-          final tripsFile = await tripsData.file;
-          await tripsFile.writeAsString(mergedContent);
+          await (await tripsData.file).writeAsString(mergedContent);
           remoteChanged = true;
         }
         await _saveContentHash('data/trips.json', mergedContent);
@@ -430,11 +408,8 @@ class SyncService {
       print('[SYNC] ✗ Trips JSON failed: ${tripsResult['error']}');
     }
 
-    // 7. Post-merge image download: the merged points may reference images
-    // uploaded by another client that we don't have locally yet. Only download
-    // what's missing — never refetch what's already on disk.
     if (mergedPointsJson != null) {
-      final downloaded = await _downloadMissingMedia(mergedPointsJson, appDir);
+      final downloaded = await _downloadMissingMedia(mergedPointsJson, blogDir);
       if (downloaded > 0) {
         print('[SYNC] ✓ Downloaded $downloaded new media files from server');
         remoteChanged = true;
@@ -448,18 +423,17 @@ class SyncService {
 
     print('[SYNC] ========== Sync Complete ==========');
     print('[SYNC] Success: $successCount, Failed: $failCount, Skipped: $skippedCount');
-
     return SyncResult(
       success: failCount == 0,
       message: 'Synced $successCount items. Errors: $failCount. Skipped: $skippedCount',
     );
   }
 
-  Future<int> _downloadMissingMedia(List<dynamic> mergedPoints, Directory appDir) async {
+  Future<int> _downloadMissingMedia(List<dynamic> mergedPoints, Directory blogDir) async {
     final referencedNames = <String>{};
     for (final json in mergedPoints) {
       if (json is! Map) continue;
-      if (json['deletedAt'] != null) continue; // skip tombstones
+      if (json['deletedAt'] != null) continue;
       final title = json['titleImagePath'];
       if (title is String && title.isNotEmpty) referencedNames.add(title);
       final others = json['otherImagePaths'];
@@ -472,7 +446,7 @@ class SyncService {
 
     int downloaded = 0;
     for (final filename in referencedNames) {
-      final media = MediaFile.fromFilenameSync(filename, appDir.path);
+      final media = MediaFile.fromFilenameSync(filename, blogDir.path);
       if (await media.exists()) continue;
       print('[SYNC] Post-merge: downloading missing media $filename');
       final size = await _downloadFile(media.serverPath, media.file.path);
@@ -486,14 +460,13 @@ class SyncService {
 
   Future<bool> _hasContentChanged(String key, String newContent) async {
     await _init();
-    final appDir = await getApplicationDocumentsDirectory();
-    final hashFile = File('${appDir.path}/sync_hashes.json');
+    final dir = await BlogPaths.dir();
+    final hashFile = File(p.join(dir.path, 'sync_hashes.json'));
 
     if (!await hashFile.exists()) {
       print('[SYNC] No hash file exists, assuming content changed');
       return true;
     }
-
     try {
       final data = jsonDecode(await hashFile.readAsString());
       final savedHash = data[key];
@@ -508,8 +481,8 @@ class SyncService {
   }
 
   Future<void> _saveContentHash(String key, String content) async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final hashFile = File('${appDir.path}/sync_hashes.json');
+    final dir = await BlogPaths.dir();
+    final hashFile = File(p.join(dir.path, 'sync_hashes.json'));
 
     Map<String, dynamic> hashes = {};
     if (await hashFile.exists()) {
@@ -519,17 +492,13 @@ class SyncService {
         print('[SYNC] Could not read existing hashes: $e');
       }
     }
-
     hashes[key] = content.hashCode.toString();
     await hashFile.writeAsString(jsonEncode(hashes));
-    print('[SYNC] Saved content hash for $key');
   }
 
-  // --- API CALLS ---
-
   Future<Map<String, dynamic>> _uploadFile(String filename, {int retryCount = 0}) async {
-    final appDir = await getApplicationDocumentsDirectory();
-    final media = MediaFile.fromFilenameSync(filename, appDir.path);
+    final dir = await BlogPaths.dir();
+    final media = MediaFile.fromFilenameSync(filename, dir.path);
 
     if (!await media.exists()) {
       print('[SYNC] File not found locally, skipping: ${media.filename}');
@@ -541,16 +510,15 @@ class SyncService {
 
     try {
       final fileSize = await media.size();
-      final serverPath = media.serverPath;  // Uses "images/filename"
-
+      final serverPath = media.serverPath;
       print('[SYNC] Uploading to server path: $serverPath ($fileSize bytes)');
 
-      var request = http.MultipartRequest('POST', Uri.parse('$baseUrl/upload'));
+      final token = await AuthService().currentAccessTokenOrRefresh();
+      final request = http.MultipartRequest('POST', Uri.parse('$baseUrl/me/blog/upload'));
       request.headers.addAll({
-        'x-auth-token': authToken,
+        'Authorization': 'Bearer $token',
         'Connection': 'close',
       });
-
       request.fields['path'] = serverPath;
       request.files.add(await http.MultipartFile.fromPath('file', media.file.path));
 
@@ -560,12 +528,14 @@ class SyncService {
       if (response.statusCode == 200) {
         await Future.delayed(const Duration(milliseconds: 500));
         return {'success': true, 'size': fileSize};
-      } else {
-        throw Exception('HTTP ${response.statusCode}: ${response.body}');
       }
+      if (response.statusCode == 401 && retryCount == 0) {
+        await AuthService().refreshAccessToken();
+        return _uploadFile(filename, retryCount: retryCount + 1);
+      }
+      throw Exception('HTTP ${response.statusCode}: ${response.body}');
     } catch (e) {
       print('[SYNC] Upload error (attempt ${retryCount + 1}/$maxRetries): $e');
-
       if (retryCount < maxRetries - 1) {
         await Future.delayed(Duration(seconds: (retryCount + 1) * 2));
         return _uploadFile(filename, retryCount: retryCount + 1);
@@ -578,17 +548,11 @@ class SyncService {
     try {
       print('[SYNC] Writing JSON to server: $serverPath');
       final jsonContent = jsonEncode(content);
-      final response = await http.post(
-        Uri.parse('$baseUrl/write'),
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': authToken,
-        },
-        body: jsonEncode({
-          'path': serverPath,
-          'content': content,
-        }),
-      );
+      final response = await AuthService().authedRequest((token) => http.post(
+            Uri.parse('$baseUrl/me/blog/write'),
+            headers: _authHeaders(token, json: true),
+            body: jsonEncode({'path': serverPath, 'content': content}),
+          ));
       print('[SYNC] Write response status: ${response.statusCode}');
 
       if (response.statusCode == 200) {
@@ -597,11 +561,10 @@ class SyncService {
         try {
           final body = jsonDecode(response.body);
           if (body is Map && body['content'] is List) merged = body['content'];
-        } catch (_) {/* server may not return merged (non-points/trips paths) */}
+        } catch (_) {}
         return {'success': true, 'size': size, 'merged': merged};
-      } else {
-        return {'success': false, 'error': 'HTTP ${response.statusCode}'};
       }
+      return {'success': false, 'error': 'HTTP ${response.statusCode}'};
     } catch (e) {
       print('[SYNC] Write error: $e');
       return {'success': false, 'error': e.toString()};
@@ -609,12 +572,14 @@ class SyncService {
   }
 
   /// Downloads everything from server to initialize a fresh local app state.
+  /// Called after first login or after switching accounts.
   Future<bool> initializeFromServer() async {
+    if (!await _ensureLoggedIn()) return false;
+    await _init();
+
     print('[SYNC] ========== Initializing from Server ==========');
     try {
-      final appDir = await getApplicationDocumentsDirectory();
-
-      // 1. Download Metadata using DataFile
+      final blogDir = await BlogPaths.dir();
       final pointsData = DataFile.points;
       final tripsData = DataFile.trips;
 
@@ -627,25 +592,20 @@ class SyncService {
         print('[SYNC] ✗ Failed to download metadata');
         return false;
       }
-      print('[SYNC] ✓ Metadata downloaded successfully');
 
-      // Save metadata locally
       final pointsFile = await pointsData.file;
       final pointsContent = jsonEncode(pointsJson);
       await pointsFile.writeAsString(pointsContent);
-      print('[SYNC] Saved points.json locally');
 
       final tripsFile = await tripsData.file;
       final tripsContent = jsonEncode(tripsJson);
       await tripsFile.writeAsString(tripsContent);
-      print('[SYNC] Saved trips.json locally');
 
       await _markAsSynced(pointsData.serverPath, utf8.encode(pointsContent).length);
       await _markAsSynced(tripsData.serverPath, utf8.encode(tripsContent).length);
       await _saveContentHash(pointsData.serverPath, pointsContent);
       await _saveContentHash(tripsData.serverPath, tripsContent);
 
-      // 2. Parse and download images using MediaFile
       print('[SYNC] --- Downloading Images ---');
       final List<dynamic> jsonList = pointsJson;
       final mediaFilenames = <String>{};
@@ -662,21 +622,15 @@ class SyncService {
 
       int downloadCount = 0;
       for (String filename in mediaFilenames) {
-        final media = MediaFile.fromFilenameSync(filename, appDir.path);
-
+        final media = MediaFile.fromFilenameSync(filename, blogDir.path);
         if (await media.exists()) {
-          print('[SYNC] Media already exists locally: $filename');
           await _markAsSynced(media.file.path, await media.size());
           continue;
         }
-
         print('[SYNC] Downloading ${++downloadCount}/${mediaFilenames.length}: $filename');
         final size = await _downloadFile(media.serverPath, media.file.path);
         if (size > 0) {
           await _markAsSynced(media.file.path, size);
-          print('[SYNC] ✓ Downloaded successfully ($size bytes)');
-        } else {
-          print('[SYNC] ✗ Download failed');
         }
       }
 
@@ -688,16 +642,16 @@ class SyncService {
     }
   }
 
-  // --- HELPER DOWNLOADERS ---
-
   Future<dynamic> _downloadJson(String serverPath) async {
     try {
-      print('[SYNC] Fetching JSON from: $baseUrl/files/$serverPath');
-      final response = await http.get(
-        Uri.parse('$baseUrl/files/$serverPath'),
-        headers: {'x-auth-token': authToken},
-      );
-      print('[SYNC] Response status: ${response.statusCode}');
+      final blog = AuthService().currentBlog;
+      if (blog == null) return null;
+      final url = '$baseUrl/blogs/${blog.slug}/files/$serverPath';
+      print('[SYNC] Fetching JSON from: $url');
+      final response = await AuthService().authedRequest((token) => http.get(
+            Uri.parse(url),
+            headers: _authHeaders(token),
+          ));
       if (response.statusCode == 200) return jsonDecode(response.body);
       return null;
     } catch (e) {
@@ -708,11 +662,13 @@ class SyncService {
 
   Future<int> _downloadFile(String serverPath, String localSavePath) async {
     try {
-      final response = await http.get(
-        Uri.parse('$baseUrl/files/$serverPath'),
-        headers: {'x-auth-token': authToken},
-      );
-
+      final blog = AuthService().currentBlog;
+      if (blog == null) return 0;
+      final url = '$baseUrl/blogs/${blog.slug}/files/$serverPath';
+      final response = await AuthService().authedRequest((token) => http.get(
+            Uri.parse(url),
+            headers: _authHeaders(token),
+          ));
       if (response.statusCode == 200) {
         final file = File(localSavePath);
         await file.create(recursive: true);
@@ -729,7 +685,7 @@ class SyncService {
 
   Future<bool> _hasInternet() async {
     try {
-      final result = await InternetAddress.lookup('google.com'); // or your baseUrl
+      final result = await InternetAddress.lookup('google.com');
       return result.isNotEmpty && result[0].rawAddress.isNotEmpty;
     } on SocketException catch (_) {
       return false;

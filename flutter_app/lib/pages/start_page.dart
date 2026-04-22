@@ -2,16 +2,39 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../colors.dart';
 import 'package:australien_blog_app/l10n/app_localizations.dart';
+import '../services/auth_service.dart';
 import '../widgets/styled_button.dart';
 
-class StartPage extends StatelessWidget {
+class StartPage extends StatefulWidget {
   const StartPage({super.key});
+
+  @override
+  State<StartPage> createState() => _StartPageState();
+}
+
+class _StartPageState extends State<StartPage> {
+  @override
+  void initState() {
+    super.initState();
+    AuthService().addListener(_onAuthChanged);
+  }
+
+  @override
+  void dispose() {
+    AuthService().removeListener(_onAuthChanged);
+    super.dispose();
+  }
+
+  void _onAuthChanged() {
+    if (mounted) setState(() {});
+  }
 
   @override
   Widget build(BuildContext context) {
     final l10n = AppLocalizations.of(context)!;
     final screenHeight = MediaQuery.of(context).size.height;
-    final screenWidth  = MediaQuery.of(context).size.width;
+    final screenWidth = MediaQuery.of(context).size.width;
+    final blogTitle = AuthService().currentBlog?.title ?? l10n.appHeroTitle;
 
     return Scaffold(
       appBar: AppBar(
@@ -73,7 +96,7 @@ class StartPage extends StatelessWidget {
             NonInteractiveButton(
               topPercentage: -0.15,
               color: pale,
-              text: l10n.appHeroTitle,
+              text: blogTitle,
               screenHeight: screenHeight,
               screenWidth: screenWidth,
             ),

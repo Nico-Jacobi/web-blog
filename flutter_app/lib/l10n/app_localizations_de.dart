@@ -199,7 +199,7 @@ class AppLocalizationsDe extends AppLocalizations {
   String get settingsLanguage => 'Sprache';
 
   @override
-  String get appHeroTitle => 'Australien Blog';
+  String get appHeroTitle => 'Mein Blog';
 
   @override
   String get addPointButton => 'Punkt hinzufügen';
@@ -406,4 +406,163 @@ class AppLocalizationsDe extends AppLocalizations {
 
   @override
   String get notifSync6 => 'Die Emus haben die Daten nach Hause gebracht.';
+
+  @override
+  String get loginTitle => 'Anmelden';
+
+  @override
+  String get loginUsernameLabel => 'Benutzername';
+
+  @override
+  String get loginPasswordLabel => 'Passwort';
+
+  @override
+  String get loginButton => 'Anmelden';
+
+  @override
+  String get loginNoAccountLink => 'Noch kein Account? Jetzt erstellen';
+
+  @override
+  String get registerTitle => 'Blog erstellen';
+
+  @override
+  String get registerUsernameLabel => 'Benutzername';
+
+  @override
+  String get registerUsernameError => 'Mindestens 3 Zeichen';
+
+  @override
+  String get registerPasswordLabel => 'Passwort';
+
+  @override
+  String get registerPasswordError => 'Mindestens 8 Zeichen';
+
+  @override
+  String get registerBlogTitleLabel => 'Blog-Titel';
+
+  @override
+  String get registerBlogTitleError => 'Pflichtfeld';
+
+  @override
+  String get registerBlogSlugLabel => 'URL-Slug';
+
+  @override
+  String get registerBlogSlugHelper =>
+      'Wird in deiner Blog-URL verwendet, z. B. /anna-trip';
+
+  @override
+  String get registerBlogSlugError =>
+      '3-32 Zeichen, klein, Buchstaben, Zahlen, _ oder -';
+
+  @override
+  String get registerReadPasswordLabel => 'Lese-Passwort (optional)';
+
+  @override
+  String get registerReadPasswordHelper =>
+      'Besucher deines Blogs brauchen es zum Anschauen';
+
+  @override
+  String get registerSubmitButton => 'Blog erstellen';
+
+  @override
+  String get registerBackToLogin => 'Schon ein Account? Anmelden';
+
+  @override
+  String get settingsAccountSection => 'Account';
+
+  @override
+  String settingsLoggedInAs(String username) {
+    return 'Angemeldet als $username';
+  }
+
+  @override
+  String settingsBlogSlugLabel(String slug) {
+    return 'Blog: /$slug';
+  }
+
+  @override
+  String get settingsLogoutButton => 'Abmelden';
+
+  @override
+  String get settingsLogoutConfirm =>
+      'Von diesem Account abmelden? Lokale Daten auf diesem Gerät werden gelöscht.';
+
+  @override
+  String get settingsBlogLink => 'Blog-Einstellungen';
+
+  @override
+  String get blogSettingsTitle => 'Blog-Einstellungen';
+
+  @override
+  String get blogSettingsAppearance => 'Darstellung';
+
+  @override
+  String get blogSettingsTitleLabel => 'Titel';
+
+  @override
+  String get blogSettingsTitleRequired => 'Pflichtfeld';
+
+  @override
+  String get blogSettingsSubtitleLabel => 'Untertitel';
+
+  @override
+  String get blogSettingsDateRangeLabel => 'Zeitraum';
+
+  @override
+  String get blogSettingsDateRangeHelper =>
+      'Freitext neben dem Titel, z. B. \'März 2026 — Aug 2026\'';
+
+  @override
+  String get blogSettingsOwnerLabel => 'Anzeigename';
+
+  @override
+  String get blogSettingsLanguageLabel => 'Standardsprache';
+
+  @override
+  String get blogSettingsThemeSection => 'Farbschema';
+
+  @override
+  String get blogSettingsThemePrimaryLabel => 'Primärfarbe';
+
+  @override
+  String get blogSettingsThemeAccentLabel => 'Akzentfarbe';
+
+  @override
+  String get blogSettingsThemeHelper =>
+      'Farbname (orange, slate, purple…) oder beliebige CSS-Farbe, die die Website kennt';
+
+  @override
+  String get blogSettingsPushSection => 'Push-Benachrichtigungen';
+
+  @override
+  String get blogSettingsPushTextLabel => 'Benachrichtigungstext';
+
+  @override
+  String blogSettingsPushTextHelper(Object owner) {
+    return '$owner als Platzhalter für den Anzeigenamen verwenden';
+  }
+
+  @override
+  String get blogSettingsReadPwSection => 'Lese-Passwort';
+
+  @override
+  String get blogSettingsReadPwHasOne =>
+      'Ein Lese-Passwort ist gesetzt. Besucher brauchen es zum Anschauen.';
+
+  @override
+  String get blogSettingsReadPwNone =>
+      'Kein Lese-Passwort gesetzt — der Blog ist öffentlich auf der Website sichtbar.';
+
+  @override
+  String get blogSettingsChangeReadPw => 'Lese-Passwort ändern';
+
+  @override
+  String get blogSettingsReadPwNewLabel => 'Neues Lese-Passwort';
+
+  @override
+  String get blogSettingsClearReadPw => 'Lese-Passwort entfernen';
+
+  @override
+  String get blogSettingsClearReadPwHelper =>
+      'Macht den Blog für jeden mit der URL öffentlich zugänglich.';
 }

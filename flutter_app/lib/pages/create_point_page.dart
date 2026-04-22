@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:exif/exif.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:path/path.dart' as path;
 import 'package:latlong2/latlong.dart';
 import 'package:flutter_image_compress/flutter_image_compress.dart';
@@ -14,6 +13,7 @@ import '../colors.dart';
 import '../model/interest_point.dart';
 import '../model/media_file.dart';
 import '../model/trip.dart';
+import '../services/blog_paths.dart';
 import '../services/storage_service.dart';
 import 'package:australien_blog_app/l10n/app_localizations.dart';
 import '../widgets/confirm_dialog.dart';
@@ -135,7 +135,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
   }
 
   Future<void> _loadExistingPoint(InterestPoint point) async {
-    final appDir = await getApplicationDocumentsDirectory();
+    final appDir = await BlogPaths.dir();
 
     _nameCtrl.text = point.name;
     _shortDescCtrl.text = point.shortDescription;
@@ -387,7 +387,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     );
 
     try {
-      final appDir = await getApplicationDocumentsDirectory();
+      final appDir = await BlogPaths.dir();
       final data = await _storage.loadPointsAndTrips();
       List<InterestPoint> points = data['points'];
       List<TripElement> trips = data['trips'];

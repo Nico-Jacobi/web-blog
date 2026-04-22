@@ -5,7 +5,7 @@ import '../model/data_file.dart';
 import '../model/media_file.dart';
 import '../services/storage_service.dart';
 import '../services/sync_service.dart';
-import '../strings.dart';
+import 'package:australien_blog_app/l10n/app_localizations.dart';
 import '../model/file_status.dart';
 import '../colors.dart';
 import '../widgets/confirm_dialog.dart';
@@ -105,28 +105,34 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
         _isLoading = false;
       });
     } catch (e) {
+      if (!mounted) return;
+      final l10n = AppLocalizations.of(context)!;
       setState(() {
-        _statusMessage = '${AppStrings.sync_status_error_loading}$e';
+        _statusMessage = '${l10n.syncStatusErrorLoading}$e';
         _isLoading = false;
       });
     }
   }
 
   Future<void> _performSync() async {
+    final l10n = AppLocalizations.of(context)!;
     setState(() {
       _isSyncing = true;
-      _statusMessage = AppStrings.sync_spinner_text;
+      _statusMessage = l10n.syncSpinnerText;
     });
 
     try {
       final result = await _syncService.syncFromStorage();
 
+      if (!mounted) return;
+      final l10nInner = AppLocalizations.of(context)!;
+
       if (result == null) {
         setState(() {
-          _statusMessage = AppStrings.sync_status_in_progress;
+          _statusMessage = l10nInner.syncStatusInProgress;
           _isSyncing = false;
         });
-        _showSuccessSnackBar(AppStrings.sync_status_in_progress);
+        _showSuccessSnackBar(l10nInner.syncStatusInProgress);
         return;
       }
 
@@ -137,52 +143,63 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
 
       await _loadSyncStatus();
 
-      if (result.success) {
-        _showSuccessSnackBar(AppStrings.sync_status_success);
+      if (result.success && mounted) {
+        _showSuccessSnackBar(AppLocalizations.of(context)!.syncStatusSuccess);
       }
     } catch (e) {
+      if (!mounted) return;
+      final l10nErr = AppLocalizations.of(context)!;
       setState(() {
-        _statusMessage = '${AppStrings.sync_status_failed}$e';
+        _statusMessage = '${l10nErr.syncStatusFailed}$e';
         _isSyncing = false;
       });
     }
   }
 
   Future<void> _performReverseSync() async {
+    final l10n = AppLocalizations.of(context)!;
     final confirmed = await GradientConfirmDialog.show(
       context,
-      title: AppStrings.sync_dialog_title,
-      content: AppStrings.sync_dialog_content,
-      confirmText: AppStrings.sync_dialog_confirm,
-      cancelText: AppStrings.button_cancel,
+      title: l10n.syncDialogTitle,
+      content: l10n.syncDialogContent,
+      confirmText: l10n.syncDialogConfirm,
+      cancelText: l10n.buttonCancel,
       icon: Icons.cloud_download,
     );
     if (confirmed != true) return;
 
     _storageService.resetApp();
 
+    if (!mounted) return;
+    final l10nAfter = AppLocalizations.of(context)!;
     setState(() {
       _isSyncing = true;
-      _statusMessage = AppStrings.sync_downloading;
+      _statusMessage = l10nAfter.syncDownloading;
     });
 
     try {
       final success = await _syncService.initializeFromServer();
 
+      if (!mounted) return;
+      final l10nResult = AppLocalizations.of(context)!;
       setState(() {
         _statusMessage = success
-            ? AppStrings.sync_download_success
-            : AppStrings.sync_download_failed;
+            ? l10nResult.syncDownloadSuccess
+            : l10nResult.syncDownloadFailed;
         _isSyncing = false;
       });
 
       if (success) {
         await _loadSyncStatus();
-        _showSuccessSnackBar(AppStrings.sync_data_replaced);
+        if (mounted) {
+          _showSuccessSnackBar(AppLocalizations.of(context)!.syncDataReplaced);
+        }
       }
     } catch (e) {
+      if (!mounted) return;
+      final l10nErr = AppLocalizations.of(context)!;
       setState(() {
-        _statusMessage = '${AppStrings.sync_reverse_failed}$e';
+        _statusMessage = '${l10nErr.syncReverseFailed}$e';
         _isSyncing = false;
       });
     }
@@ -201,6 +218,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final unsyncedCount = _fileStatuses.where((f) => !f.isSynced && f.type == FileType.image).length;
     final totalImages = _fileStatuses.where((f) => f.type == FileType.image).length;
     final syncedCount = totalImages - unsyncedCount;
@@ -208,7 +226,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text(AppStrings.sync_status_title),
+        title: Text(l10n.syncStatusTitle),
         systemOverlayStyle: const SystemUiOverlayStyle(
           systemNavigationBarColor: Colors.transparent,
           statusBarColor: Colors.transparent,
@@ -247,9 +265,9 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                   children: [
-                    _buildStatCard(AppStrings.sync_stat_synced, '$syncedCount', Colors.green),
-                    _buildStatCard(AppStrings.sync_stat_unsynced, '$unsyncedCount', Colors.orange),
-                    _buildStatCard(AppStrings.sync_stat_total, '$totalImages', primary),
+                    _buildStatCard(l10n.syncStatSynced, '$syncedCount', Colors.green),
+                    _buildStatCard(l10n.syncStatUnsynced, '$unsyncedCount', Colors.orange),
+                    _buildStatCard(l10n.syncStatTotal, '$totalImages', primary),
                   ],
                 ),
                 if (_statusMessage.isNotEmpty) ...[
@@ -292,7 +310,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
                       ),
                     )
                         : const Icon(Icons.cloud_upload),
-                    label: Text(_isSyncing ? AppStrings.sync_spinner_text : AppStrings.button_sync_upload),
+                    label: Text(_isSyncing ? l10n.syncSpinnerText : l10n.buttonSyncUpload),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: accent,
                       foregroundColor: Colors.white,
@@ -309,7 +327,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
                   child: OutlinedButton.icon(
                     onPressed: _isSyncing ? null : _performReverseSync,
                     icon: const Icon(Icons.cloud_download),
-                    label: const Text(AppStrings.button_sync_download),
+                    label: Text(l10n.buttonSyncDownload),
                     style: OutlinedButton.styleFrom(
                       foregroundColor: Colors.red,
                       side: const BorderSide(color: Colors.red, width: 2),
@@ -336,7 +354,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
                   Icon(Icons.folder_open, size: 64, color: Colors.grey[400]),
                   const SizedBox(height: 16),
                   Text(
-                    AppStrings.sync_no_files,
+                    l10n.syncNoFiles,
                     style: TextStyle(
                       fontSize: 16,
                       color: Colors.grey[600],
@@ -411,6 +429,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
   }
 
   Widget _buildFileListItem(FileStatus fileStatus) {
+    final l10n = AppLocalizations.of(context)!;
     final fileName = fileStatus.path.split('/').last;
     final isMetadata = fileStatus.type == FileType.metadata;
 
@@ -452,10 +471,10 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
         padding: const EdgeInsets.only(top: 4),
         child: Text(
           !fileStatus.exists
-              ? AppStrings.sync_file_not_found
+              ? l10n.syncFileNotFound
               : isMetadata
-              ? '${_formatFileSize(fileStatus.size)} • ${AppStrings.sync_file_metadata}'
-              : '${_formatFileSize(fileStatus.size)} • ${fileStatus.isSynced ? AppStrings.sync_file_synced : AppStrings.sync_file_not_synced}',
+              ? '${_formatFileSize(fileStatus.size)} • ${l10n.syncFileMetadata}'
+              : '${_formatFileSize(fileStatus.size)} • ${fileStatus.isSynced ? l10n.syncFileSynced : l10n.syncFileNotSynced}',
           style: TextStyle(
             fontSize: 12,
             color: fileStatus.exists ? Colors.grey[600] : Colors.red,

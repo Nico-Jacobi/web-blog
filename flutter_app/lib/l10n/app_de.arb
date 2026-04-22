@@ -1,0 +1,390 @@
+{
+  "@@locale": "de",
+
+  "browseFilesTitle": "Dateien durchsuchen",
+  "@browseFilesTitle": {},
+
+  "pathPrefix": "Pfad: ",
+  "@pathPrefix": {},
+
+  "snackBarDeleted": "Erfolgreich gelöscht",
+  "@snackBarDeleted": {},
+
+  "snackBarError": "Fehler: ",
+  "@snackBarError": {},
+
+  "buttonRetry": "Erneut versuchen",
+  "@buttonRetry": {},
+
+  "noDataText": "Keine Dateien gefunden",
+  "@noDataText": {},
+
+  "parentFolder": "..",
+  "@parentFolder": {},
+
+  "modifiedPrefix": "Geändert: ",
+  "@modifiedPrefix": {},
+
+  "sizePrefix": "Größe: ",
+  "@sizePrefix": {},
+
+  "coordinatePickerTitle": "Koordinaten wählen",
+  "@coordinatePickerTitle": {},
+
+  "searchHint": "Ort suchen...",
+  "@searchHint": {},
+
+  "buttonCancel": "Abbrechen",
+  "@buttonCancel": {},
+
+  "buttonConfirm": "Bestätigen",
+  "@buttonConfirm": {},
+
+  "addPointTitleNew": "Neuer Wegpunkt",
+  "@addPointTitleNew": {},
+
+  "addPointTitleEdit": "Wegpunkt bearbeiten",
+  "@addPointTitleEdit": {},
+
+  "addPointTitleImage": "Titelbild hinzufügen",
+  "@addPointTitleImage": {},
+
+  "fieldName": "Name",
+  "@fieldName": {},
+
+  "fieldShortDescription": "Kurzbeschreibung",
+  "@fieldShortDescription": {},
+
+  "fieldLatitude": "Breitengrad",
+  "@fieldLatitude": {},
+
+  "fieldLongitude": "Längengrad",
+  "@fieldLongitude": {},
+
+  "fieldDate": "Datum",
+  "@fieldDate": {},
+
+  "fieldFullDescription": "Vollständige Beschreibung",
+  "@fieldFullDescription": {},
+
+  "tooltipPickOnMap": "Auf Karte wählen",
+  "@tooltipPickOnMap": {},
+
+  "galleryTitle": "Bildergalerie",
+  "@galleryTitle": {},
+
+  "linkPreviousTitle": "Verbindung zum vorherigen Punkt",
+  "@linkPreviousTitle": {},
+
+  "linkPreviousConnectTo": "Verbinden mit: ",
+  "@linkPreviousConnectTo": {},
+
+  "travelMethodTitle": "Reiseart",
+  "@travelMethodTitle": {},
+
+  "buttonSavePoint": "Punkt speichern",
+  "@buttonSavePoint": {},
+
+  "buttonUpdatePoint": "Änderungen speichern",
+  "@buttonUpdatePoint": {},
+
+  "discardChangesTitle": "Änderungen verwerfen?",
+  "@discardChangesTitle": {},
+
+  "discardChangesMessage": "Möchtest du die Änderungen wirklich verwerfen? Ungespeicherte Daten gehen verloren.",
+  "@discardChangesMessage": {},
+
+  "buttonDiscard": "Verwerfen",
+  "@buttonDiscard": {},
+
+  "errorTitleImageRequired": "Ein Titelbild ist erforderlich",
+  "@errorTitleImageRequired": {},
+
+  "infoDateLocation": "Datum und Standort werden automatisch aus deinen Bildern ermittelt, können aber jederzeit geändert werden. (Standort nur wenn GPS beim Fotografieren aktiv war)",
+  "@infoDateLocation": {},
+
+  "labelMediaGallery": "Galerie",
+  "@labelMediaGallery": {},
+
+  "mediaAddTitle": "Medien hinzufügen",
+  "@mediaAddTitle": {},
+
+  "mediaImagesTitle": "Bilder",
+  "@mediaImagesTitle": {},
+
+  "mediaImagesSubtitle": "Mehrere Fotos hinzufügen",
+  "@mediaImagesSubtitle": {},
+
+  "mediaVideoTitle": "Video",
+  "@mediaVideoTitle": {},
+
+  "mediaVideoSubtitle": "Video hinzufügen (max. 5 Min.)",
+  "@mediaVideoSubtitle": {},
+
+  "errorPickerFailed": "Bilder konnten nicht gewählt werden",
+  "@errorPickerFailed": {},
+
+  "managePointsTitle": "Wegpunkte verwalten",
+  "@managePointsTitle": {},
+
+  "infoManagePoints": "Tippen zum Bearbeiten. Halten und Ziehen zum Sortieren. Tippe auf das Routen-Icon, um das Verkehrsmittel zu ändern.",
+  "@infoManagePoints": {},
+
+  "emptyPointsTitle": "Noch keine Punkte",
+  "@emptyPointsTitle": {},
+
+  "emptyPointsSubtitle": "Erstelle deinen ersten Wegpunkt!",
+  "@emptyPointsSubtitle": {},
+
+  "deletePointTitle": "Punkt löschen?",
+  "@deletePointTitle": {},
+
+  "deletePointConfirmPrefix": "Möchtest du",
+  "@deletePointConfirmPrefix": {},
+
+  "deletePointConfirmSuffix": "wirklich löschen? Dabei wird auch die Route zu diesem Punkt entfernt.",
+  "@deletePointConfirmSuffix": {},
+
+  "buttonDelete": "Löschen",
+  "@buttonDelete": {},
+
+  "errorLoadingPoints": "Fehler beim Laden:",
+  "@errorLoadingPoints": {},
+
+  "snackDeleted": "Punkt gelöscht",
+  "@snackDeleted": {},
+
+  "snackMethodUpdated": "Reiseart aktualisiert",
+  "@snackMethodUpdated": {},
+
+  "snackError": "Fehler:",
+  "@snackError": {},
+
+  "settingsTitle": "Einstellungen",
+  "@settingsTitle": {},
+
+  "fieldServerUrl": "Server-URL",
+  "@fieldServerUrl": {},
+
+  "hintServerUrl": "https://dein-server.de",
+  "@hintServerUrl": {},
+
+  "fieldAuthToken": "Authentifizierungs-Token",
+  "@fieldAuthToken": {},
+
+  "buttonSaveSettings": "Einstellungen speichern",
+  "@buttonSaveSettings": {},
+
+  "snackSettingsSaved": "Einstellungen erfolgreich gespeichert",
+  "@snackSettingsSaved": {},
+
+  "deactivateSyncSetting": "Synchronisierung",
+  "@deactivateSyncSetting": {},
+
+  "googlePhotoPickerSetting": "Google Photos",
+  "@googlePhotoPickerSetting": {},
+
+  "settingsLanguage": "Sprache",
+  "@settingsLanguage": {},
+
+  "appHeroTitle": "Australien Blog",
+  "@appHeroTitle": {},
+
+  "addPointButton": "Punkt hinzufügen",
+  "@addPointButton": {},
+
+  "infoDialogTitle": "Information",
+  "@infoDialogTitle": {},
+
+  "buttonClose": "Schließen",
+  "@buttonClose": {},
+
+  "infoTooltip": "Info anzeigen",
+  "@infoTooltip": {},
+
+  "travelMethodDialogTitle": "Verkehrsmittel wählen",
+  "@travelMethodDialogTitle": {},
+
+  "tripMethodBoat": "Boot",
+  "@tripMethodBoat": {},
+
+  "tripMethodCar": "Auto",
+  "@tripMethodCar": {},
+
+  "tripMethodRv": "Wohnmobil",
+  "@tripMethodRv": {},
+
+  "tripMethodPlane": "Flugzeug",
+  "@tripMethodPlane": {},
+
+  "tripMethodFoot": "Zu Fuß",
+  "@tripMethodFoot": {},
+
+  "tripMethodMisc": "Sonstiges",
+  "@tripMethodMisc": {},
+
+  "tripMethodBus": "Bus",
+  "@tripMethodBus": {},
+
+  "syncSpinnerText": "Wird synchronisiert...",
+  "@syncSpinnerText": {},
+
+  "syncFilesTitle": "Dateien synchronisieren",
+  "@syncFilesTitle": {},
+
+  "syncStatusTitle": "Synchronisierungsstatus",
+  "@syncStatusTitle": {},
+
+  "syncStatusErrorLoading": "Fehler beim Laden des Status: ",
+  "@syncStatusErrorLoading": {},
+
+  "syncStatusInProgress": "Synchronisierung bereits im Gange",
+  "@syncStatusInProgress": {},
+
+  "syncStatusSuccess": "Synchronisierung erfolgreich abgeschlossen!",
+  "@syncStatusSuccess": {},
+
+  "syncStatusFailed": "Synchronisierung fehlgeschlagen: ",
+  "@syncStatusFailed": {},
+
+  "syncDownloading": "Lade vom Server...",
+  "@syncDownloading": {},
+
+  "syncDownloadSuccess": "Erfolgreich vom Server geladen",
+  "@syncDownloadSuccess": {},
+
+  "syncDownloadFailed": "Download vom Server fehlgeschlagen",
+  "@syncDownloadFailed": {},
+
+  "syncDataReplaced": "Lokale Daten wurden durch Server-Daten ersetzt",
+  "@syncDataReplaced": {},
+
+  "syncReverseFailed": "Download fehlgeschlagen: ",
+  "@syncReverseFailed": {},
+
+  "syncDialogTitle": "Daten herunterladen?",
+  "@syncDialogTitle": {},
+
+  "syncDialogContent": "Dies ersetzt ALLE lokalen Daten mit Daten vom Server. Nicht synchronisierte lokale Änderungen gehen verloren.\n\nMöchtest du fortfahren?",
+  "@syncDialogContent": {},
+
+  "syncDialogConfirm": "Fortfahren",
+  "@syncDialogConfirm": {},
+
+  "syncStatSynced": "Synchr.",
+  "@syncStatSynced": {},
+
+  "syncStatUnsynced": "Nicht Synchr.",
+  "@syncStatUnsynced": {},
+
+  "syncStatTotal": "Gesamt",
+  "@syncStatTotal": {},
+
+  "buttonSyncUpload": "Hochladen",
+  "@buttonSyncUpload": {},
+
+  "buttonSyncDownload": "Von Server laden",
+  "@buttonSyncDownload": {},
+
+  "syncNoFiles": "Keine Dateien zum Synchronisieren",
+  "@syncNoFiles": {},
+
+  "syncFileMetadata": "Metadaten",
+  "@syncFileMetadata": {},
+
+  "syncFileSynced": "Synchronisiert",
+  "@syncFileSynced": {},
+
+  "syncFileNotSynced": "Nicht synchronisiert",
+  "@syncFileNotSynced": {},
+
+  "syncFileNotFound": "Datei lokal nicht gefunden",
+  "@syncFileNotFound": {},
+
+  "deleteItemTitle": "Element löschen",
+  "@deleteItemTitle": {},
+
+  "deleteItemConfirmPrefix": "Willst du",
+  "@deleteItemConfirmPrefix": {},
+
+  "deleteItemConfirmSuffix": "wirklich löschen? Dies kann nicht rückgängig gemacht werden.",
+  "@deleteItemConfirmSuffix": {},
+
+  "permRequiredTitle": "Speicherberechtigung erforderlich",
+  "@permRequiredTitle": {},
+
+  "permRequiredBody": "Diese App benötigt Zugriff auf den Speicher, um Dateien in deinen Downloads-Ordner herunterzuladen.\n\nBitte gewähre die Berechtigung \"Zugriff auf alle Dateien\" in den Einstellungen.",
+  "@permRequiredBody": {},
+
+  "permDeniedSnackbar": "Speicherberechtigung ist erforderlich, um Dateien im Downloads-Ordner herunterzuladen",
+  "@permDeniedSnackbar": {},
+
+  "downloadSuccessPrefix": "✅ Backup gespeichert in:\nDownload/",
+  "@downloadSuccessPrefix": {},
+
+  "waypointLabel": "Wegpunkt",
+  "@waypointLabel": {},
+
+  "waypointDeleteTitle": "Wegpunkt löschen?",
+  "@waypointDeleteTitle": {},
+
+  "waypointDeleteContent": "Diesen Wegpunkt wirklich entfernen?",
+  "@waypointDeleteContent": {},
+
+  "buttonChangePosition": "Position ändern",
+  "@buttonChangePosition": {},
+
+  "buttonAddWaypoint": "Wegpunkt",
+  "@buttonAddWaypoint": {},
+
+  "waypointPositionUpdated": "Position aktualisiert",
+  "@waypointPositionUpdated": {},
+
+  "waypointAdded": "Wegpunkt hinzugefügt",
+  "@waypointAdded": {},
+
+  "createWaypointTitle": "Wegpunkt erstellen",
+  "@createWaypointTitle": {},
+
+  "chooseOnMap": "Auf Karte auswählen",
+  "@chooseOnMap": {},
+
+  "enterCoordinatesManually": "Koordinaten manuell eingeben",
+  "@enterCoordinatesManually": {},
+
+  "labelLat": "Breitengrad (Lat)",
+  "@labelLat": {},
+
+  "labelLon": "Längengrad (Lon)",
+  "@labelLon": {},
+
+  "errorInvalidCoordinates": "Ungültige Koordinaten",
+  "@errorInvalidCoordinates": {},
+
+  "buttonSave": "Speichern",
+  "@buttonSave": {},
+
+  "errorSavingData": "Fehler beim Speichern der Daten",
+  "@errorSavingData": {},
+
+  "notifSyncTitle": "Sync abgeschlossen",
+  "@notifSyncTitle": {},
+
+  "notifSync1": "Alle Kängurus wurden erfolgreich durchs Kabel geschubst.",
+  "@notifSync1": {},
+
+  "notifSync2": "Deine Koalas sind sicher im Cloud-Eukalyptus gelandet.",
+  "@notifSync2": {},
+
+  "notifSync3": "Krokodile abgewehrt, Daten erfolgreich hochgeladen.",
+  "@notifSync3": {},
+
+  "notifSync4": "Daten-Roadtrip beendet. Alles sicher verstaut!",
+  "@notifSync4": {},
+
+  "notifSync5": "Wombats haben deine Dateien artgerecht vergraben.",
+  "@notifSync5": {},
+
+  "notifSync6": "Die Emus haben die Daten nach Hause gebracht.",
+  "@notifSync6": {}
+}

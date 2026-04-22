@@ -3,7 +3,7 @@ import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import '../strings.dart';
+import 'package:australien_blog_app/l10n/app_localizations.dart';
 import '../colors.dart'; // Added colors import
 
 LatLng initialLocation = const LatLng(-25.2744, 133.7751);  //center of australia
@@ -70,9 +70,10 @@ class _CoordinatePickerPageState extends State<CoordinatePickerPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppStrings.coordinate_picker_appBar_title),
+        title: Text(l10n.coordinatePickerTitle),
         backgroundColor: accent, // Refactored
         foregroundColor: Colors.white,
       ),
@@ -115,7 +116,7 @@ class _CoordinatePickerPageState extends State<CoordinatePickerPage> {
                   child: TextField(
                     controller: _searchController,
                     decoration: InputDecoration(
-                      hintText: AppStrings.search_hint,
+                      hintText: l10n.searchHint,
                       prefixIcon: const Icon(Icons.search, color: primary), // Refactored
                       suffixIcon: _searchController.text.isNotEmpty
                           ? IconButton(
@@ -182,7 +183,7 @@ class _CoordinatePickerPageState extends State<CoordinatePickerPage> {
                   backgroundColor: Colors.grey[300],
                   foregroundColor: dark, // Refactored
                 ),
-                child: Text(AppStrings.button_cancel),
+                child: Text(l10n.buttonCancel),
               ),
             ),
             const SizedBox(width: 12),
@@ -193,7 +194,7 @@ class _CoordinatePickerPageState extends State<CoordinatePickerPage> {
                   backgroundColor: primary, // Refactored
                   foregroundColor: Colors.white,
                 ),
-                child: Text(AppStrings.button_confirm),
+                child: Text(l10n.buttonConfirm),
               ),
             ),
           ],

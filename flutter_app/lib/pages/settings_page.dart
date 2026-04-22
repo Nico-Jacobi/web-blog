@@ -1,10 +1,12 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api_keys.dart';
 import '../main.dart';
-import '../strings.dart';
+import 'package:australien_blog_app/l10n/app_localizations.dart';
 import '../colors.dart';
+import '../providers/language_provider.dart';
 import '../services/sync_service.dart';
 import '../services/storage_service.dart';
 
@@ -39,6 +41,7 @@ class _SettingsPageState extends State<SettingsPage> {
   }
 
   Future<void> _saveSettings() async {
+    final l10n = AppLocalizations.of(context)!;
     final prefs = await SharedPreferences.getInstance();
 
     // Update global variables
@@ -58,8 +61,8 @@ class _SettingsPageState extends State<SettingsPage> {
 
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text(AppStrings.snack_settings_saved),
+        SnackBar(
+          content: Text(l10n.snackSettingsSaved),
           backgroundColor: accent,
         ),
       );
@@ -75,10 +78,11 @@ class _SettingsPageState extends State<SettingsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text(AppStrings.settings_title),
+        title: Text(l10n.settingsTitle),
         systemOverlayStyle: const SystemUiOverlayStyle(
           systemNavigationBarColor: Colors.transparent,
           statusBarColor: Colors.transparent,
@@ -104,14 +108,14 @@ class _SettingsPageState extends State<SettingsPage> {
                     TextField(
                       controller: _urlController,
                       decoration: InputDecoration(
-                        labelText: AppStrings.field_server_url,
+                        labelText: l10n.fieldServerUrl,
                         labelStyle: const TextStyle(color: dark),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         focusedBorder: OutlineInputBorder(
                           borderRadius: BorderRadius.circular(12),
                           borderSide: const BorderSide(color: primary, width: 2),
                         ),
-                        hintText: AppStrings.hint_server_url,
+                        hintText: l10n.hintServerUrl,
                         prefixIcon: const Icon(Icons.link, color: primary),
                       ),
                     ),
@@ -120,7 +124,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       controller: _tokenController,
                       obscureText: true,
                       decoration: InputDecoration(
-                        labelText: AppStrings.field_auth_token,
+                        labelText: l10n.fieldAuthToken,
                         labelStyle: const TextStyle(color: dark),
                         border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
                         focusedBorder: OutlineInputBorder(
@@ -132,7 +136,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     ),
                     const SizedBox(height: 8),
                     SwitchListTile(
-                      title: const Text(AppStrings.deactivate_snc_setting),
+                      title: Text(l10n.deactivateSyncSetting),
                       value: _syncData,
                       activeThumbColor: primary,
                       onChanged: (bool value) {
@@ -142,7 +146,7 @@ class _SettingsPageState extends State<SettingsPage> {
                       },
                     ),
                     SwitchListTile(
-                      title: const Text(AppStrings.google_photo_picker_setting),
+                      title: Text(l10n.googlePhotoPickerSetting),
                       value: _useModernPicker,
                       activeThumbColor: primary,
                       onChanged: (bool value) {
@@ -151,13 +155,30 @@ class _SettingsPageState extends State<SettingsPage> {
                         });
                       },
                     ),
+                    Consumer<LanguageProvider>(
+                      builder: (context, langProvider, _) {
+                        return ListTile(
+                          title: Text(l10n.settingsLanguage),
+                          trailing: DropdownButton<String>(
+                            value: langProvider.locale.languageCode,
+                            items: const [
+                              DropdownMenuItem(value: 'de', child: Text('Deutsch')),
+                              DropdownMenuItem(value: 'en', child: Text('English')),
+                            ],
+                            onChanged: (code) {
+                              if (code != null) langProvider.setLanguage(code);
+                            },
+                          ),
+                        );
+                      },
+                    ),
                     const SizedBox(height: 16),
                     SizedBox(
                       width: double.infinity,
                       child: ElevatedButton.icon(
                         onPressed: _saveSettings,
                         icon: const Icon(Icons.save),
-                        label: const Text(AppStrings.button_save_settings),
+                        label: Text(l10n.buttonSaveSettings),
                         style: ElevatedButton.styleFrom(
                           backgroundColor: primary,
                           foregroundColor: Colors.white,
@@ -175,14 +196,14 @@ class _SettingsPageState extends State<SettingsPage> {
                 context,
                 '/browse_files',
                 Icons.folder_open,
-                AppStrings.browse_files_appBar_title
+                l10n.browseFilesTitle
             ),
             const SizedBox(height: 16),
             _buildNavButton(
                 context,
                 '/sync_files',
                 Icons.sync,
-                AppStrings.sync_files_appBar_title
+                l10n.syncFilesTitle
             ),
           ],
         ),

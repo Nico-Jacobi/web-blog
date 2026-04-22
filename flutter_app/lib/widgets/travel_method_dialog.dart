@@ -1,7 +1,7 @@
+import 'package:australien_blog_app/l10n/app_localizations.dart';
 import 'package:flutter/material.dart';
 import '../colors.dart';
 import '../model/trip.dart';
-import '../strings.dart';
 
 class TravelMethodDialog extends StatelessWidget {
   final TripMethod? currentMethod;
@@ -21,8 +21,28 @@ class TravelMethodDialog extends StatelessWidget {
     );
   }
 
+  String _methodLabel(TripMethod method, AppLocalizations l10n) {
+    switch (method) {
+      case TripMethod.boat:
+        return l10n.tripMethodBoat;
+      case TripMethod.car:
+        return l10n.tripMethodCar;
+      case TripMethod.rv:
+        return l10n.tripMethodRv;
+      case TripMethod.plane:
+        return l10n.tripMethodPlane;
+      case TripMethod.foot:
+        return l10n.tripMethodFoot;
+      case TripMethod.misc:
+        return l10n.tripMethodMisc;
+      case TripMethod.bus:
+        return l10n.tripMethodBus;
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Dialog(
       backgroundColor: Colors.transparent,
       child: Container(
@@ -45,9 +65,9 @@ class TravelMethodDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Text(
-              AppStrings.travel_method_dialog_title,
-              style: TextStyle(
+            Text(
+              l10n.travelMethodDialogTitle,
+              style: const TextStyle(
                 color: Colors.white,
                 fontSize: 20,
                 fontWeight: FontWeight.bold,
@@ -91,7 +111,7 @@ class TravelMethodDialog extends StatelessWidget {
                           const SizedBox(width: 16),
                           Expanded(
                             child: Text(
-                              method.label,
+                              _methodLabel(method, l10n),
                               style: const TextStyle(
                                 color: Colors.white,
                                 fontSize: 16,

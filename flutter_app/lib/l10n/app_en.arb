@@ -1,0 +1,390 @@
+{
+  "@@locale": "en",
+
+  "browseFilesTitle": "Browse Files",
+  "@browseFilesTitle": {},
+
+  "pathPrefix": "Path: ",
+  "@pathPrefix": {},
+
+  "snackBarDeleted": "Successfully deleted",
+  "@snackBarDeleted": {},
+
+  "snackBarError": "Error: ",
+  "@snackBarError": {},
+
+  "buttonRetry": "Retry",
+  "@buttonRetry": {},
+
+  "noDataText": "No files found",
+  "@noDataText": {},
+
+  "parentFolder": "..",
+  "@parentFolder": {},
+
+  "modifiedPrefix": "Modified: ",
+  "@modifiedPrefix": {},
+
+  "sizePrefix": "Size: ",
+  "@sizePrefix": {},
+
+  "coordinatePickerTitle": "Pick Coordinates",
+  "@coordinatePickerTitle": {},
+
+  "searchHint": "Search location...",
+  "@searchHint": {},
+
+  "buttonCancel": "Cancel",
+  "@buttonCancel": {},
+
+  "buttonConfirm": "Confirm",
+  "@buttonConfirm": {},
+
+  "addPointTitleNew": "New Waypoint",
+  "@addPointTitleNew": {},
+
+  "addPointTitleEdit": "Edit Waypoint",
+  "@addPointTitleEdit": {},
+
+  "addPointTitleImage": "Add Cover Image",
+  "@addPointTitleImage": {},
+
+  "fieldName": "Name",
+  "@fieldName": {},
+
+  "fieldShortDescription": "Short Description",
+  "@fieldShortDescription": {},
+
+  "fieldLatitude": "Latitude",
+  "@fieldLatitude": {},
+
+  "fieldLongitude": "Longitude",
+  "@fieldLongitude": {},
+
+  "fieldDate": "Date",
+  "@fieldDate": {},
+
+  "fieldFullDescription": "Full Description",
+  "@fieldFullDescription": {},
+
+  "tooltipPickOnMap": "Pick on Map",
+  "@tooltipPickOnMap": {},
+
+  "galleryTitle": "Photo Gallery",
+  "@galleryTitle": {},
+
+  "linkPreviousTitle": "Link to Previous Point",
+  "@linkPreviousTitle": {},
+
+  "linkPreviousConnectTo": "Connect to: ",
+  "@linkPreviousConnectTo": {},
+
+  "travelMethodTitle": "Travel Method",
+  "@travelMethodTitle": {},
+
+  "buttonSavePoint": "Save Point",
+  "@buttonSavePoint": {},
+
+  "buttonUpdatePoint": "Save Changes",
+  "@buttonUpdatePoint": {},
+
+  "discardChangesTitle": "Discard Changes?",
+  "@discardChangesTitle": {},
+
+  "discardChangesMessage": "Do you really want to discard your changes? Unsaved data will be lost.",
+  "@discardChangesMessage": {},
+
+  "buttonDiscard": "Discard",
+  "@buttonDiscard": {},
+
+  "errorTitleImageRequired": "A cover image is required",
+  "@errorTitleImageRequired": {},
+
+  "infoDateLocation": "Date and location are automatically extracted from your photos, but can be changed at any time. (Location only if GPS was active while taking photos)",
+  "@infoDateLocation": {},
+
+  "labelMediaGallery": "Gallery",
+  "@labelMediaGallery": {},
+
+  "mediaAddTitle": "Add Media",
+  "@mediaAddTitle": {},
+
+  "mediaImagesTitle": "Photos",
+  "@mediaImagesTitle": {},
+
+  "mediaImagesSubtitle": "Add multiple photos",
+  "@mediaImagesSubtitle": {},
+
+  "mediaVideoTitle": "Video",
+  "@mediaVideoTitle": {},
+
+  "mediaVideoSubtitle": "Add video (max. 5 min.)",
+  "@mediaVideoSubtitle": {},
+
+  "errorPickerFailed": "Could not select images",
+  "@errorPickerFailed": {},
+
+  "managePointsTitle": "Manage Waypoints",
+  "@managePointsTitle": {},
+
+  "infoManagePoints": "Tap to edit. Hold and drag to reorder. Tap the route icon to change the travel method.",
+  "@infoManagePoints": {},
+
+  "emptyPointsTitle": "No points yet",
+  "@emptyPointsTitle": {},
+
+  "emptyPointsSubtitle": "Create your first waypoint!",
+  "@emptyPointsSubtitle": {},
+
+  "deletePointTitle": "Delete Point?",
+  "@deletePointTitle": {},
+
+  "deletePointConfirmPrefix": "Do you want to delete",
+  "@deletePointConfirmPrefix": {},
+
+  "deletePointConfirmSuffix": "? This will also remove the route to this point.",
+  "@deletePointConfirmSuffix": {},
+
+  "buttonDelete": "Delete",
+  "@buttonDelete": {},
+
+  "errorLoadingPoints": "Error loading:",
+  "@errorLoadingPoints": {},
+
+  "snackDeleted": "Point deleted",
+  "@snackDeleted": {},
+
+  "snackMethodUpdated": "Travel method updated",
+  "@snackMethodUpdated": {},
+
+  "snackError": "Error:",
+  "@snackError": {},
+
+  "settingsTitle": "Settings",
+  "@settingsTitle": {},
+
+  "fieldServerUrl": "Server URL",
+  "@fieldServerUrl": {},
+
+  "hintServerUrl": "https://your-server.com",
+  "@hintServerUrl": {},
+
+  "fieldAuthToken": "Authentication Token",
+  "@fieldAuthToken": {},
+
+  "buttonSaveSettings": "Save Settings",
+  "@buttonSaveSettings": {},
+
+  "snackSettingsSaved": "Settings saved successfully",
+  "@snackSettingsSaved": {},
+
+  "deactivateSyncSetting": "Synchronization",
+  "@deactivateSyncSetting": {},
+
+  "googlePhotoPickerSetting": "Google Photos",
+  "@googlePhotoPickerSetting": {},
+
+  "settingsLanguage": "Language",
+  "@settingsLanguage": {},
+
+  "appHeroTitle": "Australia Blog",
+  "@appHeroTitle": {},
+
+  "addPointButton": "Add Point",
+  "@addPointButton": {},
+
+  "infoDialogTitle": "Information",
+  "@infoDialogTitle": {},
+
+  "buttonClose": "Close",
+  "@buttonClose": {},
+
+  "infoTooltip": "Show info",
+  "@infoTooltip": {},
+
+  "travelMethodDialogTitle": "Choose Travel Method",
+  "@travelMethodDialogTitle": {},
+
+  "tripMethodBoat": "Boat",
+  "@tripMethodBoat": {},
+
+  "tripMethodCar": "Car",
+  "@tripMethodCar": {},
+
+  "tripMethodRv": "Motorhome",
+  "@tripMethodRv": {},
+
+  "tripMethodPlane": "Plane",
+  "@tripMethodPlane": {},
+
+  "tripMethodFoot": "On foot",
+  "@tripMethodFoot": {},
+
+  "tripMethodMisc": "Other",
+  "@tripMethodMisc": {},
+
+  "tripMethodBus": "Bus",
+  "@tripMethodBus": {},
+
+  "syncSpinnerText": "Syncing...",
+  "@syncSpinnerText": {},
+
+  "syncFilesTitle": "Sync Files",
+  "@syncFilesTitle": {},
+
+  "syncStatusTitle": "Sync Status",
+  "@syncStatusTitle": {},
+
+  "syncStatusErrorLoading": "Error loading status: ",
+  "@syncStatusErrorLoading": {},
+
+  "syncStatusInProgress": "Sync already in progress",
+  "@syncStatusInProgress": {},
+
+  "syncStatusSuccess": "Sync completed successfully!",
+  "@syncStatusSuccess": {},
+
+  "syncStatusFailed": "Sync failed: ",
+  "@syncStatusFailed": {},
+
+  "syncDownloading": "Downloading from server...",
+  "@syncDownloading": {},
+
+  "syncDownloadSuccess": "Successfully downloaded from server",
+  "@syncDownloadSuccess": {},
+
+  "syncDownloadFailed": "Download from server failed",
+  "@syncDownloadFailed": {},
+
+  "syncDataReplaced": "Local data replaced with server data",
+  "@syncDataReplaced": {},
+
+  "syncReverseFailed": "Download failed: ",
+  "@syncReverseFailed": {},
+
+  "syncDialogTitle": "Download Data?",
+  "@syncDialogTitle": {},
+
+  "syncDialogContent": "This will replace ALL local data with data from the server. Unsynced local changes will be lost.\n\nDo you want to continue?",
+  "@syncDialogContent": {},
+
+  "syncDialogConfirm": "Continue",
+  "@syncDialogConfirm": {},
+
+  "syncStatSynced": "Synced",
+  "@syncStatSynced": {},
+
+  "syncStatUnsynced": "Unsynced",
+  "@syncStatUnsynced": {},
+
+  "syncStatTotal": "Total",
+  "@syncStatTotal": {},
+
+  "buttonSyncUpload": "Upload",
+  "@buttonSyncUpload": {},
+
+  "buttonSyncDownload": "Download from Server",
+  "@buttonSyncDownload": {},
+
+  "syncNoFiles": "No files to sync",
+  "@syncNoFiles": {},
+
+  "syncFileMetadata": "Metadata",
+  "@syncFileMetadata": {},
+
+  "syncFileSynced": "Synced",
+  "@syncFileSynced": {},
+
+  "syncFileNotSynced": "Not synced",
+  "@syncFileNotSynced": {},
+
+  "syncFileNotFound": "File not found locally",
+  "@syncFileNotFound": {},
+
+  "deleteItemTitle": "Delete Item",
+  "@deleteItemTitle": {},
+
+  "deleteItemConfirmPrefix": "Do you want to delete",
+  "@deleteItemConfirmPrefix": {},
+
+  "deleteItemConfirmSuffix": "? This cannot be undone.",
+  "@deleteItemConfirmSuffix": {},
+
+  "permRequiredTitle": "Storage Permission Required",
+  "@permRequiredTitle": {},
+
+  "permRequiredBody": "This app needs access to storage to download files to your Downloads folder.\n\nPlease grant \"Access to all files\" permission in Settings.",
+  "@permRequiredBody": {},
+
+  "permDeniedSnackbar": "Storage permission is required to download files to the Downloads folder",
+  "@permDeniedSnackbar": {},
+
+  "downloadSuccessPrefix": "✅ Backup saved in:\nDownload/",
+  "@downloadSuccessPrefix": {},
+
+  "waypointLabel": "Waypoint",
+  "@waypointLabel": {},
+
+  "waypointDeleteTitle": "Delete Waypoint?",
+  "@waypointDeleteTitle": {},
+
+  "waypointDeleteContent": "Remove this waypoint?",
+  "@waypointDeleteContent": {},
+
+  "buttonChangePosition": "Change Position",
+  "@buttonChangePosition": {},
+
+  "buttonAddWaypoint": "Waypoint",
+  "@buttonAddWaypoint": {},
+
+  "waypointPositionUpdated": "Position updated",
+  "@waypointPositionUpdated": {},
+
+  "waypointAdded": "Waypoint added",
+  "@waypointAdded": {},
+
+  "createWaypointTitle": "Create Waypoint",
+  "@createWaypointTitle": {},
+
+  "chooseOnMap": "Choose on Map",
+  "@chooseOnMap": {},
+
+  "enterCoordinatesManually": "Enter coordinates manually",
+  "@enterCoordinatesManually": {},
+
+  "labelLat": "Latitude (Lat)",
+  "@labelLat": {},
+
+  "labelLon": "Longitude (Lon)",
+  "@labelLon": {},
+
+  "errorInvalidCoordinates": "Invalid coordinates",
+  "@errorInvalidCoordinates": {},
+
+  "buttonSave": "Save",
+  "@buttonSave": {},
+
+  "errorSavingData": "Error saving data",
+  "@errorSavingData": {},
+
+  "notifSyncTitle": "Sync complete",
+  "@notifSyncTitle": {},
+
+  "notifSync1": "All kangaroos successfully pushed through the cable.",
+  "@notifSync1": {},
+
+  "notifSync2": "Your koalas have safely landed in the cloud eucalyptus.",
+  "@notifSync2": {},
+
+  "notifSync3": "Crocodiles repelled, data successfully uploaded.",
+  "@notifSync3": {},
+
+  "notifSync4": "Data road trip complete. Everything stored safely!",
+  "@notifSync4": {},
+
+  "notifSync5": "Wombats have buried your files in their natural habitat.",
+  "@notifSync5": {},
+
+  "notifSync6": "The emus have brought the data home.",
+  "@notifSync6": {}
+}

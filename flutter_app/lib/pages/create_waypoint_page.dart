@@ -5,7 +5,7 @@ import 'package:latlong2/latlong.dart';
 import '../colors.dart';
 import '../model/interest_point.dart';
 import '../services/storage_service.dart';
-import '../strings.dart';
+import 'package:australien_blog_app/l10n/app_localizations.dart';
 import 'coordinate_picker.dart';
 
 /// A minimal page for creating a Waypoint (an InterestPoint with isWaypoint=true).
@@ -49,22 +49,23 @@ class _CreateWaypointPageState extends State<CreateWaypointPage> {
   }
 
   Future<void> _showModeDialog() async {
+    final l10n = AppLocalizations.of(context)!;
     final choice = await showDialog<String>(
       context: context,
       barrierDismissible: false,
       builder: (ctx) => AlertDialog(
-        title: const Text(AppStrings.create_waypoint_title),
+        title: Text(l10n.createWaypointTitle),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             ListTile(
               leading: const Icon(Icons.map_outlined, color: primary),
-              title: const Text(AppStrings.choose_on_map),
+              title: Text(l10n.chooseOnMap),
               onTap: () => Navigator.pop(ctx, 'map'),
             ),
             ListTile(
               leading: const Icon(Icons.edit, color: primary),
-              title: const Text(AppStrings.enter_coordinates_manually),
+              title: Text(l10n.enterCoordinatesManually),
               onTap: () => Navigator.pop(ctx, 'manual'),
             ),
           ],
@@ -72,7 +73,7 @@ class _CreateWaypointPageState extends State<CreateWaypointPage> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx),
-            child: const Text(AppStrings.button_cancel),
+            child: Text(l10n.buttonCancel),
           ),
         ],
       ),
@@ -120,6 +121,7 @@ class _CreateWaypointPageState extends State<CreateWaypointPage> {
   }
 
   Future<void> _onSave() async {
+    final l10n = AppLocalizations.of(context)!;
     final lat = double.tryParse(_latController.text.trim());
     final lon = double.tryParse(_lonController.text.trim());
 
@@ -127,7 +129,7 @@ class _CreateWaypointPageState extends State<CreateWaypointPage> {
         lon == null ||
         lat.abs() > 90 ||
         lon.abs() > 180) {
-      setState(() => _errorText = AppStrings.error_invalid_coordinates);
+      setState(() => _errorText = l10n.errorInvalidCoordinates);
       return;
     }
 
@@ -155,10 +157,11 @@ class _CreateWaypointPageState extends State<CreateWaypointPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text(AppStrings.create_waypoint_title),
+        title: Text(l10n.createWaypointTitle),
         backgroundColor: accent,
         foregroundColor: Colors.white,
         centerTitle: true,
@@ -181,7 +184,7 @@ class _CreateWaypointPageState extends State<CreateWaypointPage> {
                 FilteringTextInputFormatter.allow(RegExp(r'[0-9.\-]')),
               ],
               decoration: InputDecoration(
-                labelText: AppStrings.label_lat,
+                labelText: l10n.labelLat,
                 errorText: _errorText,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
@@ -202,7 +205,7 @@ class _CreateWaypointPageState extends State<CreateWaypointPage> {
                 FilteringTextInputFormatter.allow(RegExp(r'[0-9.\-]')),
               ],
               decoration: InputDecoration(
-                labelText: AppStrings.label_lon,
+                labelText: l10n.labelLon,
                 border: OutlineInputBorder(
                   borderRadius: BorderRadius.circular(16),
                 ),
@@ -215,9 +218,9 @@ class _CreateWaypointPageState extends State<CreateWaypointPage> {
             OutlinedButton.icon(
               onPressed: _pickOnMap,
               icon: const Icon(Icons.map_outlined, color: primary),
-              label: const Text(
-                AppStrings.choose_on_map,
-                style: TextStyle(color: primary),
+              label: Text(
+                l10n.chooseOnMap,
+                style: const TextStyle(color: primary),
               ),
               style: OutlinedButton.styleFrom(
                 padding: const EdgeInsets.symmetric(vertical: 14),
@@ -239,9 +242,9 @@ class _CreateWaypointPageState extends State<CreateWaypointPage> {
                     borderRadius: BorderRadius.circular(16),
                   ),
                 ),
-                child: const Text(
-                  AppStrings.button_save,
-                  style: TextStyle(fontSize: 16, color: Colors.white),
+                child: Text(
+                  l10n.buttonSave,
+                  style: const TextStyle(fontSize: 16, color: Colors.white),
                 ),
               ),
             ),

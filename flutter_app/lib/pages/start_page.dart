@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../colors.dart';
-import '../strings.dart';
+import 'package:australien_blog_app/l10n/app_localizations.dart';
 import '../widgets/styled_button.dart';
 
 class StartPage extends StatelessWidget {
@@ -9,6 +9,7 @@ class StartPage extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     final screenHeight = MediaQuery.of(context).size.height;
     final screenWidth  = MediaQuery.of(context).size.width;
 
@@ -39,7 +40,7 @@ class StartPage extends StatelessWidget {
             StyledButton(
               topPercentage: 0.55,
               color: accent,
-              text: AppStrings.settings_title,
+              text: l10n.settingsTitle,
               icon: Icons.settings,
               onPressed: () {
                 Navigator.pushNamed(context, '/settings');
@@ -50,7 +51,7 @@ class StartPage extends StatelessWidget {
             StyledButton(
               topPercentage: 0.3,
               color: primary,
-              text: AppStrings.manage_points_title,
+              text: l10n.managePointsTitle,
               icon: Icons.list_alt,
               onPressed: () {
                 Navigator.pushNamed(context, '/manage_points');
@@ -61,7 +62,7 @@ class StartPage extends StatelessWidget {
             StyledButton(
               topPercentage: 0.05,
               color: light,
-              text: AppStrings.add_point_button,
+              text: l10n.addPointButton,
               icon: Icons.add_location,
               onPressed: () {
                 Navigator.pushNamed(context, '/upload_point');
@@ -72,7 +73,7 @@ class StartPage extends StatelessWidget {
             NonInteractiveButton(
               topPercentage: -0.15,
               color: pale,
-              text: AppStrings.app_hero_title,
+              text: l10n.appHeroTitle,
               screenHeight: screenHeight,
               screenWidth: screenWidth,
             ),

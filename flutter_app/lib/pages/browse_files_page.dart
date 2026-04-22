@@ -5,7 +5,7 @@ import 'package:permission_handler/permission_handler.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'dart:io';
 import '../services/api_service.dart';
-import '../strings.dart';
+import 'package:australien_blog_app/l10n/app_localizations.dart';
 import '../colors.dart';
 import '../widgets/confirm_dialog.dart';
 
@@ -52,13 +52,14 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
   }
 
   Future<void> _confirmDelete(String path, String name) async {
+    final l10n = AppLocalizations.of(context)!;
     // Hier nutzen wir jetzt das neue Widget
     final confirmed = await GradientConfirmDialog.show(
       context,
-      title: AppStrings.delete_item_title,
-      content: '${AppStrings.delete_item_confirm_prefix}\n"$name"\n${AppStrings.delete_item_confirm_suffix}',
-      confirmText: AppStrings.button_delete,
-      cancelText: AppStrings.button_cancel,
+      title: l10n.deleteItemTitle,
+      content: '${l10n.deleteItemConfirmPrefix}\n"$name"\n${l10n.deleteItemConfirmSuffix}',
+      confirmText: l10n.buttonDelete,
+      cancelText: l10n.buttonCancel,
       icon: Icons.delete_forever_rounded, // Optional anderes Icon
     );
 
@@ -68,18 +69,19 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
   }
 
   Future<void> _deleteItem(String path) async {
+    final l10n = AppLocalizations.of(context)!;
     try {
       await ApiService.deleteFile(path);
       _loadFiles();
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text(AppStrings.snackBar_deleted)),
+          SnackBar(content: Text(l10n.snackBarDeleted)),
         );
       }
     } catch (e) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${AppStrings.snackBar_error}$e')),
+          SnackBar(content: Text('${l10n.snackBarError}$e')),
         );
       }
     }
@@ -96,12 +98,13 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
 
           if (!status.isGranted) {
             if (mounted) {
+              final l10n = AppLocalizations.of(context)!;
               final openSettings = await GradientConfirmDialog.show(
                 context,
-                title: AppStrings.perm_required_title,
-                content: AppStrings.perm_required_body,
-                confirmText: AppStrings.button_retry, // Oder "Einstellungen öffnen"
-                cancelText: AppStrings.button_cancel,
+                title: l10n.permRequiredTitle,
+                content: l10n.permRequiredBody,
+                confirmText: l10n.buttonRetry, // Oder "Einstellungen öffnen"
+                cancelText: l10n.buttonCancel,
                 icon: Icons.storage_rounded,
               );
 
@@ -128,8 +131,9 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
     final hasPermission = await _requestStoragePermission();
     if (!hasPermission) {
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text(AppStrings.perm_denied_snackbar)),
+          SnackBar(content: Text(l10n.permDeniedSnackbar)),
         );
       }
       return;
@@ -159,9 +163,10 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
       await _downloadDirectory('/', backupDir.path);
 
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('${AppStrings.download_success_prefix}$backupDirName'),
+            content: Text('${l10n.downloadSuccessPrefix}$backupDirName'),
             duration: const Duration(seconds: 5),
             backgroundColor: accent,
             behavior: SnackBarBehavior.floating,
@@ -171,8 +176,9 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
     } catch (e) {
       debugPrint('Download error: $e');
       if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
         ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('${AppStrings.snackBar_error}$e')),
+          SnackBar(content: Text('${l10n.snackBarError}$e')),
         );
       }
     } finally {
@@ -209,9 +215,10 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       appBar: AppBar(
-        title: Text(AppStrings.browse_files_appBar_title),
+        title: Text(l10n.browseFilesTitle),
         backgroundColor: accent,
         foregroundColor: Colors.white,
         systemOverlayStyle: const SystemUiOverlayStyle(
@@ -242,7 +249,7 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
               children: [
                 Expanded(
                   child: Text(
-                    '${AppStrings.path_prefix}$currentPath',
+                    '${l10n.pathPrefix}$currentPath',
                     style: const TextStyle(fontWeight: FontWeight.bold),
                   ),
                 ),
@@ -285,12 +292,12 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text('${AppStrings.snackBar_error}$error'),
+                  Text('${l10n.snackBarError}$error'),
                   const SizedBox(height: 8),
                   ElevatedButton(
                     onPressed: _loadFiles,
                     style: ElevatedButton.styleFrom(backgroundColor: primary),
-                    child: const Text(AppStrings.button_retry, style: TextStyle(color: Colors.white)),
+                    child: Text(l10n.buttonRetry, style: const TextStyle(color: Colors.white)),
                   ),
                 ],
               ),
@@ -303,7 +310,8 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
   }
 
   Widget _buildFileList() {
-    if (fileData == null) return Center(child: Text(AppStrings.noData_text));
+    final l10n = AppLocalizations.of(context)!;
+    if (fileData == null) return Center(child: Text(l10n.noDataText));
     final allFolders = fileData!['folders'] as List? ?? [];
     final allFiles = fileData!['files'] as List? ?? [];
 
@@ -320,7 +328,7 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
         if (!filtering && currentPath != '/')
           ListTile(
             leading: const Icon(Icons.arrow_upward, color: dark),
-            title: Text(AppStrings.parent_folder),
+            title: Text(l10n.parentFolder),
             onTap: () {
               setState(() {
                 List<String> segments = currentPath.split('/')..removeWhere((s) => s.isEmpty);
@@ -334,7 +342,7 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
           return ListTile(
             leading: const Icon(Icons.folder, color: light),
             title: Text(folder['name']),
-            subtitle: Text('${AppStrings.modified_prefix}${folder['modified']}'),
+            subtitle: Text('${l10n.modifiedPrefix}${folder['modified']}'),
             trailing: IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
               onPressed: () => _confirmDelete(folder['path'], folder['name']),
@@ -349,7 +357,7 @@ class _BrowseFilesPageState extends State<BrowseFilesPage> {
           return ListTile(
             leading: const Icon(Icons.insert_drive_file, color: primary),
             title: Text(file['name']),
-            subtitle: Text('${AppStrings.size_prefix}${file['size']} bytes\n${AppStrings.modified_prefix}${file['modified']}'),
+            subtitle: Text('${l10n.sizePrefix}${file['size']} bytes\n${l10n.modifiedPrefix}${file['modified']}'),
             trailing: IconButton(
               icon: const Icon(Icons.delete, color: Colors.red),
               onPressed: () => _confirmDelete(file['path'], file['name']),

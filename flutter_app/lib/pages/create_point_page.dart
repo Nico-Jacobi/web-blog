@@ -15,7 +15,7 @@ import '../model/interest_point.dart';
 import '../model/media_file.dart';
 import '../model/trip.dart';
 import '../services/storage_service.dart';
-import '../strings.dart';
+import 'package:australien_blog_app/l10n/app_localizations.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/info_icon.dart';
 import '../widgets/travel_method_dialog.dart';
@@ -372,9 +372,10 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
   }
 
   Future<void> _saveData() async {
+    final l10n = AppLocalizations.of(context)!;
     if (_titleImage == null) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text(AppStrings.error_title_image_required)),
+        SnackBar(content: Text(l10n.errorTitleImageRequired)),
       );
       return;
     }
@@ -462,9 +463,12 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     } catch (e) {
       if (mounted) Navigator.pop(context);
       debugPrint("Error saving data: $e");
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text("Error saving data")),
-      );
+      if (mounted) {
+        final l10nErr = AppLocalizations.of(context)!;
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(l10nErr.errorSavingData)),
+        );
+      }
     }
   }
 
@@ -529,15 +533,29 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       return true;
     }
 
+    final l10n = AppLocalizations.of(context)!;
     final shouldDiscard = await GradientConfirmDialog.show(
       context,
-      title: AppStrings.discard_changes_title,
-      content: AppStrings.discard_changes_message,
-      confirmText: AppStrings.button_discard,
-      cancelText: AppStrings.button_cancel,
+      title: l10n.discardChangesTitle,
+      content: l10n.discardChangesMessage,
+      confirmText: l10n.buttonDiscard,
+      cancelText: l10n.buttonCancel,
     );
 
     return shouldDiscard ?? false;
+  }
+
+  String _getTripMethodLabel(BuildContext context, TripMethod method) {
+    final l10n = AppLocalizations.of(context)!;
+    switch (method) {
+      case TripMethod.boat:  return l10n.tripMethodBoat;
+      case TripMethod.car:   return l10n.tripMethodCar;
+      case TripMethod.rv:    return l10n.tripMethodRv;
+      case TripMethod.plane: return l10n.tripMethodPlane;
+      case TripMethod.foot:  return l10n.tripMethodFoot;
+      case TripMethod.misc:  return l10n.tripMethodMisc;
+      case TripMethod.bus:   return l10n.tripMethodBus;
+    }
   }
 
   Widget _buildField(TextEditingController ctrl, String label, {String? hint, int maxLines = 1, IconData? icon}) {
@@ -605,12 +623,13 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return WillPopScope(
       onWillPop: _onWillPop,
       child: Scaffold(
         backgroundColor: Colors.grey[50],
         appBar: AppBar(
-          title: Text(_isEditMode ? AppStrings.add_point_title_edit : AppStrings.add_point_title_new),
+          title: Text(_isEditMode ? l10n.addPointTitleEdit : l10n.addPointTitleNew),
           systemOverlayStyle: const SystemUiOverlayStyle(
             systemNavigationBarColor: Colors.transparent,
             statusBarColor: Colors.transparent,
@@ -621,7 +640,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
           backgroundColor: accent,
           foregroundColor: Colors.white,
           shape: const RoundedRectangleBorder(borderRadius: BorderRadius.vertical(bottom: Radius.circular(24))),
-          actions: [InfoIcon(infoText: AppStrings.info_date_location)],
+          actions: [InfoIcon(infoText: l10n.infoDateLocation)],
         ),
         body: Form(
           key: _formKey,
@@ -646,19 +665,19 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Icon(Icons.add_photo_alternate_outlined, size: 64, color: primary),
-                      Text(AppStrings.add_point_title_image, style: const TextStyle(color: primary, fontWeight: FontWeight.bold)),
+                      Text(l10n.addPointTitleImage, style: const TextStyle(color: primary, fontWeight: FontWeight.bold)),
                     ],
                   ),
                 ),
               ),
               const SizedBox(height: 24),
-              _buildField(_nameCtrl, AppStrings.field_name, icon: Icons.label_outline),
-              _buildField(_shortDescCtrl, AppStrings.field_short_description, icon: Icons.description_outlined),
+              _buildField(_nameCtrl, l10n.fieldName, icon: Icons.label_outline),
+              _buildField(_shortDescCtrl, l10n.fieldShortDescription, icon: Icons.description_outlined),
               Row(
                 children: [
-                  Expanded(child: _buildField(_latCtrl, AppStrings.field_latitude, hint: "0.0000", icon: Icons.place_outlined)),
+                  Expanded(child: _buildField(_latCtrl, l10n.fieldLatitude, hint: "0.0000", icon: Icons.place_outlined)),
                   const SizedBox(width: 12),
-                  Expanded(child: _buildField(_lonCtrl, AppStrings.field_longitude, hint: "0.0000", icon: Icons.place_outlined)),
+                  Expanded(child: _buildField(_lonCtrl, l10n.fieldLongitude, hint: "0.0000", icon: Icons.place_outlined)),
                   const SizedBox(width: 8),
                   Container(
                     height: 56, width: 56,
@@ -673,16 +692,16 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                           side: const BorderSide(color: pale),
                         ),
                       ),
-                      tooltip: AppStrings.tooltip_pick_on_map,
+                      tooltip: l10n.tooltipPickOnMap,
                     ),
                   ),
                 ],
               ),
-              _buildField(_dateCtrl, AppStrings.field_date, hint: "DD/MM/YYYY", icon: Icons.calendar_today_outlined),
-              _buildField(_descCtrl, AppStrings.field_full_description, maxLines: 8, icon: Icons.notes_outlined),
+              _buildField(_dateCtrl, l10n.fieldDate, hint: "DD/MM/YYYY", icon: Icons.calendar_today_outlined),
+              _buildField(_descCtrl, l10n.fieldFullDescription, maxLines: 8, icon: Icons.notes_outlined),
               Row(
                 children: [
-                  Text(AppStrings.label_media_gallery, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey[800])),
+                  Text(l10n.labelMediaGallery, style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16, color: Colors.grey[800])),
                   IconButton(onPressed: _pickOtherMedia, icon: const Icon(Icons.add_circle, color: primary, size: 32)),
                 ],
               ),
@@ -770,8 +789,8 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                             child: Column(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
-                                const Text(AppStrings.link_previous_title, style: TextStyle(fontWeight: FontWeight.bold)),
-                                Text("${AppStrings.link_previous_connect_to}${_lastPoint!.name}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
+                                Text(l10n.linkPreviousTitle, style: const TextStyle(fontWeight: FontWeight.bold)),
+                                Text("${l10n.linkPreviousConnectTo}${_lastPoint!.name}", style: const TextStyle(fontSize: 12, color: Colors.grey)),
                               ],
                             ),
                           ),
@@ -802,9 +821,9 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text(AppStrings.travel_method_title, style: TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
+                                    Text(l10n.travelMethodTitle, style: const TextStyle(fontSize: 12, color: Colors.grey, fontWeight: FontWeight.w500)),
                                     const SizedBox(height: 4),
-                                    Text(_selectedMethod.label, style: const TextStyle(fontSize: 16, color: primary, fontWeight: FontWeight.bold)),
+                                    Text(_getTripMethodLabel(context, _selectedMethod), style: const TextStyle(fontSize: 16, color: primary, fontWeight: FontWeight.bold)),
                                   ],
                                 ),
                               ),
@@ -824,7 +843,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                     backgroundColor: accent,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                   ),
-                  child: Text(_isEditMode ? AppStrings.button_update_point : AppStrings.button_save_point, style: const TextStyle(fontSize: 16, color: Colors.white)),
+                  child: Text(_isEditMode ? l10n.buttonUpdatePoint : l10n.buttonSavePoint, style: const TextStyle(fontSize: 16, color: Colors.white)),
                 ),
               ),
               const SizedBox(height: 30),

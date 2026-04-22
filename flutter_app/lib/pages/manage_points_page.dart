@@ -15,7 +15,7 @@ import '../widgets/point_with_route_card.dart';
 import '../widgets/waypoint_card.dart';
 import '../services/storage_service.dart';
 import '../widgets/travel_method_dialog.dart';
-import '../strings.dart';
+import 'package:australien_blog_app/l10n/app_localizations.dart';
 import 'coordinate_picker.dart';
 import 'create_point_page.dart';
 import 'create_waypoint_page.dart';
@@ -94,7 +94,10 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
         _rebuildTripIndex();
       });
     } catch (e) {
-      _showErrorSnackBar('${AppStrings.error_loading_points} $e');
+      if (mounted) {
+        final l10n = AppLocalizations.of(context)!;
+        _showErrorSnackBar('${l10n.errorLoadingPoints} $e');
+      }
     } finally {
       if (mounted) setState(() => _isLoading = false);
     }
@@ -137,21 +140,22 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
   }
 
   Future<void> _deletePoint(InterestPoint point) async {
+    final l10n = AppLocalizations.of(context)!;
     final String dialogTitle = point.isWaypoint
-        ? AppStrings.waypoint_delete_title
-        : AppStrings.delete_point_title;
+        ? l10n.waypointDeleteTitle
+        : l10n.deletePointTitle;
 
     final String dialogContent = point.isWaypoint
-        ? '${AppStrings.waypoint_delete_content}\n'
+        ? '${l10n.waypointDeleteContent}\n'
             '(${point.lat?.toStringAsFixed(5) ?? '-'}, ${point.lon?.toStringAsFixed(5) ?? '-'})'
-        : '${AppStrings.delete_point_confirm_prefix}\n"${point.name}"\n${AppStrings.delete_point_confirm_suffix}';
+        : '${l10n.deletePointConfirmPrefix}\n"${point.name}"\n${l10n.deletePointConfirmSuffix}';
 
     final confirm = await GradientConfirmDialog.show(
       context,
       title: dialogTitle,
       content: dialogContent,
-      confirmText: AppStrings.button_delete,
-      cancelText: AppStrings.button_cancel,
+      confirmText: l10n.buttonDelete,
+      cancelText: l10n.buttonCancel,
     );
     if (confirm != true) return;
 
@@ -186,12 +190,16 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
       await _saveData();
       await _loadPoints();
 
+      if (!mounted) return;
+      final l10nAfter = AppLocalizations.of(context)!;
       final String successLabel = point.isWaypoint
-          ? AppStrings.waypoint_label
+          ? l10nAfter.waypointLabel
           : '"${point.name}"';
-      _showSuccessSnackBar('${AppStrings.snack_deleted} $successLabel');
+      _showSuccessSnackBar('${l10nAfter.snackDeleted} $successLabel');
     } catch (e) {
-      _showErrorSnackBar('${AppStrings.snack_error} $e');
+      if (!mounted) return;
+      final l10nErr = AppLocalizations.of(context)!;
+      _showErrorSnackBar('${l10nErr.snackError} $e');
     }
   }
 
@@ -219,7 +227,8 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
       waypoint.touch();
     });
     await _saveData();
-    _showSuccessSnackBar(AppStrings.waypoint_position_updated);
+    if (!mounted) return;
+    _showSuccessSnackBar(AppLocalizations.of(context)!.waypointPositionUpdated);
   }
 
   /// Launches the CreateWaypointPage and appends the returned waypoint.
@@ -251,7 +260,8 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
     });
     await _saveData();
     await _loadPoints();
-    _showSuccessSnackBar(AppStrings.waypoint_added);
+    if (!mounted) return;
+    _showSuccessSnackBar(AppLocalizations.of(context)!.waypointAdded);
   }
 
   void _reorderPointsWithRoutes(int oldIndex, int newIndex) {
@@ -324,7 +334,8 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
         trip.touch();
       });
       await _saveData();
-      _showSuccessSnackBar(AppStrings.snack_method_updated);
+      if (!mounted) return;
+      _showSuccessSnackBar(AppLocalizations.of(context)!.snackMethodUpdated);
     }
   }
 
@@ -361,11 +372,12 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Scaffold(
       backgroundColor: Colors.grey[50],
       appBar: AppBar(
-        title: const Text(AppStrings.manage_points_title),
-        systemOverlayStyle: SystemUiOverlayStyle(
+        title: Text(l10n.managePointsTitle),
+        systemOverlayStyle: const SystemUiOverlayStyle(
           systemNavigationBarColor: Colors.transparent,
           statusBarColor: Colors.transparent,
           systemNavigationBarIconBrightness: Brightness.light,
@@ -377,8 +389,8 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
         foregroundColor: Colors.white,
         shape: const RoundedRectangleBorder(
             borderRadius: BorderRadius.vertical(bottom: Radius.circular(24))),
-        actions: const [
-          InfoIcon(infoText: AppStrings.info_manage_points),
+        actions: [
+          InfoIcon(infoText: l10n.infoManagePoints),
         ],
       ),
       body: _isLoading
@@ -392,12 +404,13 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
         backgroundColor: accent,
         foregroundColor: Colors.white,
         icon: const Icon(Icons.flag_outlined),
-        label: const Text(AppStrings.button_add_waypoint),
+        label: Text(l10n.buttonAddWaypoint),
       ),
     );
   }
 
   Widget _buildEmptyState() {
+    final l10n = AppLocalizations.of(context)!;
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
@@ -411,10 +424,10 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
                 color: primary), // Refactored to theme primary
           ),
           const SizedBox(height: 24),
-          const Text(AppStrings.empty_points_title,
-              style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
+          Text(l10n.emptyPointsTitle,
+              style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold)),
           const SizedBox(height: 8),
-          Text(AppStrings.empty_points_subtitle,
+          Text(l10n.emptyPointsSubtitle,
               style: TextStyle(fontSize: 15, color: Colors.grey[600])),
         ],
       ),

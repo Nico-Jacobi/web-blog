@@ -6,16 +6,18 @@ import 'package:australien_blog_app/pages/manage_points_page.dart';
 import 'package:australien_blog_app/pages/sync_status_page.dart';
 import 'package:australien_blog_app/services/storage_service.dart';
 import 'package:australien_blog_app/services/sync_service.dart';
-import 'package:australien_blog_app/strings.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:australien_blog_app/l10n/app_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
+import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
 import 'colors.dart';
 import 'pages/start_page.dart';
 import 'pages/browse_files_page.dart';
 import 'pages/settings_page.dart';
+import 'providers/language_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api_keys.dart';
 
@@ -65,6 +67,9 @@ void main() async {
 
 
 
+  final languageProvider = LanguageProvider();
+  await languageProvider.load();
+
   SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,   // portrait only
     // DeviceOrientation.portraitDown, // optional: allow upside-down
@@ -80,7 +85,12 @@ void main() async {
     await Permission.location.request();
     await Permission.accessMediaLocation.request();
 
-    runApp(MyApp());
+    runApp(
+      ChangeNotifierProvider.value(
+        value: languageProvider,
+        child: const MyApp(),
+      ),
+    );
   });
 
 }
@@ -92,7 +102,11 @@ class MyApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     // main.dart
-    return MaterialApp(
+    return Consumer<LanguageProvider>(
+      builder: (context, langProvider, child) => MaterialApp(
+      locale: langProvider.locale,
+      supportedLocales: AppLocalizations.supportedLocales,
+      localizationsDelegates: AppLocalizations.localizationsDelegates,
       debugShowCheckedModeBanner: false,
       theme: ThemeData(
         useMaterial3: true,
@@ -163,6 +177,7 @@ class MyApp extends StatelessWidget {
         '/settings': (context) => const SettingsPage(),
         '/sync_files': (context) => const SyncStatusPage(),
       },
+    ),
     );
   }
 
@@ -190,7 +205,7 @@ class MyApp extends StatelessWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       Text(
-                        AppStrings.sync_spinner_text,
+                        AppLocalizations.of(context)!.syncSpinnerText,
                         style: const TextStyle(color: Colors.white, fontSize: 12),
                       ),
                       const SizedBox(width: 8),
@@ -235,21 +250,36 @@ void callbackDispatcher() {
       const NotificationDetails platformChannelSpecifics =
       NotificationDetails(android: androidPlatformChannelSpecifics);
 
-      final funMessages = [
+      final prefs = await SharedPreferences.getInstance();
+      final lang = prefs.getString('app_language') ?? 'de';
+      final isEn = lang == 'en';
+
+      final funMessagesDE = [
         'Alle Kängurus wurden erfolgreich durchs Kabel geschubst.',
         'Deine Koalas sind sicher im Cloud-Eukalyptus gelandet.',
         'Krokodile abgewehrt, Daten erfolgreich hochgeladen.',
         'Daten-Roadtrip beendet. Alles sicher verstaut!',
         'Wombats haben deine Dateien artgerecht vergraben.',
-        'Die Emus haben den Daten nach Hause gebracht.',
+        'Die Emus haben die Daten nach Hause gebracht.',
+      ];
+      final funMessagesEN = [
+        'All kangaroos successfully pushed through the cable.',
+        'Your koalas have safely landed in the cloud eucalyptus.',
+        'Crocodiles repelled, data successfully uploaded.',
+        'Data road trip complete. Everything stored safely!',
+        'Wombats have buried your files in their natural habitat.',
+        'The emus have brought the data home.',
       ];
 
+      final funMessages = isEn ? funMessagesEN : funMessagesDE;
       final randomText = funMessages[Random().nextInt(funMessages.length)];
 
       await flutterLocalNotificationsPlugin.show(
         0,
-        success ? 'Sync abgeschlossen' : 'Sync fehlgeschlagen',
-        success ? randomText : 'Die Kängurus sind entwischt.',
+        success
+            ? (isEn ? 'Sync complete' : 'Sync abgeschlossen')
+            : (isEn ? 'Sync failed' : 'Sync fehlgeschlagen'),
+        success ? randomText : (isEn ? 'The kangaroos escaped.' : 'Die Kängurus sind entwischt.'),
         platformChannelSpecifics,
       );
     }

@@ -1,8 +1,6 @@
 // --- New Trip Element Model ---
 import 'package:flutter/material.dart';
 
-import '../strings.dart';
-
 enum TripMethod {
   boat,
   car,
@@ -31,24 +29,6 @@ enum TripMethod {
     }
   }
 
-  String get label {
-    switch (this) {
-      case TripMethod.boat:
-        return AppStrings.tripMethod_boat;
-      case TripMethod.car:
-        return AppStrings.tripMethod_car;
-      case TripMethod.rv:
-        return AppStrings.tripMethod_rv;
-      case TripMethod.plane:
-        return AppStrings.tripMethod_plane;
-      case TripMethod.foot:
-        return AppStrings.tripMethod_foot;
-      case TripMethod.misc:
-        return AppStrings.tripMethod_misc;
-      case TripMethod.bus:
-        return AppStrings.tripMethod_bus;
-    }
-  }
 }
 
 class TripElement {

@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:australien_blog_app/l10n/app_localizations.dart';
 import '../colors.dart';
-import '../strings.dart';
 
 class InfoIcon extends StatelessWidget {
   final String infoText;
@@ -9,6 +9,7 @@ class InfoIcon extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return IconButton(
       icon: const Icon(Icons.info_outline, size: 24, color: Colors.white),
       onPressed: () {
@@ -21,7 +22,7 @@ class InfoIcon extends StatelessWidget {
               children: [
                 Icon(Icons.info_outline, color: accent, size: 28),
                 const SizedBox(width: 12),
-                const Text(AppStrings.info_dialog_title),
+                Text(l10n.infoDialogTitle),
               ],
             ),
             content: Text(
@@ -31,13 +32,13 @@ class InfoIcon extends StatelessWidget {
             actions: [
               TextButton(
                 onPressed: () => Navigator.pop(context),
-                child: Text(AppStrings.button_close, style: TextStyle(color: accent)),
+                child: Text(l10n.buttonClose, style: TextStyle(color: accent)),
               ),
             ],
           ),
         );
       },
-      tooltip: AppStrings.info_tooltip,
+      tooltip: l10n.infoTooltip,
     );
   }
 }

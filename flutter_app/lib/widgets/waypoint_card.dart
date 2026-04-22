@@ -1,9 +1,9 @@
 // widgets/waypoint_card.dart
 import 'package:flutter/material.dart';
+import 'package:australien_blog_app/l10n/app_localizations.dart';
 import '../colors.dart';
 import '../model/interest_point.dart';
 import '../model/trip.dart';
-import '../strings.dart';
 import 'dashed_line_painter.dart';
 
 /// Compact card variant for Waypoint InterestPoints (isWaypoint == true).
@@ -33,11 +33,12 @@ class WaypointCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context)!;
     return Column(
       key: key,
       children: [
         if (tripBefore != null) _buildRouteElement(),
-        _buildWaypointCard(),
+        _buildWaypointCard(context, l10n),
       ],
     );
   }
@@ -89,7 +90,7 @@ class WaypointCard extends StatelessWidget {
     );
   }
 
-  Widget _buildWaypointCard() {
+  Widget _buildWaypointCard(BuildContext context, AppLocalizations l10n) {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       decoration: BoxDecoration(
@@ -112,8 +113,8 @@ class WaypointCard extends StatelessWidget {
             const SizedBox(width: 12),
             _buildWaypointIcon(),
             const SizedBox(width: 14),
-            Expanded(child: _buildWaypointInfo()),
-            _buildActionButtons(),
+            Expanded(child: _buildWaypointInfo(l10n)),
+            _buildActionButtons(l10n),
           ],
         ),
       ),
@@ -165,14 +166,14 @@ class WaypointCard extends StatelessWidget {
     );
   }
 
-  Widget _buildWaypointInfo() {
+  Widget _buildWaypointInfo(AppLocalizations l10n) {
     final lat = point.lat?.toStringAsFixed(5) ?? '-';
     final lon = point.lon?.toStringAsFixed(5) ?? '-';
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          AppStrings.waypoint_label,
+          l10n.waypointLabel,
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w600,
@@ -199,7 +200,7 @@ class WaypointCard extends StatelessWidget {
     );
   }
 
-  Widget _buildActionButtons() {
+  Widget _buildActionButtons(AppLocalizations l10n) {
     return Row(
       mainAxisSize: MainAxisSize.min,
       children: [
@@ -215,7 +216,7 @@ class WaypointCard extends StatelessWidget {
               color: primary,
             ),
             onPressed: onChangePosition,
-            tooltip: AppStrings.button_change_position,
+            tooltip: l10n.buttonChangePosition,
             padding: const EdgeInsets.all(8),
             constraints: const BoxConstraints(),
           ),
@@ -229,7 +230,7 @@ class WaypointCard extends StatelessWidget {
           child: IconButton(
             icon: Icon(Icons.delete_outline, size: 20, color: Colors.red[500]),
             onPressed: onDelete,
-            tooltip: AppStrings.button_delete,
+            tooltip: l10n.buttonDelete,
             padding: const EdgeInsets.all(8),
             constraints: const BoxConstraints(),
           ),

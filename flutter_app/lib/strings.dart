@@ -132,4 +132,21 @@ class AppStrings {
   static const String perm_denied_snackbar = 'Speicherberechtigung ist erforderlich, um Dateien im Downloads-Ordner herunterzuladen';
   static const String download_success_prefix = '✅ Backup gespeichert in:\nDownload/';
 
+  // Waypoint (manage page + card)
+  static const String waypoint_label = 'Wegpunkt';
+  static const String waypoint_delete_title = 'Wegpunkt löschen?';
+  static const String waypoint_delete_content = 'Diesen Wegpunkt wirklich entfernen?';
+  static const String button_change_position = 'Position ändern';
+  static const String button_add_waypoint = 'Wegpunkt';
+  static const String waypoint_position_updated = 'Position aktualisiert';
+  static const String waypoint_added = 'Wegpunkt hinzugefügt';
+
+  // CreateWaypointPage
+  static const String create_waypoint_title = 'Wegpunkt erstellen';
+  static const String choose_on_map = 'Auf Karte auswählen';
+  static const String enter_coordinates_manually = 'Koordinaten manuell eingeben';
+  static const String label_lat = 'Breitengrad (Lat)';
+  static const String label_lon = 'Längengrad (Lon)';
+  static const String error_invalid_coordinates = 'Ungültige Koordinaten';
+  static const String button_save = 'Speichern';
 }

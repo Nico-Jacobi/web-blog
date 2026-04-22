@@ -92,6 +92,7 @@ export default function PointDetail({ point, trip, onClose }) {
     };
 
     if (!point) return null;
+    if (point.isWaypoint) return null;
 
     return (
         <>

@@ -2,6 +2,9 @@ import React from 'react';
 import { Calendar, MapPin } from 'lucide-react';
 
 export default function HeroSection({ point, titleImageUrl }) {
+    if (!point) return null;
+    if (point.isWaypoint) return null;
+
     return (
         <div className="mb-4 md:mb-8 rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl border-2 md:border-4 border-white">
             {titleImageUrl ? (

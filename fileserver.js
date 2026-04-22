@@ -846,19 +846,26 @@ app.post('/write', checkAuth, async (req, res) => {
         console.log(`✅ WRITE SUCCESS: "${filePath}" (${size} bytes)`);
         res.json({ message: "Written", path: filePath });
 
-        // Auto-notify subscribers only when a new point is added to points.json
+        // Auto-notify subscribers only when a new NORMAL point is added to points.json.
+        // Waypoints (isWaypoint === true) trigger no notification — they have no name
+        // and would produce empty-body pushes.
         if (filePath.endsWith('points.json')) {
             try {
                 const points = typeof content === 'string' ? JSON.parse(content) : content;
-                if (Array.isArray(points) && points.length > prevPoints.length) {
-                    const prevIds = new Set(prevPoints.map(p => p.id));
-                    const newPoints = points.filter(p => !prevIds.has(p.id));
-                    const latest = newPoints.reduce((a, b) =>
-                        ((b.tripOrder ?? -1) > (a.tripOrder ?? -1) ? b : a), newPoints[0]);
-                    sendPushToAll({
-                        title: 'Jenny hat was Neues gepostet! 🇦🇺',
-                        body: latest?.name || 'Schau dir an, wo es als nächstes hingeht!'
-                    }).catch(err => console.error('Push notify error:', err.message));
+                if (Array.isArray(points)) {
+                    const realPrev = prevPoints.filter(p => p.isWaypoint !== true);
+                    const realNow = points.filter(p => p.isWaypoint !== true);
+
+                    if (realNow.length > realPrev.length) {
+                        const prevIds = new Set(realPrev.map(p => p.id));
+                        const newPoints = realNow.filter(p => !prevIds.has(p.id));
+                        const latest = newPoints.reduce((a, b) =>
+                            ((b.tripOrder ?? -1) > (a.tripOrder ?? -1) ? b : a), newPoints[0]);
+                        sendPushToAll({
+                            title: 'Jenny hat was Neues gepostet! 🇦🇺',
+                            body: latest?.name || 'Schau dir an, wo es als nächstes hingeht!'
+                        }).catch(err => console.error('Push notify error:', err.message));
+                    }
                 }
             } catch (err) {
                 console.error('Push notify check failed:', err.message);

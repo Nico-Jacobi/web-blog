@@ -25,13 +25,15 @@ export default function App() {
     // Slug ↔ ID resolution using trip data
     const resolveSlug = useCallback((slug) => {
         if (!trip) return null;
-        return trip.points.find(p => slugify(p.title) === slug)?.id ?? null;
+        if (!slug) return null;
+        return trip.points.find(p => !p.isWaypoint && slugify(p.title) === slug)?.id ?? null;
     }, [trip]);
 
     const getSlug = useCallback((id) => {
         if (!trip) return null;
         const point = trip.getPoint(id);
-        return point ? slugify(point.title) : null;
+        if (!point || point.isWaypoint) return null;
+        return slugify(point.title);
     }, [trip]);
 
     const { applyInitialPath } = useHistoryNavigation({

@@ -1,0 +1,52 @@
+{
+  "feature": "waypoint-empty-points",
+  "masterplan_path": "docs/features/waypoint-empty-points/Masterplan.md",
+
+  "files": {
+    "created": [],
+    "deleted": [],
+    "modified": []
+  },
+
+  "new_exports": {
+    "services": [],
+    "components": [],
+    "hooks": [],
+    "types": [],
+    "utils": [],
+    "endpoints": []
+  },
+
+  "breaking_changes": [],
+  "migrations": [],
+
+  "tests": {
+    "unit": {
+      "written": [],
+      "pending": [],
+      "skipped_reason": "No test infrastructure exists in project (Flutter has only default counter test, website has no test setup)."
+    },
+    "integration": {
+      "written": [],
+      "pending": []
+    },
+    "e2e": {
+      "written": [],
+      "pending": []
+    }
+  },
+
+  "important_decisions": [
+    "isWaypoint as explicit boolean field (default false) — backward-compatible with old JSON",
+    "Strict === true check in Point.js constructor for safety",
+    "Point.title = '' (empty string) for waypoints, NOT 'Untitled' — required for slug filter in Plan 07",
+    "Reuse existing CoordinatePickerPage instead of building new map picker"
+  ],
+  "notes": [],
+
+  "_meta": {
+    "schema_version": "2.0",
+    "last_updated": "2026-04-22",
+    "last_plan_completed": null
+  }
+}

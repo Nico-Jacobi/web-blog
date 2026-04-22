@@ -5,7 +5,8 @@ export class Point {
         this.password = password;
 
         this.id = data.id;
-        this.title = data.name || 'Untitled';
+        this.isWaypoint = data.isWaypoint === true;
+        this.title = this.isWaypoint ? '' : (data.name || 'Untitled');
         this.desc = data.shortDescription || '';
         this.description = data.description || '';
         this.date = data.date || '';

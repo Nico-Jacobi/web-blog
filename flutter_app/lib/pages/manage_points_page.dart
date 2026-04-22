@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:latlong2/latlong.dart';
 import 'package:path/path.dart' as path;
 import 'package:path_provider/path_provider.dart';
 
@@ -11,10 +12,13 @@ import '../model/trip.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/info_icon.dart';
 import '../widgets/point_with_route_card.dart';
+import '../widgets/waypoint_card.dart';
 import '../services/storage_service.dart';
 import '../widgets/travel_method_dialog.dart';
 import '../strings.dart';
+import 'coordinate_picker.dart';
 import 'create_point_page.dart';
+import 'create_waypoint_page.dart';
 
 class ManagePointsPage extends StatefulWidget {
   const ManagePointsPage({super.key});
@@ -109,6 +113,7 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
         date: p.date,
         description: p.description,
         tripOrder: p.tripOrder,
+        isWaypoint: p.isWaypoint,
       );
     }).toList();
 
@@ -116,18 +121,29 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
   }
 
   Future<void> _deletePoint(InterestPoint point) async {
+    final String dialogTitle = point.isWaypoint
+        ? AppStrings.waypoint_delete_title
+        : AppStrings.delete_point_title;
+
+    final String dialogContent = point.isWaypoint
+        ? '${AppStrings.waypoint_delete_content}\n'
+            '(${point.lat?.toStringAsFixed(5) ?? '-'}, ${point.lon?.toStringAsFixed(5) ?? '-'})'
+        : '${AppStrings.delete_point_confirm_prefix}\n"${point.name}"\n${AppStrings.delete_point_confirm_suffix}';
+
     final confirm = await GradientConfirmDialog.show(
       context,
-      title: AppStrings.delete_point_title,
-      content: '${AppStrings.delete_point_confirm_prefix}\n"${point
-          .name}"\n${AppStrings.delete_point_confirm_suffix}',
+      title: dialogTitle,
+      content: dialogContent,
       confirmText: AppStrings.button_delete,
       cancelText: AppStrings.button_cancel,
     );
     if (confirm != true) return;
 
     try {
-      await _storage.deletePointMedia(point);
+      // Waypoints have no media files -> skip the media-deletion round-trip.
+      if (!point.isWaypoint) {
+        await _storage.deletePointMedia(point);
+      }
       _tripElements.removeWhere((trip) => trip.pointId2 == point.id);
 
       final deletedOrder = point.tripOrder;
@@ -139,7 +155,11 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
 
       await _saveData();
       await _loadPoints();
-      _showSuccessSnackBar('${AppStrings.snack_deleted} "${point.name}"');
+
+      final String successLabel = point.isWaypoint
+          ? AppStrings.waypoint_label
+          : '"${point.name}"';
+      _showSuccessSnackBar('${AppStrings.snack_deleted} $successLabel');
     } catch (e) {
       _showErrorSnackBar('${AppStrings.snack_error} $e');
     }
@@ -153,6 +173,49 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
       ),
     );
     if (result == true) await _loadPoints();
+  }
+
+  /// Opens the CoordinatePicker to update a waypoint's lat/lon in place.
+  Future<void> _changeWaypointPosition(InterestPoint waypoint) async {
+    final LatLng? result = await Navigator.push<LatLng>(
+      context,
+      MaterialPageRoute(builder: (_) => const CoordinatePickerPage()),
+    );
+    if (result == null) return;
+
+    setState(() {
+      waypoint.lat = result.latitude;
+      waypoint.lon = result.longitude;
+    });
+    await _saveData();
+    _showSuccessSnackBar(AppStrings.waypoint_position_updated);
+  }
+
+  /// Launches the CreateWaypointPage and appends the returned waypoint.
+  /// Also wires up a TripElement to the previously-last point so the route
+  /// graph stays connected.
+  Future<void> _addWaypoint() async {
+    final result = await Navigator.push<InterestPoint>(
+      context,
+      MaterialPageRoute(builder: (_) => const CreateWaypointPage()),
+    );
+    if (result == null) return;
+
+    setState(() {
+      result.tripOrder = _points.length;
+      final InterestPoint? previousLast =
+          _points.isNotEmpty ? _points.last : null;
+      _points.add(result);
+      if (previousLast != null) {
+        _tripElements.add(
+          TripElement(pointId1: previousLast.id, pointId2: result.id),
+        );
+        _rebuildTripIndex();
+      }
+    });
+    await _saveData();
+    await _loadPoints();
+    _showSuccessSnackBar(AppStrings.waypoint_added);
   }
 
   void _reorderPointsWithRoutes(int oldIndex, int newIndex) {
@@ -277,6 +340,13 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
           : _points.isEmpty
           ? _buildEmptyState()
           : _buildPointsList(),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: _addWaypoint,
+        backgroundColor: accent,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.flag_outlined),
+        label: const Text(AppStrings.button_add_waypoint),
+      ),
     );
   }
 
@@ -347,6 +417,20 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
               _saveData();
               tripBefore = newTrip;
             }
+          }
+
+          if (point.isWaypoint) {
+            return WaypointCard(
+              key: ValueKey('waypoint_${point.id}'),
+              point: point,
+              orderNumber: index + 1,
+              tripBefore: tripBefore,
+              onDelete: () => _deletePoint(point),
+              onChangePosition: () => _changeWaypointPosition(point),
+              onChangeTripMethod: tripBefore != null
+                  ? () => _changeTripMethod(tripBefore!)
+                  : null,
+            );
           }
 
           return PointWithRouteCard(

@@ -12,6 +12,7 @@ class InterestPoint {
   String? date;
   String description;
   int tripOrder; // New field for ordering
+  bool isWaypoint;
 
   InterestPoint({
     required this.id,
@@ -24,6 +25,7 @@ class InterestPoint {
     this.date,
     this.description = '',
     required this.tripOrder,
+    this.isWaypoint = false,
   });
 
   Map<String, dynamic> toJson() => {
@@ -37,6 +39,7 @@ class InterestPoint {
     'date': date,
     'description': description,
     'tripOrder': tripOrder,
+    'isWaypoint': isWaypoint,
   };
 
   factory InterestPoint.fromJson(Map<String, dynamic> json) {
@@ -51,6 +54,7 @@ class InterestPoint {
       date: json['date'],
       description: json['description'] ?? '',
       tripOrder: json['tripOrder'] ?? 0,
+      isWaypoint: json['isWaypoint'] == true,
     );
   }
 }

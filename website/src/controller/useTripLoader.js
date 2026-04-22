@@ -29,15 +29,19 @@ export function useTripLoader() {
             .then(loadedTrip => {
                 setTrip(loadedTrip);
 
+                // Waypoints zählen nicht als "Stops" — sie haben keinen Inhalt und
+                // sollen weder Pulse-Rings auf der Karte noch Auto-Scroll triggern.
+                const realPoints = loadedTrip.points.filter(p => !p.isWaypoint);
+
                 const lastKnown = parseInt(localStorage.getItem('lastKnownPointOrder')) || 0;
-                const orders = loadedTrip.points.map(p => p.order);
+                const orders = realPoints.map(p => p.order);
                 const maxOrder = orders.length > 0 ? Math.max(...orders) : 0;
                 const newIds = new Set(
-                    loadedTrip.points.filter(p => p.order > lastKnown).map(p => p.id)
+                    realPoints.filter(p => p.order > lastKnown).map(p => p.id)
                 );
                 setNewPointIds(newIds);
 
-                const sorted = [...loadedTrip.points].sort((a, b) => a.order - b.order);
+                const sorted = [...realPoints].sort((a, b) => a.order - b.order);
                 const firstNew = sorted.find(p => newIds.has(p.id));
                 const target = firstNew || sorted[sorted.length - 1];
                 if (target) setInitialActiveId(target.id);

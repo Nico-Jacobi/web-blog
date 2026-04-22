@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } from 'react';
 import Legend from './Legend.jsx';
-import { createPopupContent, drawRoutes, addImageGpsMarkers, buildMarkerHtml, findClosestMarker } from './mapHelpers.js';
+import { createPopupContent, drawRoutes, addImageGpsMarkers, buildMarkerHtml, buildWaypointMarkerHtml, findClosestMarker } from './mapHelpers.js';
 
 const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop, leafletReady, trip, newPointIds }, ref) => {
     const mapRef = useRef(null);
@@ -153,6 +153,21 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
 function addPointMarkers(L, map, trip, newPointIds, markersRef, mapInteractionRef, onSelectStop, onOpenDetail) {
     trip.points.forEach(point => {
         if (!point.lat || !point.lng) return;
+
+        if (point.isWaypoint) {
+            // Small grey marker — no popup, no handler, not in markersRef
+            L.marker([point.lat, point.lng], {
+                zIndexOffset: 500,
+                interactive: false,
+                icon: L.divIcon({
+                    className: 'waypoint-marker',
+                    html: buildWaypointMarkerHtml(),
+                    iconSize: [10, 10],
+                    iconAnchor: [5, 5]
+                })
+            }).addTo(map);
+            return;
+        }
 
         const marker = L.marker([point.lat, point.lng], {
             zIndexOffset: 1000,

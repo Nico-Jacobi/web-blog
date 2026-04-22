@@ -1,6 +1,7 @@
 import React, { useRef, useEffect } from 'react';
 import StopCard from './StopCard';
 import RouteSegment from './RouteSegment';
+import { collapseWaypoints } from '../model/waypointCollapse.js';
 
 export default function Sidebar({ activeId, onSelectStop, onOpenDetail, trip, newPointIds }) {
     const firstNewRef = useRef(null);
@@ -21,6 +22,7 @@ export default function Sidebar({ activeId, onSelectStop, onOpenDetail, trip, ne
     useEffect(() => {
         if (!trip?.points) return;
         const urls = trip.points
+            .filter(p => !p.isWaypoint)
             .map(p => p.titleThumbUrl)
             .filter(Boolean)
             .reverse();
@@ -56,25 +58,33 @@ export default function Sidebar({ activeId, onSelectStop, onOpenDetail, trip, ne
                         Reiseverlauf
                     </h2>
                     <span className="bg-orange-50 text-orange-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                        {trip.points.length} Stopps
+                        {trip.points.filter(p => !p.isWaypoint).length} Stopps
                     </span>
                 </div>
                 <div className="h-1 w-8 bg-orange-500 mt-2 rounded-full" />
             </div>
 
             <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 pb-6">
-                {trip.points.map((point, index) => {
-                    const isFirstNew = !foundFirstNew && newPointIds.has(point.id);
-                    if (isFirstNew) foundFirstNew = true;
+                {(() => {
+                    const items = collapseWaypoints(trip.points, trip);
+                    // Index der normalen Stops für Priority + fromEnd-Berechnung
+                    const normalStops = trip.points.filter(p => !p.isWaypoint);
+                    const stopIndexById = new Map(normalStops.map((p, i) => [p.id, i]));
 
-                    // Load images newest→oldest: newest 5 get high priority,
-                    // since the sidebar auto-scrolls to the newest point.
-                    const fromEnd = trip.points.length - 1 - index;
-                    const priority = fromEnd < 5 ? 'high' : fromEnd < 15 ? 'auto' : 'low';
+                    return items.map((item, idx) => {
+                        if (item.type === 'segments') {
+                            return <RouteSegment key={`seg-${idx}`} badges={item.badges} />;
+                        }
+                        // type === 'stop'
+                        const point = item.point;
+                        const stopIndex = stopIndexById.get(point.id);
+                        const fromEnd = normalStops.length - 1 - stopIndex;
+                        const priority = fromEnd < 5 ? 'high' : fromEnd < 15 ? 'auto' : 'low';
+                        const isFirstNew = !foundFirstNew && newPointIds.has(point.id);
+                        if (isFirstNew) foundFirstNew = true;
 
-                    return (
-                        <React.Fragment key={point.id}>
-                            <div ref={isFirstNew ? firstNewRef : null}>
+                        return (
+                            <div key={point.id} ref={isFirstNew ? firstNewRef : null}>
                                 <StopCard
                                     point={point}
                                     isActive={activeId === point.id}
@@ -84,17 +94,9 @@ export default function Sidebar({ activeId, onSelectStop, onOpenDetail, trip, ne
                                     onMapClick={() => onSelectStop(point.id)}
                                 />
                             </div>
-
-                            {index < trip.points.length - 1 && (
-                                <RouteSegment
-                                    trip={trip}
-                                    fromPoint={point}
-                                    toPoint={trip.points[index + 1]}
-                                />
-                            )}
-                        </React.Fragment>
-                    );
-                })}
+                        );
+                    });
+                })()}
             </div>
         </aside>
     );

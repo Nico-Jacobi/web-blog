@@ -133,6 +133,12 @@ export function buildMarkerHtml(isNew) {
     return `<div style="width:36px; height:36px; display:flex; align-items:center; justify-content:center;">${dot}</div>`;
 }
 
+export function buildWaypointMarkerHtml() {
+    return `<div style="width:10px; height:10px; display:flex; align-items:center; justify-content:center;">
+                <div style="background:#9CA3AF; width:6px; height:6px; border-radius:50%; border:1px solid #fff; opacity:0.75;"></div>
+            </div>`;
+}
+
 /**
  * Finds the closest point or image marker within maxPx of a click.
  * Returns { type: 'stop'|'image', target, distance } or null.
@@ -143,6 +149,7 @@ export function findClosestMarker(map, containerPoint, trip, markersRef, imageMa
 
     trip.points.forEach(point => {
         if (!point.lat || !point.lng) return;
+        if (point.isWaypoint) return;
         const px = map.latLngToContainerPoint([point.lat, point.lng]);
         const dist = px.distanceTo(containerPoint);
         if (dist < closestStopDist) {

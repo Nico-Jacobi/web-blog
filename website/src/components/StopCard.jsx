@@ -2,6 +2,8 @@ import React from 'react';
 import { Calendar, MapPin } from 'lucide-react';
 
 export default function StopCard({ point, isActive, isNew, priority = 'auto', onInfoClick, onMapClick }) {
+    if (!point || point.isWaypoint) return null;
+
     const image = point.titleThumbUrl;
     const eager = priority === 'high';
 

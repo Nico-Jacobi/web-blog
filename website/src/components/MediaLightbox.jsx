@@ -92,7 +92,7 @@ export default function MediaLightbox({ media, currentIndex, onClose, onNavigate
                                     src={item.url}
                                     controls
                                     preload="none"
-                                    className="w-full h-full object-contain shadow-2xl bg-black"
+                                    className="w-full h-full object-contain bg-black"
                                     onClick={(e) => e.stopPropagation()}
                                 />
                             ) : (
@@ -109,7 +109,7 @@ export default function MediaLightbox({ media, currentIndex, onClose, onNavigate
                                     <img
                                         src={item.url}
                                         alt={`Slide ${index}`}
-                                        className="relative max-w-full max-h-full object-contain shadow-2xl select-none"
+                                        className="relative max-w-full max-h-full object-contain select-none"
                                         draggable={false}
                                         onClick={(e) => e.stopPropagation()}
                                         style={index === currentIndex ? {

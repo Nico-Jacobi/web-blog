@@ -16,6 +16,33 @@ export default function Sidebar({ activeId, onSelectStop, onOpenDetail, trip, ne
         }
     }, [trip, newPointIds]);
 
+    // Preload sidebar thumbnails newest→oldest so older stops are warm in the
+    // browser cache by the time the user scrolls up to them.
+    useEffect(() => {
+        if (!trip?.points) return;
+        const urls = trip.points
+            .map(p => p.titleThumbUrl)
+            .filter(Boolean)
+            .reverse();
+
+        let cancelled = false;
+        let cursor = 0;
+        const PARALLEL = 3;
+
+        const loadNext = () => {
+            if (cancelled) return;
+            const i = cursor++;
+            if (i >= urls.length) return;
+            const img = new Image();
+            img.onload = img.onerror = loadNext;
+            img.src = urls[i];
+        };
+
+        for (let i = 0; i < PARALLEL; i++) loadNext();
+
+        return () => { cancelled = true; };
+    }, [trip]);
+
     if (!trip) return null;
 
     let foundFirstNew = false;

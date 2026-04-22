@@ -123,10 +123,10 @@ export function addImageGpsMarkers(map, trip, imageMarkersRef, onImageFullscreen
 }
 
 export function buildMarkerHtml(isNew) {
-    const dot = `<div style="background:#F97316; width:18px; height:18px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 5px rgba(0,0,0,0.3);"></div>`;
+    const dot = `<div style="background:#F97316; width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 5px rgba(0,0,0,0.3);"></div>`;
     if (isNew) {
         return `<div style="position:relative; width:36px; height:36px; display:flex; align-items:center; justify-content:center;">
-                     <div style="position:absolute; width:28px; height:28px; border-radius:50%; border:2px solid #F97316; opacity:0.6; animation:pulse-ring 2s ease-out infinite;"></div>
+                     <div style="position:absolute; width:22px; height:22px; border-radius:50%; border:2px solid #F97316; opacity:0.6; animation:pulse-ring 2s ease-out infinite;"></div>
                      ${dot}
                    </div>`;
     }

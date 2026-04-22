@@ -70,6 +70,45 @@ export default function App() {
         }
     };
 
+    // Mobile swipe gestures between list and map.
+    // Left-swipe on the list opens the map; left-swipe starting at the right
+    // edge of the map opens the list (edge-start keeps map panning usable).
+    const sidebarTouchRef = useRef(null);
+    const edgeTouchRef = useRef(null);
+    const SWIPE_MIN_DX = 60;
+
+    const onSidebarTouchStart = (e) => {
+        const t = e.touches[0];
+        sidebarTouchRef.current = { x: t.clientX, y: t.clientY };
+    };
+    const onSidebarTouchEnd = (e) => {
+        const start = sidebarTouchRef.current;
+        sidebarTouchRef.current = null;
+        if (!start) return;
+        const t = e.changedTouches[0];
+        const dx = t.clientX - start.x;
+        const dy = t.clientY - start.y;
+        if (dx < -SWIPE_MIN_DX && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            setMobileShowMap(true);
+        }
+    };
+
+    const onEdgeTouchStart = (e) => {
+        const t = e.touches[0];
+        edgeTouchRef.current = { x: t.clientX, y: t.clientY };
+    };
+    const onEdgeTouchEnd = (e) => {
+        const start = edgeTouchRef.current;
+        edgeTouchRef.current = null;
+        if (!start) return;
+        const t = e.changedTouches[0];
+        const dx = t.clientX - start.x;
+        const dy = t.clientY - start.y;
+        if (dx < -SWIPE_MIN_DX && Math.abs(dx) > Math.abs(dy) * 1.5) {
+            handleMobileBack();
+        }
+    };
+
     const activePoint = detailId ? trip?.getPoint(detailId) : null;
 
     if (loading && !trip) {
@@ -94,7 +133,11 @@ export default function App() {
         <div className="flex flex-col h-dvh w-screen bg-slate-50 overflow-hidden">
             <Header trip={trip} onMapToggle={() => { mobileShowMap ? handleMobileBack() : setMobileShowMap(true); }} />
             <div className="flex flex-1 min-h-0 w-full overflow-hidden">
-                <div className={`${mobileShowMap ? 'hidden' : 'block'} lg:block shrink-0 w-full lg:w-auto h-full`}>
+                <div
+                    className={`${mobileShowMap ? 'hidden' : 'block'} lg:block shrink-0 w-full lg:w-auto h-full`}
+                    onTouchStart={onSidebarTouchStart}
+                    onTouchEnd={onSidebarTouchEnd}
+                >
                     <Sidebar activeId={activeId} onSelectStop={handleSelectStop} onOpenDetail={handleOpenDetail} trip={trip} newPointIds={newPointIds} />
                 </div>
                 <main className={`${mobileShowMap ? 'block' : 'hidden'} lg:block flex-1 relative min-h-0 min-w-0`}>
@@ -113,6 +156,11 @@ export default function App() {
                         leafletReady={leafletReady}
                         trip={trip}
                         newPointIds={newPointIds}
+                    />
+                    <div
+                        className="lg:hidden absolute top-0 right-0 bottom-0 w-4 z-[1500]"
+                        onTouchStart={onEdgeTouchStart}
+                        onTouchEnd={onEdgeTouchEnd}
                     />
                 </main>
             </div>

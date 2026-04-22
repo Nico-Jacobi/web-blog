@@ -21,6 +21,11 @@ class SyncService {
 
   final ValueNotifier<bool> syncProgress = ValueNotifier<bool>(false);
 
+  /// Increments whenever a sync pulled in remote changes (items from other
+  /// clients with newer updatedAt). Pages that display points/trips should
+  /// listen and reload from storage.
+  final ValueNotifier<int> remoteChangesNotifier = ValueNotifier<int>(0);
+
 
   File? _syncStateFile;
   Map<String, int> _syncedFilesWithSize = {}; // path -> file size
@@ -362,8 +367,8 @@ class SyncService {
       print('[SYNC] ⚠️ $currentBatchFailures images failed to upload or verify');
     }
 
-    // 6. Sync Data JSONs
-    print('[SYNC] --- Phase 2: Data Sync ---');
+    // 6. Sync Data JSONs (always — server merges and may return remote changes)
+    print('[SYNC] --- Phase 2: Data Sync (merge) ---');
     final pointsJson = points.map((e) => e.toJson()).toList();
     final tripsJson = trips.map((e) => e.toJson()).toList();
 
@@ -373,43 +378,72 @@ class SyncService {
     final pointsData = DataFile.points;
     final tripsData = DataFile.trips;
 
-    final pointsNeedSync = await _shouldSyncJson(pointsData.serverPath, pointsContent);
-    final tripsNeedSync = await _shouldSyncJson(tripsData.serverPath, tripsContent);
+    bool remoteChanged = false;
+    List<dynamic>? mergedPointsJson;
 
-
-    print('[SYNC] Points JSON needs sync: $pointsNeedSync');
-    print('[SYNC] Trips JSON needs sync: $tripsNeedSync');
-
-    if (pointsNeedSync) {
-      print('[SYNC] Uploading points.json...');
-      final result = await _writeJson(pointsData.serverPath, pointsJson);
-      if (result['success']) {
-        await _markAsSynced('data/points.json', result['size']);
-        await _saveContentHash('data/points.json', pointsContent);
-        successCount++;
-        print('[SYNC] ✓ Points JSON synced');
+    final pointsResult = await _writeJson(pointsData.serverPath, pointsJson);
+    if (pointsResult['success']) {
+      final merged = pointsResult['merged'];
+      if (merged is List) {
+        mergedPointsJson = merged;
+        final mergedContent = jsonEncode(merged);
+        if (mergedContent != pointsContent) {
+          print('[SYNC] Server returned merged points differing from local, applying...');
+          final pointsFile = await pointsData.file;
+          await pointsFile.writeAsString(mergedContent);
+          remoteChanged = true;
+        }
+        await _saveContentHash('data/points.json', mergedContent);
+        await _markAsSynced('data/points.json', utf8.encode(mergedContent).length);
       } else {
-        failCount++;
-        print('[SYNC] ✗ Points JSON failed: ${result['error']}');
+        await _saveContentHash('data/points.json', pointsContent);
+        await _markAsSynced('data/points.json', pointsResult['size']);
       }
+      successCount++;
+      print('[SYNC] ✓ Points JSON synced (merge)');
     } else {
-      skippedCount++;
+      failCount++;
+      print('[SYNC] ✗ Points JSON failed: ${pointsResult['error']}');
     }
 
-    if (tripsNeedSync) {
-      print('[SYNC] Uploading trips.json...');
-      final result = await _writeJson(tripsData.serverPath, tripsJson);
-      if (result['success']) {
-        await _markAsSynced('data/trips.json', result['size']);
-        await _saveContentHash('data/trips.json', tripsContent);
-        successCount++;
-        print('[SYNC] ✓ Trips JSON synced');
+    final tripsResult = await _writeJson(tripsData.serverPath, tripsJson);
+    if (tripsResult['success']) {
+      final merged = tripsResult['merged'];
+      if (merged is List) {
+        final mergedContent = jsonEncode(merged);
+        if (mergedContent != tripsContent) {
+          print('[SYNC] Server returned merged trips differing from local, applying...');
+          final tripsFile = await tripsData.file;
+          await tripsFile.writeAsString(mergedContent);
+          remoteChanged = true;
+        }
+        await _saveContentHash('data/trips.json', mergedContent);
+        await _markAsSynced('data/trips.json', utf8.encode(mergedContent).length);
       } else {
-        failCount++;
-        print('[SYNC] ✗ Trips JSON failed: ${result['error']}');
+        await _saveContentHash('data/trips.json', tripsContent);
+        await _markAsSynced('data/trips.json', tripsResult['size']);
       }
+      successCount++;
+      print('[SYNC] ✓ Trips JSON synced (merge)');
     } else {
-      skippedCount++;
+      failCount++;
+      print('[SYNC] ✗ Trips JSON failed: ${tripsResult['error']}');
+    }
+
+    // 7. Post-merge image download: the merged points may reference images
+    // uploaded by another client that we don't have locally yet. Only download
+    // what's missing — never refetch what's already on disk.
+    if (mergedPointsJson != null) {
+      final downloaded = await _downloadMissingMedia(mergedPointsJson, appDir);
+      if (downloaded > 0) {
+        print('[SYNC] ✓ Downloaded $downloaded new media files from server');
+        remoteChanged = true;
+      }
+    }
+
+    if (remoteChanged) {
+      remoteChangesNotifier.value = remoteChangesNotifier.value + 1;
+      print('[SYNC] 📥 Remote changes applied locally, notified listeners');
     }
 
     print('[SYNC] ========== Sync Complete ==========');
@@ -421,41 +455,33 @@ class SyncService {
     );
   }
 
-  Future<bool> _shouldSyncJson(String key, String newContent) async {
-    final contentChanged = await _hasContentChanged(key, newContent);
-    if (!contentChanged) {
-      print('[SYNC] Content unchanged for $key, verifying on server...');
-      final verified = await _verifyJsonOnServer(key, newContent);
-      return !verified;
-    }
-    return true;
-  }
-
-  Future<bool> _verifyJsonOnServer(String serverPath, String expectedContent) async {
-    try {
-      final response = await http.post(
-        Uri.parse('$baseUrl/verify'),
-        headers: {
-          'Content-Type': 'application/json',
-          'x-auth-token': authToken,
-        },
-        body: jsonEncode({'path': serverPath}),
-      );
-
-      if (response.statusCode == 200) {
-        final data = jsonDecode(response.body);
-        if (data['exists'] == true) {
-          final expectedSize = utf8.encode(expectedContent).length;
-          final serverSize = data['size'];
-          print('[SYNC] JSON verify $serverPath: server=$serverSize, expected=$expectedSize');
-          return serverSize == expectedSize;
+  Future<int> _downloadMissingMedia(List<dynamic> mergedPoints, Directory appDir) async {
+    final referencedNames = <String>{};
+    for (final json in mergedPoints) {
+      if (json is! Map) continue;
+      if (json['deletedAt'] != null) continue; // skip tombstones
+      final title = json['titleImagePath'];
+      if (title is String && title.isNotEmpty) referencedNames.add(title);
+      final others = json['otherImagePaths'];
+      if (others is List) {
+        for (final name in others) {
+          if (name is String && name.isNotEmpty) referencedNames.add(name);
         }
       }
-      return false;
-    } catch (e) {
-      print('[SYNC] JSON verify error: $e');
-      return false;
     }
+
+    int downloaded = 0;
+    for (final filename in referencedNames) {
+      final media = MediaFile.fromFilenameSync(filename, appDir.path);
+      if (await media.exists()) continue;
+      print('[SYNC] Post-merge: downloading missing media $filename');
+      final size = await _downloadFile(media.serverPath, media.file.path);
+      if (size > 0) {
+        await _markAsSynced(media.file.path, size);
+        downloaded++;
+      }
+    }
+    return downloaded;
   }
 
   Future<bool> _hasContentChanged(String key, String newContent) async {
@@ -567,7 +593,12 @@ class SyncService {
 
       if (response.statusCode == 200) {
         final size = utf8.encode(jsonContent).length;
-        return {'success': true, 'size': size};
+        dynamic merged;
+        try {
+          final body = jsonDecode(response.body);
+          if (body is Map && body['content'] is List) merged = body['content'];
+        } catch (_) {/* server may not return merged (non-points/trips paths) */}
+        return {'success': true, 'size': size, 'merged': merged};
       } else {
         return {'success': false, 'error': 'HTTP ${response.statusCode}'};
       }

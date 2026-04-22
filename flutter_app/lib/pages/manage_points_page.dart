@@ -31,6 +31,9 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
   final StorageService _storage = StorageService();
   List<InterestPoint> _points = [];
   List<TripElement> _tripElements = [];
+  // Deleted items kept for sync propagation; filtered from UI.
+  List<InterestPoint> _pointTombstones = [];
+  List<TripElement> _tripTombstones = [];
   Map<int, TripElement> _tripsByDestination = {};
   bool _isLoading = true;
 
@@ -58,10 +61,16 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
       final data = await _storage.loadPointsAndTrips();
       final appDir = await getApplicationDocumentsDirectory();
 
-      List<InterestPoint> points = data['points'] as List<InterestPoint>;
+      final allPoints = data['points'] as List<InterestPoint>;
+      final allTrips  = data['trips']  as List<TripElement>;
+
+      final visiblePoints = allPoints.where((p) => p.deletedAt == null).toList();
+      final tombstonePoints = allPoints.where((p) => p.deletedAt != null).toList();
+      final visibleTrips = allTrips.where((t) => t.deletedAt == null).toList();
+      final tombstoneTrips = allTrips.where((t) => t.deletedAt != null).toList();
 
       // Convert filenames to full paths for UI display using MediaFile
-      for (var p in points) {
+      for (var p in visiblePoints) {
         if (p.titleImagePath.isNotEmpty) {
           final media = MediaFile.fromFilenameSync(
               p.titleImagePath, appDir.path);
@@ -78,8 +87,10 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
       }
 
       setState(() {
-        _points = points;
-        _tripElements = data['trips'] as List<TripElement>;
+        _points = visiblePoints;
+        _tripElements = visibleTrips;
+        _pointTombstones = tombstonePoints;
+        _tripTombstones = tombstoneTrips;
         _rebuildTripIndex();
       });
     } catch (e) {
@@ -90,7 +101,9 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
   }
 
   Future<void> _saveData() async {
-    final cleanedPoints = _points.map((p) {
+    // Strip any absolute UI paths back down to bare filenames (sync expects
+    // filenames, UI uses full paths) — tombstones keep their original state.
+    final cleanedVisible = _points.map((p) {
       final titleName = path.basename(p.titleImagePath);
       final otherNames = p.otherMediaPaths
           .where((pathStr) => pathStr.isNotEmpty)
@@ -105,19 +118,22 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
         name: p.name,
         shortDescription: p.shortDescription,
         titleImagePath: titleName,
-        // Nur Dateiname!
         otherMediaPaths: otherNames,
-        // Nur Dateinamen!
         lat: p.lat,
         lon: p.lon,
         date: p.date,
         description: p.description,
         tripOrder: p.tripOrder,
         isWaypoint: p.isWaypoint,
+        updatedAt: p.updatedAt,
+        deletedAt: p.deletedAt,
       );
     }).toList();
 
-    await _storage.savePointsAndTrips(cleanedPoints, _tripElements);
+    final allPoints = [...cleanedVisible, ..._pointTombstones];
+    final allTrips  = [..._tripElements, ..._tripTombstones];
+
+    await _storage.savePointsAndTrips(allPoints, allTrips);
   }
 
   Future<void> _deletePoint(InterestPoint point) async {
@@ -144,13 +160,27 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
       if (!point.isWaypoint) {
         await _storage.deletePointMedia(point);
       }
+
+      // Tombstone the incoming trip (so other clients learn it's gone too).
+      for (final trip in _tripElements.where((t) => t.pointId2 == point.id)) {
+        trip.markDeleted();
+        _tripTombstones.add(trip);
+      }
       _tripElements.removeWhere((trip) => trip.pointId2 == point.id);
 
       final deletedOrder = point.tripOrder;
+
+      // Tombstone the point itself and move out of the visible list.
+      point.markDeleted();
+      _pointTombstones.add(point);
       _points.removeWhere((p) => p.id == point.id);
 
+      // Renumber remaining visible points (order changed -> touch).
       for (var p in _points) {
-        if (p.tripOrder > deletedOrder) p.tripOrder--;
+        if (p.tripOrder > deletedOrder) {
+          p.tripOrder--;
+          p.touch();
+        }
       }
 
       await _saveData();
@@ -186,6 +216,7 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
     setState(() {
       waypoint.lat = result.latitude;
       waypoint.lon = result.longitude;
+      waypoint.touch();
     });
     await _saveData();
     _showSuccessSnackBar(AppStrings.waypoint_position_updated);
@@ -203,13 +234,18 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
 
     setState(() {
       result.tripOrder = _points.length;
+      result.touch();
       final InterestPoint? previousLast =
           _points.isNotEmpty ? _points.last : null;
       _points.add(result);
       if (previousLast != null) {
-        _tripElements.add(
-          TripElement(pointId1: previousLast.id, pointId2: result.id),
+        final trip = TripElement(
+          id: TripElement.nextId([..._tripElements, ..._tripTombstones]),
+          pointId1: previousLast.id,
+          pointId2: result.id,
         );
+        trip.touch();
+        _tripElements.add(trip);
         _rebuildTripIndex();
       }
     });
@@ -234,28 +270,38 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
       final point = _points.removeAt(oldIndex);
       _points.insert(newIndex, point);
 
-      // Update trip orders
+      // Update trip orders (touch changed ones so sync propagates the new order)
       for (int i = 0; i < _points.length; i++) {
-        _points[i].tripOrder = i;
+        if (_points[i].tripOrder != i) {
+          _points[i].tripOrder = i;
+          _points[i].touch();
+        }
       }
 
-      // Rebuild trip elements while preserving the travel method attached to each point
+      // Rebuild trip elements while preserving the travel method attached to each point.
+      // Trip ids are stable — mutating pointId1 on an existing trip preserves cross-device
+      // identity (no orphan on the server). Fresh trips get a monotonically-new id.
+      int nextTripId = TripElement.nextId([..._tripElements, ..._tripTombstones]);
       List<TripElement> newTripElements = [];
       for (int i = 0; i < _points.length; i++) {
         if (i > 0) {
-          // Get the route that was originally attached to this point (coming INTO it)
           var existingRoute = incomingRoutes[_points[i].id];
+          final newPrevId = _points[i - 1].id;
 
           if (existingRoute != null) {
-            // Update only pointId1 (the previous point), keep pointId2 and method
-            existingRoute.pointId1 = _points[i - 1].id;
+            if (existingRoute.pointId1 != newPrevId) {
+              existingRoute.pointId1 = newPrevId;
+              existingRoute.touch();
+            }
             newTripElements.add(existingRoute);
           } else {
-            // Create new route if none existed
-            newTripElements.add(TripElement(
-              pointId1: _points[i - 1].id,
+            final newTrip = TripElement(
+              id: nextTripId++,
+              pointId1: newPrevId,
               pointId2: _points[i].id,
-            ));
+            );
+            newTrip.touch();
+            newTripElements.add(newTrip);
           }
         }
       }
@@ -275,6 +321,7 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
     if (result != null) {
       setState(() {
         trip.method = result;
+        trip.touch();
       });
       await _saveData();
       _showSuccessSnackBar(AppStrings.snack_method_updated);
@@ -411,7 +458,11 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
               tripBefore = existing;
             } else {
               final newTrip = TripElement(
-                  pointId1: prevPoint.id, pointId2: point.id);
+                id: TripElement.nextId([..._tripElements, ..._tripTombstones]),
+                pointId1: prevPoint.id,
+                pointId2: point.id,
+              );
+              newTrip.touch();
               _tripElements.add(newTrip);
               _tripsByDestination[point.id] = newTrip;
               _saveData();

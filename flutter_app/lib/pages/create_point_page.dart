@@ -435,6 +435,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
         description: _descCtrl.text.trim(),
         tripOrder: _isEditMode && widget.existingPoint != null ? widget.existingPoint!.tripOrder : pointId,
       );
+      point.touch();
 
       if (_isEditMode) {
         final index = points.indexWhere((p) => p.id == pointId);
@@ -442,11 +443,14 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       } else {
         points.add(point);
         if (_lastPoint != null) {
-          trips.add(TripElement(
+          final newTrip = TripElement(
+            id: TripElement.nextId(trips),
             pointId1: _lastPoint!.id,
             pointId2: pointId,
             method: _selectedMethod,
-          ));
+          );
+          newTrip.touch();
+          trips.add(newTrip);
         }
       }
 

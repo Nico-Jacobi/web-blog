@@ -814,6 +814,59 @@ app.post('/upload', checkAuth, (req, res) => {
 
 
 
+// --- CRDT-STYLE MERGE FOR points.json / trips.json ---
+// Multiple app instances can write concurrently without clobbering each other.
+// Per-item updatedAt decides who wins; deletedAt survives as a tombstone.
+
+const _writeLocks = new Map();
+async function withFileLock(key, fn) {
+    const prev = _writeLocks.get(key) || Promise.resolve();
+    let release;
+    const next = new Promise(r => { release = r; });
+    const chain = prev.then(() => next);
+    _writeLocks.set(key, chain);
+    await prev;
+    try { return await fn(); }
+    finally {
+        release();
+        if (_writeLocks.get(key) === chain) _writeLocks.delete(key);
+    }
+}
+
+function _ts(v) {
+    if (!v) return -Infinity;
+    const n = Date.parse(v);
+    return Number.isNaN(n) ? -Infinity : n;
+}
+
+function mergeById(serverArr, clientArr, keyFn) {
+    const by = new Map();
+    for (const item of serverArr) by.set(keyFn(item), item);
+    for (const item of clientArr) {
+        const k = keyFn(item);
+        const existing = by.get(k);
+        if (!existing) { by.set(k, item); continue; }
+        // bei Gleichstand: Server-Version behalten (konservativ)
+        by.set(k, _ts(item.updatedAt) > _ts(existing.updatedAt) ? item : existing);
+    }
+    return Array.from(by.values());
+}
+
+const mergePoints = (s, c) => mergeById(s, c, p => p.id);
+// Trips have their own id (stable across reorders/mutations). Legacy entries
+// without id fall back to a deterministic synthetic id from the composite key
+// — same formula as the client's TripElement.fromJson, so merges align.
+const _tripKey = t => t.id ?? (t.pointId1 * 1000000 + t.pointId2);
+const mergeTrips  = (s, c) => mergeById(s, c, _tripKey);
+
+async function readJsonArrayOrEmpty(fullPath) {
+    try {
+        const raw = await fs.readFile(fullPath, 'utf8');
+        const parsed = JSON.parse(raw);
+        return Array.isArray(parsed) ? parsed : [];
+    } catch { return []; }
+}
+
 app.post('/write', checkAuth, async (req, res) => {
     if (!req.isAdmin) {
         console.log(`❌ WRITE FAILED: Admin access required`);
@@ -823,39 +876,31 @@ app.post('/write', checkAuth, async (req, res) => {
     try {
         const fullPath = sanitizePath(filePath);
         await fs.mkdir(path.dirname(fullPath), { recursive: true });
-        
-        let data = content;
-        if (typeof content === 'string' && content.startsWith('data:')) {
-            data = Buffer.from(content.split(',')[1], 'base64');
-        } else if (typeof content === 'object') {
-            data = JSON.stringify(content, null, 2);
-        }
-        
-        // Read previous content BEFORE overwriting (for new-point detection)
-        let prevPoints = [];
-        if (filePath.endsWith('points.json')) {
-            try {
-                const prevData = await fs.readFile(fullPath, 'utf8');
-                const parsed = JSON.parse(prevData);
-                if (Array.isArray(parsed)) prevPoints = parsed;
-            } catch { /* file didn't exist before */ }
-        }
 
-        await fs.writeFile(fullPath, data);
-        const size = Buffer.byteLength(data);
-        console.log(`✅ WRITE SUCCESS: "${filePath}" (${size} bytes)`);
-        res.json({ message: "Written", path: filePath });
+        const isPoints = filePath.endsWith('points.json');
+        const isTrips  = filePath.endsWith('trips.json');
 
-        // Auto-notify subscribers only when a new NORMAL point is added to points.json.
-        // Waypoints (isWaypoint === true) trigger no notification — they have no name
-        // and would produce empty-body pushes.
-        if (filePath.endsWith('points.json')) {
-            try {
-                const points = typeof content === 'string' ? JSON.parse(content) : content;
-                if (Array.isArray(points)) {
-                    const realPrev = prevPoints.filter(p => p.isWaypoint !== true);
-                    const realNow = points.filter(p => p.isWaypoint !== true);
+        if (isPoints || isTrips) {
+            const clientArr = typeof content === 'string' ? JSON.parse(content) : content;
+            if (!Array.isArray(clientArr)) {
+                return res.status(400).json({ error: 'Expected array for points/trips' });
+            }
 
+            const { merged, prevArr } = await withFileLock(fullPath, async () => {
+                const serverArr = await readJsonArrayOrEmpty(fullPath);
+                const out = isPoints ? mergePoints(serverArr, clientArr) : mergeTrips(serverArr, clientArr);
+                await fs.writeFile(fullPath, JSON.stringify(out, null, 2));
+                return { merged: out, prevArr: serverArr };
+            });
+
+            const size = Buffer.byteLength(JSON.stringify(merged));
+            console.log(`✅ MERGE SUCCESS: "${filePath}" (${merged.length} items, ${size} bytes)`);
+            res.json({ message: 'Merged', path: filePath, content: merged });
+
+            if (isPoints) {
+                try {
+                    const realPrev = prevArr.filter(p => p.isWaypoint !== true && !p.deletedAt);
+                    const realNow  = merged.filter(p => p.isWaypoint !== true && !p.deletedAt);
                     if (realNow.length > realPrev.length) {
                         const prevIds = new Set(realPrev.map(p => p.id));
                         const newPoints = realNow.filter(p => !prevIds.has(p.id));
@@ -866,11 +911,24 @@ app.post('/write', checkAuth, async (req, res) => {
                             body: latest?.name || 'Schau dir an, wo es als nächstes hingeht!'
                         }).catch(err => console.error('Push notify error:', err.message));
                     }
+                } catch (err) {
+                    console.error('Push notify check failed:', err.message);
                 }
-            } catch (err) {
-                console.error('Push notify check failed:', err.message);
             }
+            return;
         }
+
+        let data = content;
+        if (typeof content === 'string' && content.startsWith('data:')) {
+            data = Buffer.from(content.split(',')[1], 'base64');
+        } else if (typeof content === 'object') {
+            data = JSON.stringify(content, null, 2);
+        }
+
+        await fs.writeFile(fullPath, data);
+        const size = Buffer.byteLength(data);
+        console.log(`✅ WRITE SUCCESS: "${filePath}" (${size} bytes)`);
+        res.json({ message: "Written", path: filePath });
     } catch (err) {
         console.log(`❌ WRITE FAILED: "${filePath}" - ${err.message}`);
         res.status(500).json({ error: "Write failed" });

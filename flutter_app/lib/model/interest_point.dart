@@ -1,6 +1,3 @@
-// --- Updated Model ---
-
-
 class InterestPoint {
   int id;
   String name;
@@ -11,8 +8,10 @@ class InterestPoint {
   double? lon;
   String? date;
   String description;
-  int tripOrder; // New field for ordering
+  int tripOrder;
   bool isWaypoint;
+  DateTime? updatedAt;
+  DateTime? deletedAt;
 
   InterestPoint({
     required this.id,
@@ -26,7 +25,19 @@ class InterestPoint {
     this.description = '',
     required this.tripOrder,
     this.isWaypoint = false,
+    this.updatedAt,
+    this.deletedAt,
   });
+
+  void touch() {
+    updatedAt = DateTime.now().toUtc();
+  }
+
+  void markDeleted() {
+    final now = DateTime.now().toUtc();
+    deletedAt = now;
+    updatedAt = now;
+  }
 
   Map<String, dynamic> toJson() => {
     'id': id,
@@ -40,6 +51,8 @@ class InterestPoint {
     'description': description,
     'tripOrder': tripOrder,
     'isWaypoint': isWaypoint,
+    if (updatedAt != null) 'updatedAt': updatedAt!.toIso8601String(),
+    if (deletedAt != null) 'deletedAt': deletedAt!.toIso8601String(),
   };
 
   factory InterestPoint.fromJson(Map<String, dynamic> json) {
@@ -55,7 +68,14 @@ class InterestPoint {
       description: json['description'] ?? '',
       tripOrder: json['tripOrder'] ?? 0,
       isWaypoint: json['isWaypoint'] == true,
+      updatedAt: _parseDate(json['updatedAt']),
+      deletedAt: _parseDate(json['deletedAt']),
     );
   }
-}
 
+  static DateTime? _parseDate(dynamic v) {
+    if (v == null) return null;
+    if (v is String && v.isEmpty) return null;
+    return DateTime.tryParse(v.toString());
+  }
+}

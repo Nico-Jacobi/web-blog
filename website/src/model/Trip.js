@@ -7,9 +7,14 @@ export class Trip {
 
     constructor(pointsData, routesData, password) {
         this.password = password;
-        this.points = pointsData.map(p => new Point(p, password)).sort((a, b) => a.order - b.order);
+        // Tombstones (deletedAt set) are preserved in storage for cross-device
+        // sync but must not render on the site.
+        const livePoints = pointsData.filter(p => !p.deletedAt);
+        const liveRoutes = routesData.filter(r => !r.deletedAt);
 
-        this.routes = routesData.map(r => ({
+        this.points = livePoints.map(p => new Point(p, password)).sort((a, b) => a.order - b.order);
+
+        this.routes = liveRoutes.map(r => ({
             from: r.pointId1,
             to: r.pointId2,
             mode: r.method

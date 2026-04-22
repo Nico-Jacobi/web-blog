@@ -148,6 +148,7 @@ class _CreateWaypointPageState extends State<CreateWaypointPage> {
       tripOrder: 0, // Caller (manage page) overwrites with the actual order.
       isWaypoint: true,
     );
+    waypoint.touch();
 
     Navigator.pop(context, waypoint);
   }

@@ -1,0 +1,16 @@
+# Backend
+node_modules/
+storage/
+.smoke*/
+.env
+.env.local
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor / IDE
+.claude/
+*.swp
+*.swo

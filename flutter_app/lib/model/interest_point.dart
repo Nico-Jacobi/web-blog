@@ -1,7 +1,5 @@
 // --- Updated Model ---
-import 'package:flutter/material.dart';
 
-import '../strings.dart';
 
 class InterestPoint {
   int id;

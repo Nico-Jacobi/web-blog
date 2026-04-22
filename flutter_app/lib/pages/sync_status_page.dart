@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:path_provider/path_provider.dart';
-import 'dart:io';
 import '../model/data_file.dart';
 import '../model/media_file.dart';
 import '../services/storage_service.dart';
@@ -12,7 +11,7 @@ import '../colors.dart';
 import '../widgets/confirm_dialog.dart';
 
 class SyncStatusPage extends StatefulWidget {
-  const SyncStatusPage({Key? key}) : super(key: key);
+  const SyncStatusPage({super.key});
 
   @override
   State<SyncStatusPage> createState() => _SyncStatusPageState();

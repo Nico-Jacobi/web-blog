@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../colors.dart';
-import '../main.dart';
 import '../strings.dart';
 import '../widgets/styled_button.dart';
 

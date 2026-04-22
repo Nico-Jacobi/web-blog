@@ -24,7 +24,7 @@ import 'coordinate_picker.dart';
 class AddInterestPointPage extends StatefulWidget {
   final InterestPoint? existingPoint;
 
-  const AddInterestPointPage({this.existingPoint, Key? key}) : super(key: key);
+  const AddInterestPointPage({this.existingPoint, super.key});
 
   @override
   _AddInterestPointPageState createState() => _AddInterestPointPageState();
@@ -58,7 +58,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
   String _originalDate = '';
   String? _originalTitleImagePath;
   Set<String> _originalOtherMediaPaths = {};
-  TripMethod _originalTravelMethod = TripMethod.car;
+  final TripMethod _originalTravelMethod = TripMethod.car;
 
   @override
   void initState() {
@@ -368,7 +368,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
   String _generateMediaFilename(String extension) {
     final timestamp = DateTime.now().millisecondsSinceEpoch;
     final random = (DateTime.now().microsecondsSinceEpoch % 10000);
-    return 'media_${timestamp}_${random}$extension';
+    return 'media_${timestamp}_$random$extension';
   }
 
   Future<void> _saveData() async {
@@ -502,7 +502,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
         if (info != null && info.file != null) {
           final originalSize = await media.file.length();
           final compressedSize = await info.file!.length();
-          debugPrint("✅ Video compressed: ${originalSize} bytes -> ${compressedSize} bytes");
+          debugPrint("✅ Video compressed: $originalSize bytes -> $compressedSize bytes");
           await info.file!.copy(targetPath);
           return targetPath;
         } else {
@@ -674,7 +674,6 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
                   ),
                 ],
               ),
-              const SizedBox(height: 16),
               _buildField(_dateCtrl, AppStrings.field_date, hint: "DD/MM/YYYY", icon: Icons.calendar_today_outlined),
               _buildField(_descCtrl, AppStrings.field_full_description, maxLines: 8, icon: Icons.notes_outlined),
               Row(

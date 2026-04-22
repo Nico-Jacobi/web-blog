@@ -134,7 +134,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     SwitchListTile(
                       title: const Text(AppStrings.deactivate_snc_setting),
                       value: _syncData,
-                      activeColor: primary,
+                      activeThumbColor: primary,
                       onChanged: (bool value) {
                         setState(() {
                           _syncData = value;
@@ -144,7 +144,7 @@ class _SettingsPageState extends State<SettingsPage> {
                     SwitchListTile(
                       title: const Text(AppStrings.google_photo_picker_setting),
                       value: _useModernPicker,
-                      activeColor: primary,
+                      activeThumbColor: primary,
                       onChanged: (bool value) {
                         setState(() {
                           _useModernPicker = value;

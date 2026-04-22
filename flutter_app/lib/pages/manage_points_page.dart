@@ -1,4 +1,3 @@
-import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -18,7 +17,7 @@ import '../strings.dart';
 import 'create_point_page.dart';
 
 class ManagePointsPage extends StatefulWidget {
-  const ManagePointsPage({Key? key}) : super(key: key);
+  const ManagePointsPage({super.key});
 
   @override
   State<ManagePointsPage> createState() => _ManagePointsPageState();

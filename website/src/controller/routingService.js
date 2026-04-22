@@ -4,6 +4,7 @@
  */
 
 import { haversineDistanceMeters } from '../model/geo.js';
+import { API_BASE } from '../constants.js';
 
 const OSRM_BASE = 'https://router.project-osrm.org/route/v1';
 
@@ -121,10 +122,34 @@ export async function fetchRoute(p1, p2, mode) {
 }
 
 /**
- * Fetch routes for a trip one-by-one from latest to first.
- * Calls onRoute(index, coords) as each route resolves so it can be drawn immediately.
+ * Fetch routes for a trip.  Prefers the backend `/routes` endpoint which
+ * caches OSRM responses across all visitors — instant on cache hit, no
+ * client-side OSRM hammering.  Falls back to per-segment OSRM calls if
+ * the server doesn't expose `/routes` (older deploys).
+ *
+ * Calls onRoute(index, coords, mode) per segment.  Order: latest→first
+ * so earlier segments render on top, matching the legacy behaviour.
  */
 export async function fetchAllRoutes(trip, onRoute) {
+    let backendRoutes = null;
+    try {
+        const res = await fetch(`${API_BASE}/routes`, {
+            headers: { 'X-Auth-Token': btoa(trip.password) }
+        });
+        if (res.ok) backendRoutes = await res.json();
+    } catch (e) {
+        console.warn('Backend /routes unreachable, falling back to client OSRM:', e.message);
+    }
+
+    if (backendRoutes) {
+        for (let i = backendRoutes.length - 1; i >= 0; i--) {
+            const r = backendRoutes[i];
+            onRoute(i, r.coords, r.method);
+        }
+        return;
+    }
+
+    // Legacy fallback: server doesn't have /routes, fetch from OSRM directly.
     for (let index = trip.routes.length - 1; index >= 0; index--) {
         const route = trip.routes[index];
         const p1 = trip.getPoint(route.from);
@@ -132,7 +157,6 @@ export async function fetchAllRoutes(trip, onRoute) {
         if (!p1?.lat || !p2?.lat) continue;
 
         const coords = await fetchRoute(p1, p2, route.mode);
-        // Fall back to straight line if no accurate route available
         const finalCoords = coords || [[p1.lat, p1.lng], [p2.lat, p2.lng]];
         onRoute(index, finalCoords, route.mode);
     }

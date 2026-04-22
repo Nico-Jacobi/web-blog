@@ -1,7 +1,6 @@
 {
   "header": {
-    "title": "Jenny's & Leon's Australia Trip",
-    "dateRange": "Nov '25 - Jan '26",
+    "title": "Travel Blog",
     "loading": "Loading…"
   },
   "sidebar": {
@@ -45,5 +44,11 @@
     "boat": "Boat",
     "plane": "Plane",
     "misc": "Other"
+  },
+  "landing": {
+    "title": "Travel blogs",
+    "intro": "A platform for personal travel blogs. Open the URL of a specific blog to view it.",
+    "blogNotFound": "This blog doesn't exist (or hasn't been created yet).",
+    "urlHint": "Try domain.com/<your-blog-slug>"
   }
 }

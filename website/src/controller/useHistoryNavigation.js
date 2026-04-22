@@ -1,94 +1,92 @@
 import { useEffect, useRef, useCallback } from 'react';
-import { parsePath, navigateTo, clearRoute, migrateLegacyHash } from './router.js';
+import { parseSlugAndPath, navigateTo, clearRoute, migrateLegacyHash } from './router.js';
 
 /**
- * Syncs browser URL with app view state.
+ * Syncs browser URL with app view state, scoped to one blog slug.
  *
- * - Opening a detail view   → URL becomes /stop/<slug>
- * - Opening mobile map      → URL becomes /map
- * - Closing / back button   → URL is cleared to base
+ * - Opening a detail view → URL becomes /<slug>/stop/<pointSlug>
+ * - Opening mobile map    → URL becomes /<slug>/map
+ * - Closing / back        → URL is cleared to /<slug>
  *
  * On mount the current pathname is read so direct links / reloads work.
- * Old hash links (#/stop/<slug>) are migrated to the new path form.
+ * Old hash links (#/stop/<x>) are migrated to /<slug>/stop/<x>.
  */
 function navDepth(detailId, mobileShowMap) {
-    if (detailId) return 2;   // detail open
-    if (mobileShowMap) return 1; // map visible
-    return 0;                    // list view
+  if (detailId) return 2;
+  if (mobileShowMap) return 1;
+  return 0;
 }
 
-export function useHistoryNavigation({ detailId, setDetailId, mobileShowMap, setMobileShowMap, setActiveId, resolveSlug, getSlug }) {
-    const isNavigating = useRef(false);
-    const hasAppliedInitialPath = useRef(false);
-    const initialPathConsumed = useRef(false);
-    const prevDepthRef = useRef(0);
+export function useHistoryNavigation({
+  slug,
+  detailId, setDetailId,
+  mobileShowMap, setMobileShowMap,
+  setActiveId,
+  resolveSlug, getSlug,
+}) {
+  const isNavigating = useRef(false);
+  const hasAppliedInitialPath = useRef(false);
+  const initialPathConsumed = useRef(false);
+  const prevDepthRef = useRef(0);
 
-    // ── read initial path on mount ───────────────────────────────────
-    const applyInitialPath = useCallback(() => {
-        if (hasAppliedInitialPath.current) return;
-        hasAppliedInitialPath.current = true;
-        initialPathConsumed.current = true;
+  const applyInitialPath = useCallback(() => {
+    if (hasAppliedInitialPath.current) return;
+    hasAppliedInitialPath.current = true;
+    initialPathConsumed.current = true;
 
-        // Migrate legacy "#/stop/x" links to "/stop/x" before parsing.
-        migrateLegacyHash();
+    migrateLegacyHash(slug);
 
-        const route = parsePath();
-        if (!route) return;
+    const { route } = parseSlugAndPath();
+    if (!route) return;
 
-        if (route.name === 'stop') {
-            const id = resolveSlug(route.params.slug);
-            if (id) setDetailId(id);
-        } else if (route.name === 'map') {
-            setMobileShowMap(true);
-        }
-    }, [resolveSlug, setDetailId, setMobileShowMap]);
+    if (route.name === 'stop') {
+      const id = resolveSlug(route.params.pointSlug);
+      if (id) setDetailId(id);
+    } else if (route.name === 'map') {
+      setMobileShowMap(true);
+    }
+  }, [slug, resolveSlug, setDetailId, setMobileShowMap]);
 
-    // ── sync state → URL ─────────────────────────────────────────────
-    useEffect(() => {
-        // Don't clear the URL before the initial path has been consumed
-        if (!initialPathConsumed.current) return;
-        if (isNavigating.current) return;
+  useEffect(() => {
+    if (!slug) return;
+    if (!initialPathConsumed.current) return;
+    if (isNavigating.current) return;
 
-        const depth = navDepth(detailId, mobileShowMap);
-        // Only push a new history entry when navigating "deeper";
-        // otherwise replace so back/forward stays clean.
-        const replace = depth <= prevDepthRef.current;
-        prevDepthRef.current = depth;
+    const depth = navDepth(detailId, mobileShowMap);
+    const replace = depth <= prevDepthRef.current;
+    prevDepthRef.current = depth;
 
-        if (detailId) {
-            const slug = getSlug(detailId);
-            if (slug) navigateTo('stop', { slug }, replace);
-        } else if (mobileShowMap) {
-            navigateTo('map', {}, replace);
-        } else {
-            clearRoute(replace);
-        }
-    }, [detailId, mobileShowMap, getSlug]);
+    if (detailId) {
+      const pointSlug = getSlug(detailId);
+      if (pointSlug) navigateTo(slug, 'stop', { pointSlug }, replace);
+    } else if (mobileShowMap) {
+      navigateTo(slug, 'map', {}, replace);
+    } else {
+      clearRoute(slug, replace);
+    }
+  }, [slug, detailId, mobileShowMap, getSlug]);
 
-    // ── URL → state (back/forward, manual edit) ──────────────────────
-    useEffect(() => {
-        const handlePopState = () => {
-            isNavigating.current = true;
+  useEffect(() => {
+    const handlePopState = () => {
+      isNavigating.current = true;
+      const { route } = parseSlugAndPath();
 
-            const route = parsePath();
+      if (!route) {
+        if (detailId) setDetailId(null);
+        if (mobileShowMap) { setMobileShowMap(false); setActiveId(null); }
+      } else if (route.name === 'stop') {
+        const id = resolveSlug(route.params.pointSlug);
+        if (id && id !== detailId) setDetailId(id);
+      } else if (route.name === 'map') {
+        if (detailId) setDetailId(null);
+        if (!mobileShowMap) setMobileShowMap(true);
+      }
+      isNavigating.current = false;
+    };
 
-            if (!route) {
-                if (detailId)       setDetailId(null);
-                if (mobileShowMap)  { setMobileShowMap(false); setActiveId(null); }
-            } else if (route.name === 'stop') {
-                const id = resolveSlug(route.params.slug);
-                if (id && id !== detailId) setDetailId(id);
-            } else if (route.name === 'map') {
-                if (detailId) setDetailId(null);
-                if (!mobileShowMap) setMobileShowMap(true);
-            }
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, [detailId, mobileShowMap, resolveSlug, setDetailId, setMobileShowMap, setActiveId]);
 
-            isNavigating.current = false;
-        };
-
-        window.addEventListener('popstate', handlePopState);
-        return () => window.removeEventListener('popstate', handlePopState);
-    }, [detailId, mobileShowMap, resolveSlug, setDetailId, setMobileShowMap, setActiveId]);
-
-    return { applyInitialPath };
+  return { applyInitialPath };
 }

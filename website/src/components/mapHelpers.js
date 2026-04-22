@@ -74,7 +74,7 @@ export function addImageGpsMarkers(map, trip, imageMarkersRef, onImageFullscreen
             ...point.otherPaths
         ];
         allPaths.forEach(path => {
-            apiService.fetchImageGps(path, point.password).then(result => {
+            apiService.fetchImageGps(point.slug, path, point.password).then(result => {
                 if (result && map._container) {
                     const marker = L.circleMarker([result.lat, result.lng], {
                         radius: 4,

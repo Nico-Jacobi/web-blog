@@ -1,5 +1,13 @@
 @import "tailwindcss";
 
+/* Per-blog theme variables. Set by App.jsx from blog.settings.theme.
+ * Components can opt into them where appropriate (Tailwind classes still
+ * win for unset spots, which is intentional during MVP). */
+:root {
+    --blog-primary: #ea580c;  /* Tailwind orange-600 */
+    --blog-accent: #475569;   /* Tailwind slate-600 */
+}
+
 html, body, #root {
     margin: 0;
     padding: 0;

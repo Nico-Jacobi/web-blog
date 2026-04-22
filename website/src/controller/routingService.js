@@ -133,8 +133,8 @@ export async function fetchRoute(p1, p2, mode) {
 export async function fetchAllRoutes(trip, onRoute) {
     let backendRoutes = null;
     try {
-        const res = await fetch(`${API_BASE}/routes`, {
-            headers: { 'X-Auth-Token': btoa(trip.password) }
+        const res = await fetch(`${API_BASE}/blogs/${trip.slug}/routes`, {
+            headers: trip.password ? { 'X-Read-Token': trip.password } : {},
         });
         if (res.ok) backendRoutes = await res.json();
     } catch (e) {

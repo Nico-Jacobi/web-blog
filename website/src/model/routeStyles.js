@@ -6,7 +6,7 @@ export const ROUTE_STYLES = {
         weight: 3,
         opacity: 0.85,
         lineCap: 'round',
-        label: 'Auto',
+        labelKey: 'travel.car',
         icon: Car
     },
 
@@ -15,7 +15,7 @@ export const ROUTE_STYLES = {
         weight: 3,
         opacity: 0.8,
         lineCap: 'round',
-        label: 'Wohnmobil',
+        labelKey: 'travel.rv',
         icon: Caravan
     },
 
@@ -24,7 +24,7 @@ export const ROUTE_STYLES = {
         weight: 3,
         opacity: 0.8,
         lineCap: 'round',
-        label: 'Bus',
+        labelKey: 'travel.bus',
         icon: Bus
     },
 
@@ -34,7 +34,7 @@ export const ROUTE_STYLES = {
         opacity: 0.65,
         lineCap: 'round',
         dashArray: '2,6',
-        label: 'Zu Fuß',
+        labelKey: 'travel.foot',
         icon: Footprints
     },
 
@@ -44,7 +44,7 @@ export const ROUTE_STYLES = {
         opacity: 0.8,
         lineCap: 'round',
         dashArray: '5,7',
-        label: 'Boot',
+        labelKey: 'travel.boat',
         icon: Ship
     },
 
@@ -54,7 +54,7 @@ export const ROUTE_STYLES = {
         opacity: 0.85,
         lineCap: 'round',
         dashArray: '8,6',
-        label: 'Flugzeug',
+        labelKey: 'travel.plane',
         icon: Plane
     },
 
@@ -63,7 +63,7 @@ export const ROUTE_STYLES = {
         weight: 2,
         opacity: 0.6,
         lineCap: 'round',
-        label: 'Sonstige',
+        labelKey: 'travel.misc',
         icon: Compass
     }
 };

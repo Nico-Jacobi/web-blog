@@ -1,6 +1,7 @@
 import React, { useRef, useState, useEffect } from 'react';
 import { Image as ImageIcon, Play } from 'lucide-react';
 import { isVideo } from '../utils.js';
+import { useTranslation } from 'react-i18next';
 
 function LazyVideo({ src, className, ...props }) {
     const ref = useRef(null);
@@ -29,6 +30,7 @@ function LazyVideo({ src, className, ...props }) {
 }
 
 export default function GalleryGrid({ point, otherImageUrls, onOpenLightbox }) {
+    const { t } = useTranslation();
     if (point.otherPaths.length === 0) return null;
     const otherThumbUrls = point.otherThumbUrls;
 
@@ -39,10 +41,10 @@ export default function GalleryGrid({ point, otherImageUrls, onOpenLightbox }) {
                 <h3 className="text-lg md:text-2xl font-black text-slate-900 flex items-center gap-2">
                     <ImageIcon size={20} className="md:hidden" />
                     <ImageIcon size={24} className="hidden md:block" />
-                    Galerie
+                    {t('gallery.heading')}
                 </h3>
                 <span className="ml-auto text-xs md:text-sm text-slate-400 font-bold">
-                    {point.otherPaths.length} {point.otherPaths.length === 1 ? 'DATEI' : 'DATEIEN'}
+                    {point.otherPaths.length} {t('gallery.file', { count: point.otherPaths.length })}
                 </span>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3 md:gap-4">

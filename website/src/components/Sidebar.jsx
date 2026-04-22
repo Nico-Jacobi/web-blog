@@ -2,8 +2,10 @@ import React, { useRef, useEffect } from 'react';
 import StopCard from './StopCard';
 import RouteSegment from './RouteSegment';
 import { collapseWaypoints } from '../model/waypointCollapse.js';
+import { useTranslation } from 'react-i18next';
 
 export default function Sidebar({ activeId, onSelectStop, onOpenDetail, trip, newPointIds }) {
+    const { t } = useTranslation();
     const firstNewRef = useRef(null);
     const scrollRef = useRef(null);
 
@@ -55,10 +57,10 @@ export default function Sidebar({ activeId, onSelectStop, onOpenDetail, trip, ne
             <div className="pt-8 pb-4 px-6 shrink-0">
                 <div className="flex items-center justify-between">
                     <h2 className="text-xl font-black text-slate-900 tracking-tight">
-                        Reiseverlauf
+                        {t('sidebar.heading')}
                     </h2>
                     <span className="bg-orange-50 text-orange-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
-                        {trip.points.filter(p => !p.isWaypoint).length} Stopps
+                        {trip.points.filter(p => !p.isWaypoint).length} {t('sidebar.stops')}
                     </span>
                 </div>
                 <div className="h-1 w-8 bg-orange-500 mt-2 rounded-full" />

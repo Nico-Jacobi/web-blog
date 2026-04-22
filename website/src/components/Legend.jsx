@@ -1,7 +1,9 @@
 import React from 'react';
 import { ROUTE_STYLES } from "../model/routeStyles.js";
+import { useTranslation } from 'react-i18next';
 
 export default function Legend({ usedModes }) {
+    const { t } = useTranslation();
     if (!usedModes || usedModes.length === 0) return null;
 
     return (
@@ -26,7 +28,7 @@ export default function Legend({ usedModes }) {
                                 }}
                             />
                         )}
-                        <span className="truncate whitespace-nowrap">{style.label || mode}</span>
+                        <span className="truncate whitespace-nowrap">{style.labelKey ? t(style.labelKey) : mode}</span>
                     </div>
                 );
             })}

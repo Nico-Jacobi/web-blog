@@ -2,8 +2,11 @@ import React, { useState } from 'react';
 import { Map, Calendar, Route, RefreshCw } from 'lucide-react';
 import kangarooIcon from '../../kangaroo.svg';
 import { usePullToRefresh } from '../controller/usePullToRefresh.js';
+import LanguageToggle from './LanguageToggle.jsx';
+import { useTranslation } from 'react-i18next';
 
 export default function Header({ trip, onMapToggle }) {
+    const { t } = useTranslation();
     const dateRange = trip?.getDateRange() || '';
     const totalDistance = trip?.getTotalDistance();
     const [bouncing, setBouncing] = useState(false);
@@ -33,12 +36,12 @@ export default function Header({ trip, onMapToggle }) {
 
                 <div className="min-w-0">
                     <h1 className="font-black text-sm sm:text-xl lg:text-2xl tracking-tight text-slate-900 truncate">
-                        Jennys & Leons <span className="text-orange-600">Australien Trip</span>
+                        {t('header.title')}
                     </h1>
                     <div className="flex items-center gap-2 sm:gap-3 text-slate-400 text-[10px] sm:text-xs font-medium mt-0.5 sm:mt-1">
                         <span className="flex items-center gap-1 shrink-0">
                             <Calendar className="w-3 h-3 sm:w-3 sm:h-3" />
-                            <span>{dateRange || "Nov '25 - Jan '26"}</span>
+                            <span>{dateRange || t('header.dateRange')}</span>
                         </span>
                         {totalDistance && (
                             <>
@@ -53,6 +56,8 @@ export default function Header({ trip, onMapToggle }) {
                 </div>
             </div>
 
+            <div className="flex items-center gap-2 shrink-0">
+            <LanguageToggle />
             <button
                 onClick={handleKangarooClick}
                 className="hidden sm:block h-10 w-10 rounded-full border-2 border-orange-100 p-0.5 shrink-0 cursor-pointer bg-transparent"
@@ -73,6 +78,7 @@ export default function Header({ trip, onMapToggle }) {
                     <img src={kangarooIcon} alt="Kangaroo" className="w-6 h-6" />
                 </div>
             </button>
+            </div>
             </div>
 
             <div
@@ -95,7 +101,7 @@ export default function Header({ trip, onMapToggle }) {
                 />
                 {refreshing && (
                     <span className="text-[10px] text-orange-400 font-medium mt-1" style={{ animation: 'pulse-opacity 1s ease-in-out infinite' }}>
-                        Laden…
+                        {t('header.loading')}
                     </span>
                 )}
             </div>

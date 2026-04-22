@@ -1,6 +1,7 @@
 import { ROUTE_STYLES } from '../model/routeStyles.js';
 import { fetchAllRoutes } from '../controller/routingService.js';
 import { apiService } from '../controller/apiService.js';
+import i18n from '../i18n';
 
 export function createPopupContent(point, img, onOpenDetail) {
     const popupDiv = document.createElement('div');
@@ -17,12 +18,12 @@ export function createPopupContent(point, img, onOpenDetail) {
 
     popupDiv.style.cssText = `width:${width}; font-family:ui-sans-serif,system-ui,sans-serif; padding:2px;`;
     popupDiv.innerHTML = `
-        ${img ? `<img src="${img}" style="width:100%; height:${imageHeight}; object-fit:cover; border-radius:8px; margin-bottom:6px; display:block;"/>` : `<div style="width:100%; height:${imageHeight}; background:#e2e8f0; border-radius:8px; margin-bottom:6px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:${descSize};">Loading...</div>`}
+        ${img ? `<img src="${img}" style="width:100%; height:${imageHeight}; object-fit:cover; border-radius:8px; margin-bottom:6px; display:block;"/>` : `<div style="width:100%; height:${imageHeight}; background:#e2e8f0; border-radius:8px; margin-bottom:6px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:${descSize};">${i18n.t('map.loading')}</div>`}
         <div style="display:flex; flex-direction:column; gap:2px;">
             <strong style="font-size:${titleSize}; font-weight:800;">${point.title}</strong>
             <div style="display:flex; align-items:center; gap:4px; font-size:${dateSize}; color:#94a3b8;">
                 ${calendarIcon}
-                <span>${point.date || 'No date'}</span>
+                <span>${point.date || i18n.t('map.noDate')}</span>
             </div>
             <p style="margin:4px 0 0; font-size:${descSize}; line-height:1.2; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
                 ${point.desc}
@@ -31,7 +32,7 @@ export function createPopupContent(point, img, onOpenDetail) {
                 id="detail-btn-${point.id}"
                 style="margin-top:6px; padding:${buttonPadding}; background:transparent; color:#f97316; border:2px solid #fb923c; border-radius:6px; font-size:${buttonSize}; font-weight:600; width:100%; cursor:pointer;"
             >
-                Details
+                ${i18n.t('map.details')}
             </button>
         </div>`;
 

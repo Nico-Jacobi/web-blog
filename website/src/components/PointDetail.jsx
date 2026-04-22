@@ -5,6 +5,7 @@ import HeroSection from './HeroSection.jsx';
 import GalleryGrid from './GalleryGrid.jsx';
 import { sharedButtonStyle, sharedIconStyle } from './styles.js';
 import { isVideo } from '../utils.js';
+import { useTranslation } from 'react-i18next';
 
 function getTravelDay(point, trip) {
     const startDate = trip?.points?.[0]?.getParsedDate();
@@ -14,6 +15,7 @@ function getTravelDay(point, trip) {
 }
 
 export default function PointDetail({ point, trip, onClose }) {
+    const { t } = useTranslation();
     const titleImageUrl = point?.titleImageUrl ?? null;
     const otherImageUrls = useMemo(() => point?.otherImageUrls ?? [], [point]);
     const [isLightboxOpen, setIsLightboxOpen] = useState(false);
@@ -112,7 +114,7 @@ export default function PointDetail({ point, trip, onClose }) {
                         style={{ height: `${pullDistance}px` }}
                     >
                         <div className={`text-orange-600 text-sm font-bold ${pullDistance >= PULL_THRESHOLD ? 'opacity-100' : 'opacity-60'}`}>
-                            {pullDistance >= PULL_THRESHOLD ? 'Loslassen zum Neuladen' : 'Zum Neuladen ziehen'}
+                            {pullDistance >= PULL_THRESHOLD ? t('detail.pullRelease') : t('detail.pullPull')}
                         </div>
                     </div>
                 )}
@@ -133,7 +135,7 @@ export default function PointDetail({ point, trip, onClose }) {
                                 <div className="lg:col-span-2 bg-white rounded-xl md:rounded-2xl p-4 md:p-8 shadow-lg border border-slate-100">
                                     <div className="flex items-center gap-2 md:gap-3 mb-4 md:mb-6">
                                         <div className="w-1 h-6 md:h-8 bg-orange-500 rounded-full"></div>
-                                        <h3 className="text-lg md:text-2xl font-black text-slate-900">Was hier passiert ist</h3>
+                                        <h3 className="text-lg md:text-2xl font-black text-slate-900">{t('detail.descriptionHeading')}</h3>
                                     </div>
                                     <p className="text-slate-700 text-sm md:text-lg leading-relaxed whitespace-pre-wrap">
                                         {point.description}
@@ -145,7 +147,7 @@ export default function PointDetail({ point, trip, onClose }) {
                                 <div className="bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border border-slate-100">
                                     <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
                                         <div className="w-1 h-5 md:h-6 bg-orange-500 rounded-full"></div>
-                                        <h3 className="text-base md:text-lg font-black text-slate-900">Reisetag</h3>
+                                        <h3 className="text-base md:text-lg font-black text-slate-900">{t('detail.dayHeading')}</h3>
                                     </div>
                                     <p className="text-4xl md:text-5xl font-black text-orange-600">{getTravelDay(point, trip)}</p>
                                 </div>
@@ -154,11 +156,11 @@ export default function PointDetail({ point, trip, onClose }) {
                                     <div className="hidden md:block bg-white rounded-xl md:rounded-2xl p-4 md:p-6 shadow-lg border border-slate-100">
                                         <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
                                             <div className="w-1 h-5 md:h-6 bg-orange-500 rounded-full"></div>
-                                            <h3 className="text-base md:text-lg font-black text-slate-900">Standort</h3>
+                                            <h3 className="text-base md:text-lg font-black text-slate-900">{t('detail.locationHeading')}</h3>
                                         </div>
                                         <div className="space-y-1.5 md:space-y-2 text-xs md:text-sm text-slate-600 font-medium">
-                                            <p><span className="text-slate-400">Breitengrad:</span> {point.lat.toFixed(6)}°</p>
-                                            <p><span className="text-slate-400">Längengrad:</span> {point.lng.toFixed(6)}°</p>
+                                            <p><span className="text-slate-400">{t('detail.lat')}</span> {point.lat.toFixed(6)}°</p>
+                                            <p><span className="text-slate-400">{t('detail.lon')}</span> {point.lng.toFixed(6)}°</p>
                                         </div>
                                     </div>
                                 )}

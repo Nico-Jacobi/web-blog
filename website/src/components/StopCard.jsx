@@ -1,7 +1,9 @@
 import React from 'react';
 import { Calendar, MapPin } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 
 export default function StopCard({ point, isActive, isNew, priority = 'auto', onInfoClick, onMapClick }) {
+    const { t } = useTranslation();
     if (!point || point.isWaypoint) return null;
 
     const image = point.titleThumbUrl;
@@ -39,7 +41,7 @@ export default function StopCard({ point, isActive, isNew, priority = 'auto', on
                         </h3>
                         {isNew && (
                             <span className="bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase shrink-0 leading-none">
-                                Neu
+                                {t('common.new')}
                             </span>
                         )}
                     </div>

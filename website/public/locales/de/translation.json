@@ -1,0 +1,49 @@
+{
+  "header": {
+    "title": "Jennys & Leons Australien Trip",
+    "dateRange": "Nov '25 - Jan '26",
+    "loading": "Laden…"
+  },
+  "sidebar": {
+    "heading": "Reiseverlauf",
+    "stops": "Stopps"
+  },
+  "detail": {
+    "pullRelease": "Loslassen zum Neuladen",
+    "pullPull": "Zum Neuladen ziehen",
+    "descriptionHeading": "Was hier passiert ist",
+    "dayHeading": "Reisetag",
+    "locationHeading": "Standort",
+    "lat": "Breitengrad:",
+    "lon": "Längengrad:"
+  },
+  "auth": {
+    "heading": "🔒 Passwort:",
+    "placeholder": "Passwort",
+    "error": "Zugriff verweigert!",
+    "submit": "Freischalten"
+  },
+  "gallery": {
+    "heading": "Galerie",
+    "file_one": "DATEI",
+    "file_other": "DATEIEN"
+  },
+  "common": {
+    "imageLoading": "Bild wird geladen...",
+    "new": "Neu"
+  },
+  "map": {
+    "loading": "Lädt...",
+    "noDate": "Kein Datum",
+    "details": "Details"
+  },
+  "travel": {
+    "car": "Auto",
+    "rv": "Wohnmobil",
+    "bus": "Bus",
+    "foot": "Zu Fuß",
+    "boat": "Boot",
+    "plane": "Flugzeug",
+    "misc": "Sonstige"
+  }
+}

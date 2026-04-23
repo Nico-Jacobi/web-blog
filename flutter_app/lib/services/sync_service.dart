@@ -627,7 +627,9 @@ class SyncService {
         try {
           final b = jsonDecode(response.body);
           if (b is Map && b['content'] is List) merged = b['content'];
-        } catch (_) {}
+        } catch (e) {
+          print('[SYNC] merge parse error: $e');
+        }
         return {'success': true, 'size': size, 'merged': merged};
       }
       return {'success': false, 'error': 'HTTP ${response.statusCode}'};

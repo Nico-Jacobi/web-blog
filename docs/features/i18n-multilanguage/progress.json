@@ -1,0 +1,34 @@
+{
+  "feature": "i18n-multilanguage",
+  "feature_path": "docs/features/i18n-multilanguage/",
+  "masterplan": {
+    "read": true,
+    "path": "docs/features/i18n-multilanguage/Masterplan.md",
+    "summary": "Multi-language support (de+en) for website (react-i18next) and Flutter app (flutter_localizations). strings.dart gets deleted, all AppStrings usages migrated to AppLocalizations.",
+    "goals": ["Website language toggle DE/EN in header", "Flutter language selector in Settings", "Persist language choice", "Delete strings.dart"],
+    "non_goals": ["Blog content translation", "More than 2 languages", "RTL support"],
+    "architecture_decisions": ["react-i18next + JSON files for website", "flutter_localizations + ARB for app", "LanguageProvider (Provider) for app state"]
+  },
+  "plans": {
+    "total": 5,
+    "files": [
+      "plans/01_Website_Foundation.md",
+      "plans/02_Website_Components.md",
+      "plans/03_App_Foundation.md",
+      "plans/04.1_App_Migration_Pages.md",
+      "plans/04.2_App_Migration_Widgets_Model.md"
+    ],
+    "current_index": 0
+  },
+  "status": "in_progress",
+  "completed": ["plans/01_Website_Foundation.md", "plans/02_Website_Components.md", "plans/03_App_Foundation.md", "plans/04.1_App_Migration_Pages.md"],
+  "in_progress": null,
+  "blocked": [],
+  "decisions": [],
+  "files_changed": [],
+  "files_created": [],
+  "errors": [],
+  "last_updated": "2026-04-22",
+  "started_at": "2026-04-22",
+  "completed_at": null
+}

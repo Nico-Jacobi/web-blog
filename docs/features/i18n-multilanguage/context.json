@@ -1,0 +1,45 @@
+{
+  "feature": "i18n-multilanguage",
+  "masterplan_path": "docs/features/i18n-multilanguage/Masterplan.md",
+  "files": {
+    "created": [],
+    "deleted": [],
+    "modified": []
+  },
+  "new_exports": {
+    "services": [],
+    "components": ["LanguageToggle (website)", "LanguageProvider (flutter)"],
+    "hooks": ["useTranslation (via react-i18next)"],
+    "types": [],
+    "utils": [],
+    "endpoints": []
+  },
+  "breaking_changes": [
+    {
+      "what": "routeStyles.js: label field renamed to labelKey",
+      "from": "style.label",
+      "to": "t(style.labelKey)",
+      "affected_callers": ["Legend.jsx"],
+      "migration_hint": "Add useTranslation hook in Legend.jsx, use t(style.labelKey)"
+    },
+    {
+      "what": "TripMethod.label getter removed from trip.dart",
+      "from": "method.label",
+      "to": "_getTripMethodLabel(context, method.id)",
+      "affected_callers": ["create_point_page.dart:807", "travel_method_dialog.dart", "manage_points_page.dart"],
+      "migration_hint": "Use local helper _getTripMethodLabel(context, id) in each consuming widget"
+    }
+  ],
+  "important_decisions": [
+    "Background Workmanager isolate cannot use AppLocalizations — use static string maps with SharedPreferences language key instead",
+    "flutter_localizations uses ARB files, code-generated AppLocalizations class (not easy_localization)",
+    "Website i18n uses i18next-http-backend: translation JSON files loaded lazily from /locales/{lang}/translation.json",
+    "Default language: German (de) for both website and app"
+  ],
+  "notes": [],
+  "_meta": {
+    "schema_version": "2.0",
+    "last_updated": "2026-04-22",
+    "last_plan_completed": null
+  }
+}

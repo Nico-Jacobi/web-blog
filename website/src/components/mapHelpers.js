@@ -130,15 +130,15 @@ export function addImageGpsMarkers(map, trip, imageMarkersRef, onImageFullscreen
                         bubblingMouseEvents: false
                     }).addTo(map);
 
-                    marker.bindPopup(
-                        `<img src="${result.blobUrl}" style="width:25vw; min-width:140px; max-width:300px; height:auto; border-radius:8px; display:block; cursor:pointer;" data-fullscreen-src="${result.blobUrl}"/>`,
-                        { closeButton: false, className: 'image-gps-popup', maxWidth: 320, autoPan: false }
-                    );
-
-                    marker.on('popupopen', () => {
-                        const popup = marker.getPopup();
-                        const img = popup?.getElement()?.querySelector('img[data-fullscreen-src]');
-                        if (img) img.onclick = () => onImageFullscreen(img.dataset.fullscreenSrc);
+                    const popupImg = document.createElement('img');
+                    popupImg.setAttribute('src', result.blobUrl);
+                    popupImg.style.cssText = 'width:25vw; min-width:140px; max-width:300px; height:auto; border-radius:8px; display:block; cursor:pointer;';
+                    popupImg.addEventListener('click', () => onImageFullscreen(result.blobUrl));
+                    marker.bindPopup(popupImg, {
+                        closeButton: false,
+                        className: 'image-gps-popup',
+                        maxWidth: 320,
+                        autoPan: false,
                     });
 
                     marker.on('mouseover', function () {

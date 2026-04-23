@@ -10,11 +10,11 @@ import { getAuthToken, setAuthToken, deleteAuthToken } from '../utils.js';
  * Flow:
  *   1. Fetch `/blogs/:slug/meta` (public). 404 → return blogNotFound.
  *   2. If meta says `requiresPassword=false`, load trip immediately.
- *   3. Otherwise wait for the read-token (via cookie or PasswordGate).
+ *   3. Otherwise wait for the read-token (via sessionStorage or PasswordGate).
  *   4. Try loading trip with the token. On 401, clear cookie + show gate.
  *
  * Returns the slug-scoped login() helper so PasswordGate doesn't need to
- * know about cookies.
+ * know about storage.
  */
 export function useTripLoader(slug) {
   const [meta, setMeta] = useState(null);
@@ -35,7 +35,6 @@ export function useTripLoader(slug) {
     setToken(slug ? getAuthToken(slug) : null);
     setNewPointIds(new Set());
     setInitialActiveId(null);
-    Trip.destroyInstance();
   }, [slug]);
 
   // 1. Load meta as soon as a slug is known.

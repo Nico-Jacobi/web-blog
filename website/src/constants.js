@@ -5,11 +5,3 @@ export const API_BASE = import.meta.env?.VITE_API_BASE ?? 'https://api.1ej.de';
 // key is used for all tenants; the subscription itself is stored per-blog
 // server-side (see services/push.js).
 export const VAPID_PUBLIC_KEY = 'BOjyu53x_por-j-_XIBbBSfMjaBFad7hQTKA3wgsLgpmib3wSUfdOjmw5LDzed-ADHL2_cQNN3-dDqJ2Duabf0U';
-
-/**
- * Cookie name for the read password, scoped to a blog slug so two blogs
- * opened in the same browser don't share/overwrite each other's tokens.
- */
-export function authCookieName(slug) {
-  return `blog_read_${slug}`;
-}

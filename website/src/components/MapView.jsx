@@ -44,7 +44,7 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
 
     // Initialize map, markers, and routes
     useEffect(() => {
-        if (!leafletReady || !containerReady || !mapRef.current || mapInstance.current || !trip) return;
+        if (!leafletReady || !containerReady || !mapRef.current || mapInstance.current || !trip || !meta) return;
 
         const L = window.L;
         const map = L.map(mapRef.current, { zoomControl: false, doubleClickZoom: false, closePopupOnClick: false });
@@ -72,7 +72,7 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
             keepBuffer: 8
         }).addTo(map);
 
-        drawRoutes(map, trip, meta?.settings);
+        drawRoutes(map, trip, meta.settings).catch(err => console.error('drawRoutes failed', err));
         addImageGpsMarkers(map, trip, imageMarkersRef, (src) => setFullscreenImage(src));
         addPointMarkers(L, map, trip, newPointIds, markersRef, mapInteractionRef, onSelectStop, onOpenDetail);
         setupClickHandler(map, trip, markersRef, imageMarkersRef, mapInteractionRef, activeId, onSelectStop);
@@ -82,7 +82,7 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
         setMapReady(true);
         return () => observer.disconnect();
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [leafletReady, containerReady, trip]);
+    }, [leafletReady, containerReady, trip, meta]);
 
     // Fly to active point
     useEffect(() => {

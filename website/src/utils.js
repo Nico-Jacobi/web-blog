@@ -16,3 +16,15 @@ export function setCookie(name, value) {
 export function deleteCookie(name) {
     document.cookie = `${name}=; max-age=0; SameSite=Strict; Secure`;
 }
+
+export function getAuthToken(slug) {
+    return sessionStorage.getItem('auth_' + slug) ?? null;
+}
+
+export function setAuthToken(slug, value) {
+    sessionStorage.setItem('auth_' + slug, value);
+}
+
+export function deleteAuthToken(slug) {
+    sessionStorage.removeItem('auth_' + slug);
+}

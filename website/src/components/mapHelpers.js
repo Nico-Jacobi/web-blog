@@ -1,5 +1,5 @@
 import { ROUTE_STYLES } from '../model/routeStyles.js';
-import { fetchAllRoutes } from '../controller/routingService.js';
+import { fetchAllRoutes, fetchGpsTrack } from '../controller/routingService.js';
 import { apiService } from '../controller/apiService.js';
 import i18n from '../i18n';
 
@@ -17,27 +17,57 @@ export function createPopupContent(point, img, onOpenDetail) {
     const calendarIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>`;
 
     popupDiv.style.cssText = `width:${width}; font-family:ui-sans-serif,system-ui,sans-serif; padding:2px;`;
-    popupDiv.innerHTML = `
-        ${img ? `<img src="${img}" style="width:100%; height:${imageHeight}; object-fit:cover; border-radius:8px; margin-bottom:6px; display:block;"/>` : `<div style="width:100%; height:${imageHeight}; background:#e2e8f0; border-radius:8px; margin-bottom:6px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:${descSize};">${i18n.t('map.loading')}</div>`}
-        <div style="display:flex; flex-direction:column; gap:2px;">
-            <strong style="font-size:${titleSize}; font-weight:800;">${point.title}</strong>
-            <div style="display:flex; align-items:center; gap:4px; font-size:${dateSize}; color:#94a3b8;">
-                ${calendarIcon}
-                <span>${point.date || i18n.t('map.noDate')}</span>
-            </div>
-            <p style="margin:4px 0 0; font-size:${descSize}; line-height:1.2; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;">
-                ${point.desc}
-            </p>
-            <button
-                id="detail-btn-${point.id}"
-                style="margin-top:6px; padding:${buttonPadding}; background:transparent; color:#f97316; border:2px solid #fb923c; border-radius:6px; font-size:${buttonSize}; font-weight:600; width:100%; cursor:pointer;"
-            >
-                ${i18n.t('map.details')}
-            </button>
-        </div>`;
 
-    const btn = popupDiv.querySelector(`#detail-btn-${point.id}`);
-    if (btn) btn.addEventListener('click', (e) => {
+    // Image or placeholder
+    if (img) {
+        const imgEl = document.createElement('img');
+        imgEl.setAttribute('src', img);
+        imgEl.style.cssText = `width:100%; height:${imageHeight}; object-fit:cover; border-radius:8px; margin-bottom:6px; display:block;`;
+        popupDiv.appendChild(imgEl);
+    } else {
+        const placeholder = document.createElement('div');
+        placeholder.style.cssText = `width:100%; height:${imageHeight}; background:#e2e8f0; border-radius:8px; margin-bottom:6px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:${descSize};`;
+        placeholder.textContent = i18n.t('map.loading');
+        popupDiv.appendChild(placeholder);
+    }
+
+    // Container
+    const container = document.createElement('div');
+    container.style.cssText = 'display:flex; flex-direction:column; gap:2px;';
+
+    // Title
+    const title = document.createElement('strong');
+    title.style.cssText = `font-size:${titleSize}; font-weight:800;`;
+    title.textContent = point.title;
+    container.appendChild(title);
+
+    // Date row
+    const dateRow = document.createElement('div');
+    dateRow.style.cssText = `display:flex; align-items:center; gap:4px; font-size:${dateSize}; color:#94a3b8;`;
+    const iconContainer = document.createElement('span');
+    iconContainer.innerHTML = calendarIcon;
+    const dateSpan = document.createElement('span');
+    dateSpan.textContent = point.date || i18n.t('map.noDate');
+    dateRow.appendChild(iconContainer);
+    dateRow.appendChild(dateSpan);
+    container.appendChild(dateRow);
+
+    // Description
+    const desc = document.createElement('p');
+    desc.style.cssText = `margin:4px 0 0; font-size:${descSize}; line-height:1.2; display:-webkit-box; -webkit-line-clamp:2; -webkit-box-orient:vertical; overflow:hidden;`;
+    desc.textContent = point.desc;
+    container.appendChild(desc);
+
+    // Detail button
+    const btn = document.createElement('button');
+    btn.id = `detail-btn-${point.id}`;
+    btn.style.cssText = `margin-top:6px; padding:${buttonPadding}; background:transparent; color:#f97316; border:2px solid #fb923c; border-radius:6px; font-size:${buttonSize}; font-weight:600; width:100%; cursor:pointer;`;
+    btn.textContent = i18n.t('map.details');
+    container.appendChild(btn);
+
+    popupDiv.appendChild(container);
+
+    btn.addEventListener('click', (e) => {
         e.stopPropagation();
         onOpenDetail(point.id);
     });
@@ -45,8 +75,23 @@ export function createPopupContent(point, img, onOpenDetail) {
     return popupDiv;
 }
 
-export function drawRoutes(map, trip) {
+export async function drawRoutes(map, trip, settings) {
     const L = window.L;
+
+    if (settings?.pathMode === 'gps') {
+        const track = await fetchGpsTrack(trip);
+        if (track && track.length > 0) {
+            const coords = track.map(p => [p.lat, p.lon]);
+            L.polyline(coords, {
+                color: '#374151',
+                weight: 3,
+                opacity: 0.75,
+                lineJoin: 'round',
+                lineCap: 'round',
+            }).addTo(map);
+        }
+        return;
+    }
 
     fetchAllRoutes(trip, (index, coords, mode) => {
         const style = ROUTE_STYLES[mode] || ROUTE_STYLES.car;

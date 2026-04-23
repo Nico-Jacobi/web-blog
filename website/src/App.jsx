@@ -200,6 +200,7 @@ export default function App() {
             leafletReady={leafletReady}
             trip={trip}
             newPointIds={newPointIds}
+            meta={meta}
           />
           <div
             className="lg:hidden absolute top-0 right-0 bottom-0 w-4 z-[1500]"

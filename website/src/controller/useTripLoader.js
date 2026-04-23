@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { Trip } from '../model/Trip.js';
 import { apiService } from './apiService.js';
 import { setupPushNotifications, sendAuthToServiceWorker } from './usePushNotifications.js';
-import { authCookieName } from '../constants.js';
-import { getCookie, setCookie, deleteCookie } from '../utils.js';
+import { getAuthToken, setAuthToken, deleteAuthToken } from '../utils.js';
 
 /**
  * Loads blog metadata + trip data for a given slug.
@@ -18,14 +17,12 @@ import { getCookie, setCookie, deleteCookie } from '../utils.js';
  * know about cookies.
  */
 export function useTripLoader(slug) {
-  const cookieName = slug ? authCookieName(slug) : null;
-
   const [meta, setMeta] = useState(null);
   const [blogNotFound, setBlogNotFound] = useState(false);
   const [trip, setTrip] = useState(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
-  const [token, setToken] = useState(() => cookieName ? getCookie(cookieName) : null);
+  const [token, setToken] = useState(() => slug ? getAuthToken(slug) : null);
   const [newPointIds, setNewPointIds] = useState(new Set());
   const [initialActiveId, setInitialActiveId] = useState(null);
 
@@ -35,7 +32,7 @@ export function useTripLoader(slug) {
     setBlogNotFound(false);
     setTrip(null);
     setError(null);
-    setToken(slug ? getCookie(authCookieName(slug)) : null);
+    setToken(slug ? getAuthToken(slug) : null);
     setNewPointIds(new Set());
     setInitialActiveId(null);
     Trip.destroyInstance();
@@ -96,7 +93,7 @@ export function useTripLoader(slug) {
         if (err.code === 'UNAUTHORIZED') {
           setError('unauthorized');
           setToken(null);
-          if (cookieName) deleteCookie(cookieName);
+          if (slug) deleteAuthToken(slug);
         } else {
           setError(err.message);
         }
@@ -104,10 +101,10 @@ export function useTripLoader(slug) {
       .finally(() => setLoading(false));
 
     return () => Trip.destroyInstance(slug);
-  }, [slug, meta, token, cookieName]);
+  }, [slug, meta, token]);
 
   const login = (password) => {
-    if (cookieName) setCookie(cookieName, password);
+    if (slug) setAuthToken(slug, password);
     setToken(password);
   };
 

@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } f
 import Legend from './Legend.jsx';
 import { createPopupContent, drawRoutes, addImageGpsMarkers, buildMarkerHtml, buildWaypointMarkerHtml, findClosestMarker } from './mapHelpers.js';
 
-const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop, leafletReady, trip, newPointIds }, ref) => {
+const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop, leafletReady, trip, newPointIds, meta }, ref) => {
     const mapRef = useRef(null);
     const mapInstance = useRef(null);
     const markersRef = useRef({});
@@ -12,7 +12,8 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
     const [containerReady, setContainerReady] = useState(false);
     const [mapReady, setMapReady] = useState(false);
     const [fullscreenImage, setFullscreenImage] = useState(null);
-    const usedModes = trip ? [...new Set(trip.routes.map(r => r.mode))] : [];
+    const isGpsMode = meta?.settings?.pathMode === 'gps';
+    const usedModes = (!isGpsMode && trip) ? [...new Set(trip.routes.map(r => r.mode))] : [];
 
     useImperativeHandle(ref, () => ({
         closePopup: () => {
@@ -71,7 +72,7 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
             keepBuffer: 8
         }).addTo(map);
 
-        drawRoutes(map, trip);
+        drawRoutes(map, trip, meta?.settings);
         addImageGpsMarkers(map, trip, imageMarkersRef, (src) => setFullscreenImage(src));
         addPointMarkers(L, map, trip, newPointIds, markersRef, mapInteractionRef, onSelectStop, onOpenDetail);
         setupClickHandler(map, trip, markersRef, imageMarkersRef, mapInteractionRef, activeId, onSelectStop);

@@ -161,3 +161,15 @@ export async function fetchAllRoutes(trip, onRoute) {
         onRoute(index, finalCoords, route.mode);
     }
 }
+
+export async function fetchGpsTrack(trip) {
+    try {
+        const res = await fetch(`${API_BASE}/blogs/${trip.slug}/files/data/gps_track.json`, {
+            headers: trip.password ? { 'X-Read-Token': trip.password } : {},
+        });
+        if (!res.ok) return null;
+        return await res.json();
+    } catch {
+        return null;
+    }
+}

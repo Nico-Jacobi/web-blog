@@ -267,7 +267,7 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
     _showSuccessSnackBar(AppLocalizations.of(context)!.waypointAdded);
   }
 
-  void _reorderPointsWithRoutes(int oldIndex, int newIndex) {
+  Future<void> _reorderPointsWithRoutes(int oldIndex, int newIndex) async {
     if (oldIndex < newIndex) newIndex -= 1;
 
 
@@ -322,7 +322,7 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
       _rebuildTripIndex();
     });
 
-    _saveData();
+    await _saveData();
   }
 
   Future<void> _changeTripMethod(TripElement trip) async {

@@ -61,6 +61,8 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
   Set<String> _originalOtherMediaPaths = {};
   final TripMethod _originalTravelMethod = TripMethod.car;
 
+  final Map<String, Future<VideoPlayerController>> _videoControllers = {};
+
   @override
   void initState() {
     super.initState();
@@ -126,6 +128,10 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     // Cancel any in-progress video compression so the codec doesn't stay
     // locked if the user closes the page mid-compression.
     VideoCompress.cancelCompression();
+    for (final f in _videoControllers.values) {
+      f.then((c) => c.dispose()).catchError((_) {});
+    }
+    _videoControllers.clear();
     _nameCtrl.dispose();
     _shortDescCtrl.dispose();
     _descCtrl.dispose();
@@ -615,12 +621,14 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     }
   }
 
-  Future<VideoPlayerController> _getVideoController(File videoFile) async {
-    final controller = VideoPlayerController.file(videoFile);
-    await controller.initialize();
-    await controller.setVolume(0);
-    await controller.seekTo(const Duration(seconds: 1)); // Get frame from 1s
-    return controller;
+  Future<VideoPlayerController> _getVideoController(File videoFile) {
+    return _videoControllers.putIfAbsent(videoFile.path, () async {
+      final controller = VideoPlayerController.file(videoFile);
+      await controller.initialize();
+      await controller.setVolume(0);
+      await controller.seekTo(const Duration(seconds: 1));
+      return controller;
+    });
   }
 
   @override

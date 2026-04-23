@@ -34,15 +34,19 @@ class _CoordinatePickerPageState extends State<CoordinatePickerPage> {
       final response = await http.get(
         Uri.parse('https://nominatim.openstreetmap.org/search?q=$query&format=json&limit=5'),
         headers: {'User-Agent': 'de.retriever_web.interestpoints'},
-      );
+      ).timeout(const Duration(seconds: 10));
 
+      if (!mounted) return;
       if (response.statusCode == 200) {
         setState(() {
           _searchResults = json.decode(response.body);
           _isSearching = false;
         });
+      } else {
+        setState(() => _isSearching = false);
       }
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isSearching = false);
     }
   }

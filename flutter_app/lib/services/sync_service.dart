@@ -201,7 +201,11 @@ class SyncService {
 
         for (final entry in results.entries) {
           final serverPath = entry.key;
-          final localPath = pathMap[serverPath]!;
+          final localPath = pathMap[serverPath];
+          if (localPath == null) {
+            print('[SYNC] Verify-batch: server returned unknown path $serverPath');
+            continue;
+          }
           final data = entry.value;
 
           if (data['exists'] == true) {
@@ -595,7 +599,9 @@ class SyncService {
         try {
           final body = jsonDecode(response.body);
           if (body is Map && body['content'] is List) merged = body['content'];
-        } catch (_) {}
+        } catch (e) {
+          print('[SYNC] merge parse error: $e');
+        }
         return {'success': true, 'size': size, 'merged': merged};
       }
       return {'success': false, 'error': 'HTTP ${response.statusCode}'};

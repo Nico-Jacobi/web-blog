@@ -431,7 +431,7 @@ class SyncService {
       final gpsFile = await gpsData.file;
       final gpsContent = await gpsFile.readAsString();
       if (await _hasContentChanged(gpsData.serverPath, gpsContent)) {
-        final gpsResult = await _writeJson(gpsData.serverPath, jsonDecode(gpsContent));
+        final gpsResult = await _writePreEncodedJson(gpsData.serverPath, gpsContent);
         if (gpsResult['success']) {
           await _saveContentHash(gpsData.serverPath, gpsContent);
           await _markAsSynced(gpsData.serverPath, utf8.encode(gpsContent).length);
@@ -605,6 +605,32 @@ class SyncService {
     }
   }
 
+  Future<Map<String, dynamic>> _writePreEncodedJson(String serverPath, String jsonContent) async {
+    try {
+      print('[SYNC] Writing pre-encoded JSON to server: $serverPath');
+      final body = '{"path":${jsonEncode(serverPath)},"content":$jsonContent}';
+      final response = await AuthService().authedRequest((token) => http.post(
+            Uri.parse('$baseUrl/me/blog/write'),
+            headers: _authHeaders(token, json: true),
+            body: body,
+          ));
+      print('[SYNC] Write response status: ${response.statusCode}');
+      if (response.statusCode == 200) {
+        final size = utf8.encode(jsonContent).length;
+        dynamic merged;
+        try {
+          final b = jsonDecode(response.body);
+          if (b is Map && b['content'] is List) merged = b['content'];
+        } catch (_) {}
+        return {'success': true, 'size': size, 'merged': merged};
+      }
+      return {'success': false, 'error': 'HTTP ${response.statusCode}'};
+    } catch (e) {
+      print('[SYNC] Write error: $e');
+      return {'success': false, 'error': e.toString()};
+    }
+  }
+
   /// Downloads everything from server to initialize a fresh local app state.
   /// Called after first login or after switching accounts.
   Future<bool> initializeFromServer() async {
@@ -678,8 +704,7 @@ class SyncService {
 
   Future<dynamic> _downloadJson(String serverPath) async {
     try {
-      final blog = AuthService().currentBlog;
-      if (blog == null) return null;
+      if (AuthService().currentBlog == null) return null;
       final url = '$baseUrl/me/blog/files/$serverPath';
       print('[SYNC] Fetching JSON from: $url');
       final response = await AuthService().authedRequest((token) => http.get(
@@ -696,8 +721,7 @@ class SyncService {
 
   Future<int> _downloadFile(String serverPath, String localSavePath) async {
     try {
-      final blog = AuthService().currentBlog;
-      if (blog == null) return 0;
+      if (AuthService().currentBlog == null) return 0;
       final url = '$baseUrl/me/blog/files/$serverPath';
       final response = await AuthService().authedRequest((token) => http.get(
             Uri.parse(url),

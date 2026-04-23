@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 
+import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 
 import '../model/data_file.dart';
@@ -30,7 +31,7 @@ class GpsTrackingService {
         lon: pos.longitude,
         timestamp: DateTime.now().toUtc(),
       ));
-    }, onError: (_) {});
+    }, onError: (e) { debugPrint('[gps] stream error: $e'); });
   }
 
   Future<void> stopTracking() async {
@@ -52,7 +53,7 @@ class GpsTrackingService {
         lon: pos.longitude,
         timestamp: DateTime.now().toUtc(),
       ));
-    } catch (_) {}
+    } catch (e) { debugPrint('[gps] background fix failed: $e'); }
   }
 
   static Future<void> appendPoint(GpsPoint point) async {
@@ -60,7 +61,7 @@ class GpsTrackingService {
       final track = await loadTrack();
       track.add(point);
       await saveTrack(track);
-    } catch (_) {}
+    } catch (e) { debugPrint('[gps] appendPoint failed: $e'); }
   }
 
   static Future<List<GpsPoint>> loadTrack() async {

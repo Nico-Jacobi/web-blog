@@ -209,7 +209,9 @@ class AuthService extends ChangeNotifier {
           }
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      debugPrint('[auth] JWT expiration check failed: $e');
+    }
     return _accessToken!;
   }
 

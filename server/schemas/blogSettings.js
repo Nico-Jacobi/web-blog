@@ -19,6 +19,7 @@ const blogSettingsSchema = z.object({
   ownerDisplayName: z.string().max(120).optional(),
   theme: themeSchema,
   push: pushSchema,
+  pathMode: z.enum(['routing', 'gps']).optional(),
 }).strict();
 
 const blogSettingsPatchSchema = blogSettingsSchema.partial();

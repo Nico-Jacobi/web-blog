@@ -324,6 +324,22 @@ router.post('/upload', (req, res) => {
   req.pipe(bb);
 });
 
+router.get('/files/*', async (req, res) => {
+  const rel = req.params[0];
+  let absPath;
+  try { absPath = req.blogPath(rel); }
+  catch { return res.status(400).json({ error: 'Invalid path' }); }
+
+  try {
+    const data = await fs.readFile(absPath);
+    res.setHeader('Cache-Control', 'no-store, private');
+    res.send(data);
+  } catch (err) {
+    if (err.code === 'ENOENT') return res.status(404).json({ error: 'Not found' });
+    throw err;
+  }
+});
+
 async function triggerPushIfNewPoints(blogId, prevArr, mergedArr) {
   const realPrev = prevArr.filter(p => p.isWaypoint !== true && !p.deletedAt);
   const realNow = mergedArr.filter(p => p.isWaypoint !== true && !p.deletedAt);

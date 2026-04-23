@@ -67,6 +67,7 @@ router.patch('/blog', authJwt, async (req, res) => {
   const params = [];
 
   if (parsed.data.settings !== undefined) {
+    delete parsed.data.settings.pathMode;
     const currentSettings = parseSettingsJson(current.settings_json);
     const merged = { ...currentSettings, ...parsed.data.settings };
     if (parsed.data.settings.theme) {

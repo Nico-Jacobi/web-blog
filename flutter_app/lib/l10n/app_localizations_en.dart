@@ -459,6 +459,27 @@ class AppLocalizationsEn extends AppLocalizations {
       'Visitors of your blog need this to view it';
 
   @override
+  String get registerPathModeSection => 'How should travel routes be drawn?';
+
+  @override
+  String get registerPathModeRouting => 'Calculated routes';
+
+  @override
+  String get registerPathModeRoutingTooltip =>
+      'Routes between waypoints are calculated via roads or paths.';
+
+  @override
+  String get registerPathModeGps => 'Recorded GPS track';
+
+  @override
+  String get registerPathModeGpsTooltip =>
+      'Your actual GPS track is shown. Requires location tracking on your phone.';
+
+  @override
+  String get registerPathModePermanent =>
+      'This setting is permanent and cannot be changed later.';
+
+  @override
   String get registerSubmitButton => 'Create blog';
 
   @override

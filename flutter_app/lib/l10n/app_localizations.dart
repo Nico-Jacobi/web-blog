@@ -974,6 +974,42 @@ abstract class AppLocalizations {
   /// **'Besucher deines Blogs brauchen es zum Anschauen'**
   String get registerReadPasswordHelper;
 
+  /// No description provided for @registerPathModeSection.
+  ///
+  /// In de, this message translates to:
+  /// **'Wie sollen Reise-Routen gezeichnet werden?'**
+  String get registerPathModeSection;
+
+  /// No description provided for @registerPathModeRouting.
+  ///
+  /// In de, this message translates to:
+  /// **'Berechnete Routen'**
+  String get registerPathModeRouting;
+
+  /// No description provided for @registerPathModeRoutingTooltip.
+  ///
+  /// In de, this message translates to:
+  /// **'Routen zwischen Wegpunkten werden über Straßen oder Wege berechnet.'**
+  String get registerPathModeRoutingTooltip;
+
+  /// No description provided for @registerPathModeGps.
+  ///
+  /// In de, this message translates to:
+  /// **'Aufgezeichnete GPS-Spur'**
+  String get registerPathModeGps;
+
+  /// No description provided for @registerPathModeGpsTooltip.
+  ///
+  /// In de, this message translates to:
+  /// **'Dein tatsächlicher GPS-Track wird angezeigt. Benötigt Standort-Tracking auf deinem Handy.'**
+  String get registerPathModeGpsTooltip;
+
+  /// No description provided for @registerPathModePermanent.
+  ///
+  /// In de, this message translates to:
+  /// **'Diese Einstellung ist dauerhaft und kann später nicht mehr geändert werden.'**
+  String get registerPathModePermanent;
+
   /// No description provided for @registerSubmitButton.
   ///
   /// In de, this message translates to:

@@ -14,6 +14,7 @@ import '../widgets/info_icon.dart';
 import '../widgets/point_with_route_card.dart';
 import '../widgets/waypoint_card.dart';
 import '../services/storage_service.dart';
+import '../services/sync_service.dart';
 import '../widgets/travel_method_dialog.dart';
 import 'package:australien_blog_app/l10n/app_localizations.dart';
 import 'coordinate_picker.dart';
@@ -137,6 +138,7 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
     final allTrips  = [..._tripElements, ..._tripTombstones];
 
     await _storage.savePointsAndTrips(allPoints, allTrips);
+    SyncService().syncFromStorage().catchError((e) { debugPrint('[sync] $e'); return null; });
   }
 
   Future<void> _deletePoint(InterestPoint point) async {
@@ -163,6 +165,7 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
       // Waypoints have no media files -> skip the media-deletion round-trip.
       if (!point.isWaypoint) {
         await _storage.deletePointMedia(point);
+        SyncService().syncFromStorage().catchError((e) { debugPrint('[sync] $e'); return null; });
       }
 
       // Tombstone the incoming trip (so other clients learn it's gone too).

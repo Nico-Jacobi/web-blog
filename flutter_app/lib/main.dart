@@ -6,6 +6,7 @@ import 'package:australien_blog_app/pages/login_page.dart';
 import 'package:australien_blog_app/pages/manage_points_page.dart';
 import 'package:australien_blog_app/pages/sync_status_page.dart';
 import 'package:australien_blog_app/services/auth_service.dart';
+import 'package:australien_blog_app/services/gps_tracking_service.dart';
 import 'package:australien_blog_app/services/storage_service.dart';
 import 'package:australien_blog_app/services/sync_service.dart';
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
@@ -15,6 +16,7 @@ import 'package:australien_blog_app/l10n/app_localizations.dart';
 import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:workmanager/workmanager.dart';
+import 'app_config.dart';
 import 'colors.dart';
 import 'pages/start_page.dart';
 import 'pages/browse_files_page.dart';
@@ -24,8 +26,6 @@ import 'package:shared_preferences/shared_preferences.dart';
 
 final FlutterLocalNotificationsPlugin flutterLocalNotificationsPlugin =
     FlutterLocalNotificationsPlugin();
-
-bool useModernPicker = true;
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -73,6 +73,11 @@ void main() async {
 
     await Permission.location.request();
     await Permission.accessMediaLocation.request();
+
+    final gpsEnabled = prefs.getBool('gps_path_tracking') ?? false;
+    if (gpsEnabled && AuthService().isLoggedIn) {
+      GpsTrackingService().startTracking();
+    }
 
     runApp(
       ChangeNotifierProvider.value(
@@ -223,6 +228,17 @@ class _AuthGateState extends State<_AuthGate> {
 
   void _onAuthChanged() {
     if (mounted) setState(() {});
+    _syncGpsTracking();
+  }
+
+  Future<void> _syncGpsTracking() async {
+    final prefs = await SharedPreferences.getInstance();
+    final enabled = prefs.getBool('gps_path_tracking') ?? false;
+    if (enabled && AuthService().isLoggedIn) {
+      GpsTrackingService().startTracking();
+    } else {
+      GpsTrackingService().stopTracking();
+    }
   }
 
   @override
@@ -237,6 +253,12 @@ void callbackDispatcher() {
     // Background sync needs auth to be loaded in this isolate too.
     await AuthService().bootstrap();
     if (!AuthService().isLoggedIn) return Future.value(true);
+
+    final prefs = await SharedPreferences.getInstance();
+    final gpsEnabled = prefs.getBool('gps_path_tracking') ?? false;
+    if (gpsEnabled) {
+      await GpsTrackingService.recordBackgroundPosition();
+    }
 
     if (await SyncService().hasUnsyncedChanges()) {
       bool success = await SyncService().syncFromStorage() != null;

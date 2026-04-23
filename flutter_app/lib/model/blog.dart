@@ -44,6 +44,7 @@ class Blog {
   String? get subtitle => settings['subtitle'] as String?;
   String? get dateRange => settings['dateRange'] as String?;
   String? get ownerDisplayName => settings['ownerDisplayName'] as String?;
+  bool get isGpsPathMode => (settings['pathMode'] as String?) == 'gps';
 
   /// Get a nested setting by dotted path with a default fallback.
   T? getSetting<T>(String path, [T? fallback]) {

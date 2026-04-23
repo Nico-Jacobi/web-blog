@@ -34,7 +34,8 @@ class _LoginPageState extends State<LoginPage> {
       await AuthService().login(u, p);
       if (!mounted) return;
       // Pull blog data after login (best-effort, non-blocking).
-      SyncService().initializeFromServer();
+      SyncService().initializeFromServer()
+          .catchError((e) { debugPrint('[init] $e'); return false; });
       Navigator.of(context).pushNamedAndRemoveUntil('/start', (_) => false);
     } on AuthException catch (e) {
       setState(() => _error = e.message);

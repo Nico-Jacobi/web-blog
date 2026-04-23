@@ -1,13 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:permission_handler/permission_handler.dart';
 import 'package:provider/provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../api_keys.dart';
-import '../main.dart';
+import '../app_config.dart';
 import 'package:australien_blog_app/l10n/app_localizations.dart';
 import '../colors.dart';
 import '../providers/language_provider.dart';
 import '../services/auth_service.dart';
+import '../services/gps_tracking_service.dart';
 import '../services/sync_service.dart';
 import '../services/storage_service.dart';
 import '../widgets/confirm_dialog.dart';
@@ -24,6 +26,7 @@ class _SettingsPageState extends State<SettingsPage> {
   final _urlController = TextEditingController();
   bool _syncData = false;
   bool _useModernPicker = true;
+  bool _gpsTracking = false;
 
   @override
   void initState() {
@@ -37,6 +40,7 @@ class _SettingsPageState extends State<SettingsPage> {
       _urlController.text = prefs.getString('base_url') ?? baseUrl;
       _syncData = prefs.getBool('sync_data') ?? SyncService().syncData;
       _useModernPicker = prefs.getBool('use_modern_picker') ?? true;
+      _gpsTracking = prefs.getBool('gps_path_tracking') ?? false;
     });
   }
 
@@ -52,6 +56,14 @@ class _SettingsPageState extends State<SettingsPage> {
 
     await prefs.setBool('use_modern_picker', _useModernPicker);
     useModernPicker = _useModernPicker;
+
+    await prefs.setBool('gps_path_tracking', _gpsTracking);
+    if (_gpsTracking) {
+      await Permission.locationAlways.request();
+      GpsTrackingService().startTracking();
+    } else {
+      GpsTrackingService().stopTracking();
+    }
 
     StorageService.updatePickerImplementation();
 
@@ -183,6 +195,16 @@ class _SettingsPageState extends State<SettingsPage> {
                         setState(() { _useModernPicker = value; });
                       },
                     ),
+                    if (blog?.isGpsPathMode == true)
+                      SwitchListTile(
+                        title: Text(l10n.settingsGpsTracking),
+                        subtitle: Text(l10n.settingsGpsTrackingSubtitle),
+                        value: _gpsTracking,
+                        activeThumbColor: primary,
+                        onChanged: (bool value) {
+                          setState(() { _gpsTracking = value; });
+                        },
+                      ),
                     Consumer<LanguageProvider>(
                       builder: (context, langProvider, _) {
                         return ListTile(

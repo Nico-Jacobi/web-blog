@@ -19,6 +19,7 @@ class _RegisterPageState extends State<RegisterPage> {
   final _readPwCtrl = TextEditingController();
   final _formKey = GlobalKey<FormState>();
   bool _busy = false;
+  bool _gpsPathMode = false;
   String? _error;
 
   @override
@@ -47,9 +48,11 @@ class _RegisterPageState extends State<RegisterPage> {
         blogSlug: _blogSlugCtrl.text.trim(),
         blogTitle: _blogTitleCtrl.text.trim(),
         readPassword: _readPwCtrl.text.isEmpty ? null : _readPwCtrl.text,
+        gpsPathMode: _gpsPathMode,
       );
       if (!mounted) return;
-      SyncService().initializeFromServer();
+      SyncService().initializeFromServer()
+          .catchError((e) { debugPrint('[init] $e'); return false; });
       Navigator.of(context).pushNamedAndRemoveUntil('/start', (_) => false);
     } on AuthException catch (e) {
       setState(() => _error = e.message);
@@ -134,6 +137,55 @@ class _RegisterPageState extends State<RegisterPage> {
                         labelText: l10n.registerReadPasswordLabel,
                         helperText: l10n.registerReadPasswordHelper,
                         prefixIcon: const Icon(Icons.visibility_outlined, color: primary),
+                      ),
+                    ),
+                    const SizedBox(height: 24),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        l10n.registerPathModeSection,
+                        style: Theme.of(context).textTheme.titleSmall,
+                      ),
+                    ),
+                    RadioListTile<bool>(
+                      value: false,
+                      groupValue: _gpsPathMode,
+                      onChanged: (v) => setState(() => _gpsPathMode = v!),
+                      title: Row(
+                        children: [
+                          Text(l10n.registerPathModeRouting),
+                          const SizedBox(width: 6),
+                          Tooltip(
+                            message: l10n.registerPathModeRoutingTooltip,
+                            child: const Icon(Icons.info_outline, size: 16),
+                          ),
+                        ],
+                      ),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    RadioListTile<bool>(
+                      value: true,
+                      groupValue: _gpsPathMode,
+                      onChanged: (v) => setState(() => _gpsPathMode = v!),
+                      title: Row(
+                        children: [
+                          Text(l10n.registerPathModeGps),
+                          const SizedBox(width: 6),
+                          Tooltip(
+                            message: l10n.registerPathModeGpsTooltip,
+                            child: const Icon(Icons.info_outline, size: 16),
+                          ),
+                        ],
+                      ),
+                      contentPadding: EdgeInsets.zero,
+                    ),
+                    Align(
+                      alignment: Alignment.centerLeft,
+                      child: Text(
+                        l10n.registerPathModePermanent,
+                        style: Theme.of(context).textTheme.bodySmall?.copyWith(
+                          color: Theme.of(context).colorScheme.onSurfaceVariant,
+                        ),
                       ),
                     ),
                     if (_error != null) ...[

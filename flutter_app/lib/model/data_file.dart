@@ -47,6 +47,7 @@ class DataFile {
 
   static final points = DataFile('points.json');
   static final trips = DataFile('trips.json');
+  static final gpsTrack = DataFile('gps_track.json');
 
   @override
   String toString() => 'DataFile(filename: $filename, serverPath: $serverPath)';

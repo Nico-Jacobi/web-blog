@@ -1,6 +1,7 @@
 import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
@@ -258,6 +259,14 @@ class SyncService {
         if (!_syncedFilesWithSize.containsKey(name)) return true;
       }
     }
+
+    final gpsData = DataFile.gpsTrack;
+    if (await gpsData.exists()) {
+      final gpsFile = await gpsData.file;
+      final gpsContent = await gpsFile.readAsString();
+      if (await _hasContentChanged(gpsData.serverPath, gpsContent)) return true;
+    }
+
     return false;
   }
 
@@ -416,6 +425,28 @@ class SyncService {
       }
     }
 
+    print('[SYNC] --- Phase 3: GPS Track Sync ---');
+    final gpsData = DataFile.gpsTrack;
+    if (await gpsData.exists()) {
+      final gpsFile = await gpsData.file;
+      final gpsContent = await gpsFile.readAsString();
+      if (await _hasContentChanged(gpsData.serverPath, gpsContent)) {
+        final gpsResult = await _writeJson(gpsData.serverPath, jsonDecode(gpsContent));
+        if (gpsResult['success']) {
+          await _saveContentHash(gpsData.serverPath, gpsContent);
+          await _markAsSynced(gpsData.serverPath, utf8.encode(gpsContent).length);
+          successCount++;
+          print('[SYNC] ✓ GPS track synced');
+        } else {
+          failCount++;
+          print('[SYNC] ✗ GPS track failed: ${gpsResult['error']}');
+        }
+      } else {
+        skippedCount++;
+        print('[SYNC] Skipping GPS track (no changes)');
+      }
+    }
+
     if (remoteChanged) {
       remoteChangesNotifier.value = remoteChangesNotifier.value + 1;
       print('[SYNC] 📥 Remote changes applied locally, notified listeners');
@@ -458,6 +489,9 @@ class SyncService {
     return downloaded;
   }
 
+  String _hashContent(String content) =>
+      sha256.convert(utf8.encode(content)).toString();
+
   Future<bool> _hasContentChanged(String key, String newContent) async {
     await _init();
     final dir = await BlogPaths.dir();
@@ -470,7 +504,7 @@ class SyncService {
     try {
       final data = jsonDecode(await hashFile.readAsString());
       final savedHash = data[key];
-      final newHash = newContent.hashCode.toString();
+      final newHash = _hashContent(newContent);
       final changed = savedHash != newHash;
       print('[SYNC] Content hash check for $key: ${changed ? "CHANGED" : "UNCHANGED"}');
       return changed;
@@ -492,7 +526,7 @@ class SyncService {
         print('[SYNC] Could not read existing hashes: $e');
       }
     }
-    hashes[key] = content.hashCode.toString();
+    hashes[key] = _hashContent(content);
     await hashFile.writeAsString(jsonEncode(hashes));
   }
 
@@ -646,7 +680,7 @@ class SyncService {
     try {
       final blog = AuthService().currentBlog;
       if (blog == null) return null;
-      final url = '$baseUrl/blogs/${blog.slug}/files/$serverPath';
+      final url = '$baseUrl/me/blog/files/$serverPath';
       print('[SYNC] Fetching JSON from: $url');
       final response = await AuthService().authedRequest((token) => http.get(
             Uri.parse(url),
@@ -664,7 +698,7 @@ class SyncService {
     try {
       final blog = AuthService().currentBlog;
       if (blog == null) return 0;
-      final url = '$baseUrl/blogs/${blog.slug}/files/$serverPath';
+      final url = '$baseUrl/me/blog/files/$serverPath';
       final response = await AuthService().authedRequest((token) => http.get(
             Uri.parse(url),
             headers: _authHeaders(token),

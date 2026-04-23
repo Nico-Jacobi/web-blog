@@ -54,6 +54,8 @@ dependencies:
   device_info_plus: ^10.1.0
   image_picker_android: ^0.8.12
   image_picker_platform_interface: ^2.10.0
+  geolocator: ^13.0.2
+  crypto: ^3.0.0
 
 
 flutter_icons:

@@ -15,6 +15,7 @@ import '../model/media_file.dart';
 import '../model/trip.dart';
 import '../services/blog_paths.dart';
 import '../services/storage_service.dart';
+import '../services/sync_service.dart';
 import 'package:australien_blog_app/l10n/app_localizations.dart';
 import '../widgets/confirm_dialog.dart';
 import '../widgets/info_icon.dart';
@@ -456,6 +457,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
       }
 
       await _storage.savePointsAndTrips(points, trips);
+      SyncService().syncFromStorage().catchError((e) { debugPrint('[sync] $e'); return null; });
 
       if (mounted) Navigator.pop(context);
       if (mounted) Navigator.pop(context, true);

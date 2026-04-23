@@ -3,13 +3,12 @@ import 'dart:io';
 import 'package:image_picker_android/image_picker_android.dart';
 import 'package:image_picker_platform_interface/image_picker_platform_interface.dart';
 import 'package:path/path.dart' as path;
-import '../main.dart';
+import '../app_config.dart';
 import '../model/data_file.dart';
 import '../model/interest_point.dart';
 import '../model/media_file.dart';
 import '../model/trip.dart';
 import 'blog_paths.dart';
-import 'sync_service.dart';
 
 class StorageService {
   static final StorageService _instance = StorageService._internal();
@@ -50,8 +49,6 @@ class StorageService {
 
     final tripsFile = await tripsData.file;
     await tripsFile.writeAsString(jsonEncode(trips.map((t) => t.toJson()).toList()));
-
-    SyncService().syncFromStorage();
   }
 
   Future<void> resetApp({bool deleteImages = true}) async {
@@ -120,8 +117,6 @@ class StorageService {
         await media.file.delete();
       }
     }
-
-    SyncService().syncFromStorage();
   }
 
   static void updatePickerImplementation() {

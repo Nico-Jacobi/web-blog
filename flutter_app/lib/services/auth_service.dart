@@ -110,6 +110,7 @@ class AuthService extends ChangeNotifier {
     required String blogSlug,
     required String blogTitle,
     String? readPassword,
+    bool gpsPathMode = false,
   }) async {
     final body = <String, dynamic>{
       'username': username,
@@ -119,6 +120,9 @@ class AuthService extends ChangeNotifier {
     };
     if (readPassword != null && readPassword.isNotEmpty) {
       body['readPassword'] = readPassword;
+    }
+    if (gpsPathMode) {
+      body['settings'] = {'pathMode': 'gps'};
     }
     final res = await http.post(
       Uri.parse('$baseUrl/auth/register'),
@@ -191,6 +195,21 @@ class AuthService extends ChangeNotifier {
     if (_accessToken == null) {
       throw AuthException('Not logged in', statusCode: 401);
     }
+    try {
+      final parts = _accessToken!.split('.');
+      if (parts.length == 3) {
+        final padded = base64Url.normalize(parts[1]);
+        final payload = jsonDecode(utf8.decode(base64Url.decode(padded)));
+        final exp = payload['exp'] as int?;
+        if (exp != null) {
+          final expiresAt = DateTime.fromMillisecondsSinceEpoch(exp * 1000);
+          if (DateTime.now().isAfter(expiresAt.subtract(const Duration(seconds: 30)))) {
+            final fresh = await refreshAccessToken();
+            if (fresh != null) return fresh;
+          }
+        }
+      }
+    } catch (_) {}
     return _accessToken!;
   }
 

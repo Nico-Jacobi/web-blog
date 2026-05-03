@@ -95,7 +95,10 @@ async function sendPushToAll(payload) {
 app.use(helmet({
     crossOriginResourcePolicy: { policy: 'cross-origin' }
 }));
-app.use(cors());
+app.use(cors({
+    origin: ['https://1ej.de', /^http:\/\/localhost(:\d+)?$/],
+    allowedHeaders: ['Content-Type', 'x-auth-token'],
+}));
 app.use(express.json({ limit: '50mb' }));
 
 // Request logging middleware

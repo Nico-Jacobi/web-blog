@@ -111,7 +111,7 @@ app.use((req, res, next) => {
 // Rate limiting to prevent brute force
 const limiter = rateLimit({
     windowMs: 15 * 60 * 1000, 
-    max: 1000,
+    max: 3000,
     message: { error: "Too many requests, please try again later." }
 });
 app.use(limiter);
@@ -343,7 +343,26 @@ function haversineMeters(lat1, lng1, lat2, lng2) {
     return 2 * R * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function greatCircleArc(p1, p2, n = 100) {
+// Keep one point per targetDistKm, always preserving start and end.
+function simplifyCoords(coords, targetDistKm = 0.5) {
+    if (coords.length <= 2) return coords;
+    const targetMeters = targetDistKm * 1000;
+    const out = [coords[0]];
+    let distAcc = 0;
+    for (let i = 1; i < coords.length - 1; i++) {
+        const [lat1, lng1] = coords[i - 1];
+        const [lat2, lng2] = coords[i];
+        distAcc += haversineMeters(lat1, lng1, lat2, lng2);
+        if (distAcc >= targetMeters) {
+            out.push(coords[i]);
+            distAcc = 0;
+        }
+    }
+    out.push(coords[coords.length - 1]);
+    return out;
+}
+
+function greatCircleArc(p1, p2, n = 20) {
     const toRad = d => d * Math.PI / 180;
     const toDeg = r => r * 180 / Math.PI;
     const lat1 = toRad(p1.lat), lng1 = toRad(p1.lng);
@@ -384,7 +403,8 @@ async function fetchOsrmRoute(p1, p2, profile) {
         const routeDist = data.routes[0].distance;
         const direct = haversineMeters(p1.lat, p1.lng, p2.lat, p2.lng);
         if (direct > 0 && routeDist / direct > ROUTE_MAX_DETOUR_FACTOR) return null;
-        return data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+        const raw = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
+        return simplifyCoords(raw);
     } catch (err) {
         console.warn(`OSRM failed (${profile}): ${err.message}`);
         return null;
@@ -400,7 +420,7 @@ async function getRouteCoords(p1, p2, method) {
         const key = routeKey(p1, p2, 'plane');
         const cache = await loadRoutesCache();
         if (key in cache) return cache[key];
-        const arc = greatCircleArc(p1, p2);
+        const arc = simplifyCoords(greatCircleArc(p1, p2));
         cache[key] = arc;
         scheduleRoutesCacheSave();
         return arc;
@@ -409,7 +429,17 @@ async function getRouteCoords(p1, p2, method) {
     if (!profile) return null; // boat etc → straight line
     const key = routeKey(p1, p2, profile);
     const cache = await loadRoutesCache();
-    if (key in cache) return cache[key];
+    if (key in cache) {
+        const coords = cache[key];
+        if (!coords) return null;
+        // Migrate full-res legacy cache entries once, then store the simplified version.
+        const simplified = simplifyCoords(coords);
+        if (simplified.length !== coords.length) {
+            cache[key] = simplified;
+            scheduleRoutesCacheSave();
+        }
+        return simplified;
+    }
     if (PENDING_ROUTES.has(key)) return PENDING_ROUTES.get(key);
     const promise = (async () => {
         const coords = await fetchOsrmRoute(p1, p2, profile);

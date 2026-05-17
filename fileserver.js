@@ -18,6 +18,14 @@ try {
     console.warn('⚠️  sharp not installed — thumbnails disabled. Run: npm install sharp');
 }
 
+let exifr = null;
+try {
+    exifr = require('exifr');
+    console.log('✅ exifr loaded — server-side GPS extraction enabled');
+} catch {
+    console.warn('⚠️  exifr not installed — image GPS markers disabled. Run: npm install exifr');
+}
+
 const app = express();
 app.set('trust proxy', 1); // 1 = trust first proxy
 
@@ -269,6 +277,33 @@ function maybeGenerateThumbForUpload(originalAbs) {
     generateThumbnail(originalAbs, thumbAbs).catch(() => {});
 }
 
+// Fire-and-forget: extract GPS from a newly uploaded image and add it to the cache.
+function maybeAddGpsToCache(originalAbs) {
+    const ext = path.extname(originalAbs).toLowerCase();
+    if (!IMAGE_EXTS.has(ext) || !exifr) return;
+    const relFull = path.relative(UPLOAD_DIR, originalAbs).replace(/\\/g, '/');
+    // Only handle paths under images/
+    if (!relFull.startsWith('images/')) return;
+    const imgRel = relFull.replace(/^images\//, '');
+
+    (async () => {
+        try {
+            const gps = await exifr.gps(originalAbs);
+            if (!gps?.latitude || !gps?.longitude) return;
+
+            let cache = {};
+            try {
+                const raw = await fs.readFile(GPS_CACHE_FILE, 'utf8');
+                cache = JSON.parse(raw);
+            } catch { /* no cache yet */ }
+
+            cache[imgRel] = { lat: gps.latitude, lng: gps.longitude };
+            await fs.writeFile(GPS_CACHE_FILE, JSON.stringify(cache, null, 2));
+            console.log(`📍 GPS cached for: ${imgRel}`);
+        } catch { /* no GPS or parse error */ }
+    })();
+}
+
 // ── ROUTE PRECOMPUTATION ─────────────────────────────────────────────
 // The website draws polylines along OSRM-routed roads/tracks for each
 // trip segment.  Doing this client-side hammered OSRM (one request per
@@ -277,6 +312,7 @@ function maybeGenerateThumbForUpload(originalAbs) {
 // one JSON blob.  Cache key includes the actual lat/lng of each
 // endpoint, so moving a point naturally invalidates its entry.
 const ROUTES_CACHE_FILE = path.join(UPLOAD_DIR, 'data', 'routes-cache.json');
+const GPS_CACHE_FILE = path.join(UPLOAD_DIR, 'data', 'image-gps-cache.json');
 const OSRM_BASE = 'https://router.project-osrm.org/route/v1';
 const ROUTE_MODE_TO_PROFILE = {
     car: 'driving', rv: 'driving', bus: 'driving',
@@ -740,6 +776,68 @@ app.get('/routes', checkAuth, async (req, res) => {
     }
 });
 
+// GET /image-gps — returns [{path, lat, lng}] for every image that has
+// GPS EXIF data.  Results are cached in image-gps-cache.json so repeated
+// requests don't re-read every file from disk.
+app.get('/image-gps', checkAuth, async (req, res) => {
+    try {
+        const pointsPath = path.join(UPLOAD_DIR, 'data', 'points.json');
+        const raw = await fs.readFile(pointsPath, 'utf8');
+        const data = JSON.parse(raw);
+        const pts = Array.isArray(data) ? data : (Array.isArray(data.points) ? data.points : []);
+
+        let cache = {};
+        try {
+            const cacheRaw = await fs.readFile(GPS_CACHE_FILE, 'utf8');
+            cache = JSON.parse(cacheRaw);
+        } catch { /* no cache yet */ }
+
+        const results = [];
+        let dirty = false;
+
+        for (const pt of pts) {
+            const paths = [
+                ...(pt.titleImagePath ? [pt.titleImagePath] : []),
+                ...(Array.isArray(pt.otherImagePaths) ? pt.otherImagePaths : [])
+            ];
+            for (const p of paths) {
+                const ext = path.extname(p).toLowerCase();
+                if (!IMAGE_EXTS.has(ext)) continue;
+
+                const resolved = await resolveMediaFilename(p);
+
+                if (cache[resolved]) {
+                    results.push({ path: resolved, lat: cache[resolved].lat, lng: cache[resolved].lng });
+                    continue;
+                }
+
+                if (!exifr) continue;
+
+                try {
+                    const absPath = path.join(UPLOAD_DIR, 'images', resolved);
+                    const gps = await exifr.gps(absPath);
+                    if (gps?.latitude && gps?.longitude) {
+                        cache[resolved] = { lat: gps.latitude, lng: gps.longitude };
+                        dirty = true;
+                        results.push({ path: resolved, lat: gps.latitude, lng: gps.longitude });
+                    }
+                } catch { /* no GPS or unreadable */ }
+            }
+        }
+
+        if (dirty) {
+            await fs.writeFile(GPS_CACHE_FILE, JSON.stringify(cache, null, 2)).catch(() => {});
+        }
+
+        console.log(`✅ IMAGE-GPS: ${results.length} markers served`);
+        res.setHeader('Cache-Control', 'no-store');
+        res.json(results);
+    } catch (err) {
+        console.error('❌ IMAGE-GPS FAILED:', err.message);
+        res.status(500).json({ error: 'GPS extraction failed' });
+    }
+});
+
 app.post('/upload', checkAuth, (req, res) => {
     if (!req.isAdmin) return res.status(403).json({ error: "Admin only" });
 
@@ -814,6 +912,8 @@ app.post('/upload', checkAuth, (req, res) => {
             const corrected = await fixExtensionIfNeeded(uploadPath).catch(() => uploadPath);
             // Async thumbnail generation — don't block the response.
             maybeGenerateThumbForUpload(corrected);
+            // Async GPS cache update — extract and persist GPS for the new image.
+            maybeAddGpsToCache(corrected);
         });
 
         writeStream.on('error', (err) => {

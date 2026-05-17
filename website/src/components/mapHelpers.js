@@ -1,6 +1,6 @@
 import { ROUTE_STYLES } from '../model/routeStyles.js';
 import { fetchAllRoutes } from '../controller/routingService.js';
-import { apiService } from '../controller/apiService.js';
+import { apiService, thumbUrl, imageUrl } from '../controller/apiService.js';
 
 export function createPopupContent(point, img, onOpenDetail) {
     const popupDiv = document.createElement('div');
@@ -67,57 +67,57 @@ export function addImageGpsMarkers(map, trip, imageMarkersRef, onImageFullscreen
     };
     map.on('zoomend', updateVisibility);
 
-    trip.points.forEach(point => {
-        const allPaths = [
-            ...(point.imagePath ? [point.imagePath] : []),
-            ...point.otherPaths
-        ];
-        allPaths.forEach(path => {
-            apiService.fetchImageGps(path, point.password).then(result => {
-                if (result && map._container) {
-                    const marker = L.circleMarker([result.lat, result.lng], {
-                        radius: 4,
-                        color: '#F97316',
-                        fillColor: '#F97316',
-                        fillOpacity: 0.7,
-                        weight: 1,
-                        bubblingMouseEvents: false
-                    }).addTo(map);
+    apiService.fetchImageGpsAll(trip.password).then(entries => {
+        if (!map._container) return;
+        entries.forEach(entry => {
+            const marker = L.circleMarker([entry.lat, entry.lng], {
+                radius: 4,
+                color: '#F97316',
+                fillColor: '#F97316',
+                fillOpacity: 0.7,
+                weight: 1,
+                bubblingMouseEvents: false
+            }).addTo(map);
 
-                    marker.bindPopup(
-                        `<img src="${result.blobUrl}" style="width:25vw; min-width:140px; max-width:300px; height:auto; border-radius:8px; display:block; cursor:pointer;" data-fullscreen-src="${result.blobUrl}"/>`,
-                        { closeButton: false, className: 'image-gps-popup', maxWidth: 320, autoPan: false }
-                    );
+            const popupEl = document.createElement('div');
+            popupEl.className = 'img-gps-container';
+            popupEl.style.cssText = 'width:25vw; min-width:140px; max-width:300px; min-height:80px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:12px;';
+            popupEl.textContent = 'Lade…';
 
-                    marker.on('popupopen', () => {
-                        const popup = marker.getPopup();
-                        const img = popup?.getElement()?.querySelector('img[data-fullscreen-src]');
-                        if (img) img.onclick = () => onImageFullscreen(img.dataset.fullscreenSrc);
-                    });
+            marker.bindPopup(popupEl, { closeButton: false, className: 'image-gps-popup', maxWidth: 320, autoPan: false });
 
-                    marker.on('mouseover', function () {
-                        if (!this._suppressHover) this.openPopup();
-                    });
-                    marker.on('mouseout', function () {
-                        this._suppressHover = false;
-                        if (!this._clickOpen) this.closePopup();
-                    });
-                    marker.on('click', function () {
-                        if (this._clickOpen) {
-                            this._clickOpen = false;
-                            this._suppressHover = true;
-                            this.closePopup();
-                        } else {
-                            this._clickOpen = true;
-                            this.openPopup();
-                        }
-                    });
+            marker.on('popupopen', () => {
+                if (popupEl.dataset.loaded) return;
+                popupEl.dataset.loaded = '1';
+                const img = document.createElement('img');
+                img.src = thumbUrl(entry.path);
+                img.style.cssText = 'width:25vw; min-width:140px; max-width:300px; height:auto; border-radius:8px; display:block; cursor:pointer;';
+                img.onclick = () => onImageFullscreen(imageUrl(entry.path));
+                popupEl.textContent = '';
+                popupEl.appendChild(img);
+            });
 
-                    imageMarkersRef.current.push(marker);
-                    const el = marker.getElement();
-                    if (el && map.getZoom() < IMAGE_MARKER_MIN_ZOOM) el.style.display = 'none';
+            marker.on('mouseover', function () {
+                if (!this._suppressHover) this.openPopup();
+            });
+            marker.on('mouseout', function () {
+                this._suppressHover = false;
+                if (!this._clickOpen) this.closePopup();
+            });
+            marker.on('click', function () {
+                if (this._clickOpen) {
+                    this._clickOpen = false;
+                    this._suppressHover = true;
+                    this.closePopup();
+                } else {
+                    this._clickOpen = true;
+                    this.openPopup();
                 }
             });
+
+            imageMarkersRef.current.push(marker);
+            const el = marker.getElement();
+            if (el && map.getZoom() < IMAGE_MARKER_MIN_ZOOM) el.style.display = 'none';
         });
     });
 }

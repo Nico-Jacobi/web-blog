@@ -1,4 +1,3 @@
-import exifr from 'exifr';
 import { API_BASE } from '../constants.js';
 
 // Cache-bust marker.  Bump this whenever response headers change in a
@@ -45,27 +44,12 @@ export const apiService = {
         return res.json();
     },
 
-    /**
-     * Fetches an image as a blob solely to read EXIF GPS metadata.
-     * Image rendering itself goes through plain <img> tags so the
-     * service worker / browser cache can do their job.
-     */
-    async fetchImageGps(path, token) {
-        const res = await fetch(imageUrl(path), {
+    /** Returns [{path, lat, lng}] for all images that have GPS EXIF data. */
+    async fetchImageGpsAll(token) {
+        const res = await fetch(`${API_BASE}/image-gps`, {
             headers: { 'X-Auth-Token': btoa(token) }
         });
-        if (!res.ok) return null;
-        try {
-            const blob = await res.blob();
-            const gps = await exifr.gps(blob);
-            if (gps?.latitude && gps?.longitude) {
-                return {
-                    lat: gps.latitude,
-                    lng: gps.longitude,
-                    blobUrl: URL.createObjectURL(blob)
-                };
-            }
-        } catch (e) { /* no EXIF data */ }
-        return null;
+        if (!res.ok) return [];
+        return res.json();
     }
 };

@@ -1,0 +1,10 @@
+{
+  "feature": "settings-panel",
+  "plans": [
+    { "id": "01_Foundation", "status": "pending" },
+    { "id": "02_SettingsPanel", "status": "pending" },
+    { "id": "03.1_DarkMode_Core", "status": "pending" },
+    { "id": "03.2_DarkMode_Content", "status": "pending" },
+    { "id": "04_i18n_Integration", "status": "pending" }
+  ]
+}

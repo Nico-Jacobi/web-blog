@@ -26,6 +26,8 @@ try {
     console.warn('⚠️  exifr not installed — image GPS markers disabled. Run: npm install exifr');
 }
 
+const { spawn } = require('child_process');
+
 const app = express();
 app.set('trust proxy', 1); // 1 = trust first proxy
 
@@ -47,13 +49,47 @@ try {
 const PORT = process.env.PORT || 3000;
 const READ_PASS = process.env.READ_PASS;
 const WRITE_PASS = process.env.WRITE_PASS;
+const ADMIN_PANEL_PASS = process.env.ADMIN_PANEL_PASS;
 const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR || './storage');
+const SETTINGS_FILE = path.join(UPLOAD_DIR, 'data', 'settings.json');
+const ROUTE_STYLES_FILE = path.join(UPLOAD_DIR, 'data', 'route-styles.json');
+
+// Mutable — updated when admin changes settings without restart
+let currentReadPass = READ_PASS;
+let currentTitleMain = "Jennys & Leons";
+let currentTitleAccent = "Australien Trip";
+let currentTabTitle = "Jennys & Leons Australien Trip";
+let currentAccentColor = "#ea580c";
+let currentSiteIcon = "🦘";
+let currentRouteStyles = {};
+
+async function loadRouteStyles() {
+    try {
+        const raw = await fs.readFile(ROUTE_STYLES_FILE, 'utf8');
+        currentRouteStyles = JSON.parse(raw);
+    } catch { /* no route-styles file yet, use client defaults */ }
+}
+loadRouteStyles();
+
+async function loadSettings() {
+    try {
+        const raw = await fs.readFile(SETTINGS_FILE, 'utf8');
+        const s = JSON.parse(raw);
+        if (s.readPass)      currentReadPass    = s.readPass;
+        if (s.titleMain)     currentTitleMain   = s.titleMain;
+        if (s.titleAccent !== undefined) currentTitleAccent = s.titleAccent;
+        if (s.tabTitle)      currentTabTitle    = s.tabTitle;
+        if (s.accentColor)   currentAccentColor = s.accentColor;
+        if (s.siteIcon)      currentSiteIcon    = s.siteIcon;
+    } catch { /* no settings file yet, use defaults */ }
+}
+loadSettings();
 const WEB_DIR = path.resolve(process.env.WEB_DIR || './react-site');
 const SUBSCRIPTIONS_FILE = path.resolve('./push-subscriptions.json');
 
 // --- THUMBNAIL CONFIG ---
 // Thumbnails live next to originals in a hidden ".thumbs" directory:
-//   storage/images/foo/bar.jpg  →  storage/images/.thumbs/foo/bar.webp
+//   storage/media/sydney/bar.jpg  →  storage/media/.thumbs/sydney/bar.webp
 // Generated on upload, on-demand on first request, or via the backfill
 // script (scripts/backfill-thumbs.js).  Legacy clients ignore them.
 const THUMB_DIR = '.thumbs';
@@ -105,7 +141,7 @@ app.use(helmet({
 }));
 app.use(cors({
     origin: ['https://1ej.de', /^http:\/\/localhost(:\d+)?$/],
-    allowedHeaders: ['Content-Type', 'x-auth-token'],
+    allowedHeaders: ['Content-Type', 'x-auth-token', 'x-admin-token'],
 }));
 app.use(express.json({ limit: '50mb' }));
 
@@ -184,18 +220,18 @@ async function fixExtensionIfNeeded(absPath) {
     return corrected;
 }
 
-// Given a filename under images/, find the actual file on disk even if
-// the extension was corrected.  Returns the real filename or the
-// original if the file exists as-is.
+// Given a path relative to media/ (e.g. 'sydney/foo.jpg'), find the actual
+// file on disk even if the extension was corrected.  Returns the original
+// relative path or the corrected one if the extension was renamed.
 async function resolveMediaFilename(filename) {
-    const absPath = path.join(UPLOAD_DIR, 'images', filename);
+    const absPath = path.join(UPLOAD_DIR, 'media', filename);
     try { await fs.access(absPath); return filename; } catch { /* missing */ }
 
     const stem = filename.replace(/\.[^.]+$/, '');
     for (const ext of MEDIA_EXTS) {
         const alt = stem + ext;
         try {
-            await fs.access(path.join(UPLOAD_DIR, 'images', alt));
+            await fs.access(path.join(UPLOAD_DIR, 'media', alt));
             return alt;
         } catch { continue; }
     }
@@ -204,26 +240,26 @@ async function resolveMediaFilename(filename) {
 
 // ── THUMBNAIL HELPERS ─────────────────────────────────────────────────
 // Map an original image rel path to its thumbnail rel path:
-//   images/foo/bar.jpg → images/.thumbs/foo/bar.webp
+//   media/sydney/bar.jpg → media/.thumbs/sydney/bar.webp
 function thumbRelPathFor(originalRel) {
-    const m = originalRel.match(/^images[\\/](.+)$/i);
+    const m = originalRel.match(/^media[\\/](.+)$/i);
     if (!m) return null;
     const rest = m[1].replace(/\\/g, '/');
     const dir = path.posix.dirname(rest);
     const stem = path.posix.basename(rest, path.posix.extname(rest));
     const sub = dir === '.' ? '' : dir + '/';
-    return `images/${THUMB_DIR}/${sub}${stem}.webp`;
+    return `media/${THUMB_DIR}/${sub}${stem}.webp`;
 }
 
 // Reverse: from thumb rel path, find the original on disk by trying
 // likely extensions.  Returns absolute path or null.
 async function findOriginalForThumbRel(thumbRel) {
-    const m = thumbRel.match(/^images[\\/]\.thumbs[\\/](.+)\.webp$/i);
+    const m = thumbRel.match(/^media[\\/]\.thumbs[\\/](.+)\.webp$/i);
     if (!m) return null;
-    const stem = m[1].replace(/\\/g, '/'); // foo/bar
+    const stem = m[1].replace(/\\/g, '/'); // sydney/bar
     const exts = ['jpg', 'jpeg', 'png', 'webp', 'JPG', 'JPEG', 'PNG', 'WEBP', 'heic', 'HEIC', 'heif', 'HEIF'];
     for (const ext of exts) {
-        const candidate = path.join(UPLOAD_DIR, 'images', `${stem}.${ext}`);
+        const candidate = path.join(UPLOAD_DIR, 'media', `${stem}.${ext}`);
         try {
             await fs.access(candidate);
             return candidate;
@@ -282,9 +318,9 @@ function maybeAddGpsToCache(originalAbs) {
     const ext = path.extname(originalAbs).toLowerCase();
     if (!IMAGE_EXTS.has(ext) || !exifr) return;
     const relFull = path.relative(UPLOAD_DIR, originalAbs).replace(/\\/g, '/');
-    // Only handle paths under images/
-    if (!relFull.startsWith('images/')) return;
-    const imgRel = relFull.replace(/^images\//, '');
+    // Only handle paths under media/
+    if (!relFull.startsWith('media/')) return;
+    const imgRel = relFull.replace(/^media\//, '');
 
     (async () => {
         try {
@@ -509,7 +545,7 @@ const checkAuth = (req, res, next) => {
         req.isAdmin = true;
         return next();
     }
-    if (decoded === READ_PASS) {
+    if (decoded === currentReadPass) {
         req.isAdmin = false;
         if (req.method !== 'GET') {
             console.log(`❌ AUTH FAILED: Read-only user attempted ${req.method}`);
@@ -530,11 +566,11 @@ const checkAuth = (req, res, next) => {
 //   - errors (404 etc.): never cache (otherwise a transient miss sticks)
 // setHeaders only fires on successful static responses, so the fallthrough
 // handler below stamps no-store on anything that didn't match a file.
-// Thumbnail interceptor: any GET to /files/images/.thumbs/* that doesn't
+// Thumbnail interceptor: any GET to /files/media/.thumbs/* that doesn't
 // have a file on disk yet triggers on-the-fly generation from the
 // matching original, then falls through to the static handler below.
 // Auth is enforced inline (same as the static handler).
-app.get(/^\/files\/images\/\.thumbs\/.+\.webp$/i, checkAuth, async (req, res, next) => {
+app.get(/^\/files\/media\/\.thumbs\/.+\.webp$/i, checkAuth, async (req, res, next) => {
     const rel = decodeURIComponent(req.path.replace(/^\/files\//, ''));
     let thumbAbs;
     try {
@@ -622,7 +658,11 @@ app.use('/files', checkAuth, express.static(UPLOAD_DIR, {
 app.use(express.static(WEB_DIR, {
     index: false, // index.html is served by the fallback below
     setHeaders: (res, filePath) => {
-        if (path.basename(filePath) === 'index.html') {
+        const base = path.basename(filePath);
+        // index.html and the service worker must always be fresh so clients
+        // pick up new builds and SW logic changes immediately (the SW spec
+        // otherwise lets a cached sw.js linger for up to 24h).
+        if (base === 'index.html' || base === 'sw.js') {
             res.setHeader('Cache-Control', 'no-store');
         } else {
             res.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
@@ -814,7 +854,7 @@ app.get('/image-gps', checkAuth, async (req, res) => {
                 if (!exifr) continue;
 
                 try {
-                    const absPath = path.join(UPLOAD_DIR, 'images', resolved);
+                    const absPath = path.join(UPLOAD_DIR, 'media', resolved);
                     const gps = await exifr.gps(absPath);
                     if (gps?.latitude && gps?.longitude) {
                         cache[resolved] = { lat: gps.latitude, lng: gps.longitude };
@@ -851,7 +891,7 @@ app.post('/upload', checkAuth, (req, res) => {
     bb.on('field', (name, val) => {
         if (name === 'path') {
             try {
-                // Use sanitizePath to handle subdirectories like 'images/file.jpg'
+                // Use sanitizePath to handle subdirectories like 'media/sydney/file.jpg'
                 uploadPath = sanitizePath(val);
             } catch (err) {
                 console.error(`❌ Invalid path provided: ${val}`);
@@ -1051,6 +1091,156 @@ app.post('/push/subscribe', (req, res, next) => {
     } catch (err) {
         console.error('❌ Subscribe failed:', err.message);
         res.status(500).json({ error: 'Subscribe failed' });
+    }
+});
+
+// --- ADMIN PANEL (separate password, separate header) ---
+const checkAdminPanel = (req, res, next) => {
+    if (!ADMIN_PANEL_PASS) return res.status(503).json({ error: 'Admin panel not configured' });
+    const token = req.headers['x-admin-token'];
+    if (!token) return res.status(401).json({ error: 'Unauthorized' });
+    let decoded;
+    try { decoded = Buffer.from(token, 'base64').toString('utf8'); } catch {
+        return res.status(400).json({ error: 'Invalid token' });
+    }
+    if (decoded !== ADMIN_PANEL_PASS) return res.status(401).json({ error: 'Unauthorized' });
+    next();
+};
+
+app.get('/admin/files', checkAdminPanel, async (req, res) => {
+    try {
+        const dataDir = path.join(UPLOAD_DIR, 'data');
+        await fs.mkdir(dataDir, { recursive: true });
+        const items = await fs.readdir(dataDir, { withFileTypes: true });
+        const files = [];
+        for (const item of items) {
+            if (!item.isFile()) continue;
+            const abs = path.join(dataDir, item.name);
+            const stats = await fs.stat(abs);
+            files.push({ name: item.name, size: stats.size, modified: stats.mtime });
+        }
+        res.setHeader('Cache-Control', 'no-store');
+        res.json({ files });
+    } catch (err) {
+        res.status(500).json({ error: 'Failed to list files' });
+    }
+});
+
+app.get('/admin/download-media', checkAdminPanel, (req, res) => {
+    const filename = `media-backup-${new Date().toISOString().slice(0, 10)}.zip`;
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/zip');
+
+    const zip = spawn('zip', ['-r', '-', 'media',
+        '-x', 'media/.thumbs/*',
+        '-x', 'media/.thumbs/*/*',
+        '-x', 'media/.thumbs/*/*/*',
+    ], { cwd: UPLOAD_DIR });
+    zip.stdout.pipe(res);
+    zip.stderr.on('data', d => console.error('zip stderr:', d.toString()));
+    zip.on('error', err => {
+        console.error('zip failed:', err.message);
+        if (!res.headersSent) res.status(500).json({ error: 'zip not available on this server' });
+        else res.destroy();
+    });
+    zip.on('close', code => {
+        if (code !== 0) console.error(`zip exited with code ${code}`);
+        else console.log(`✅ Media zip download complete`);
+    });
+    req.on('close', () => zip.kill());
+});
+
+app.get('/admin/download', checkAdminPanel, async (req, res) => {
+    const fileName = req.query.file;
+    if (!fileName || fileName.includes('/') || fileName.includes('\\') || fileName.includes('..')) {
+        return res.status(400).json({ error: 'Invalid filename' });
+    }
+    try {
+        const abs = path.join(UPLOAD_DIR, 'data', fileName);
+        if (!abs.startsWith(path.join(UPLOAD_DIR, 'data'))) {
+            return res.status(400).json({ error: 'Invalid path' });
+        }
+        await fs.access(abs);
+        res.setHeader('Cache-Control', 'no-store');
+        res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+        const data = await fs.readFile(abs);
+        res.send(data);
+    } catch {
+        res.status(404).json({ error: 'File not found' });
+    }
+});
+
+// Public: site config (title parts + tab title)
+app.get('/site-config', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ titleMain: currentTitleMain, titleAccent: currentTitleAccent, tabTitle: currentTabTitle, accentColor: currentAccentColor, siteIcon: currentSiteIcon });
+});
+
+// Admin: read settings
+app.get('/admin/settings', checkAdminPanel, (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json({ titleMain: currentTitleMain, titleAccent: currentTitleAccent, tabTitle: currentTabTitle, accentColor: currentAccentColor, siteIcon: currentSiteIcon, readPass: currentReadPass });
+});
+
+// Admin: save settings
+app.post('/admin/settings', checkAdminPanel, async (req, res) => {
+    const { titleMain, titleAccent, tabTitle, readPass, accentColor, siteIcon } = req.body;
+    try {
+        const settings = {
+            titleMain:   (typeof titleMain === 'string' && titleMain.trim()) ? titleMain.trim() : currentTitleMain,
+            titleAccent: typeof titleAccent === 'string' ? titleAccent.trim() : currentTitleAccent,
+            tabTitle:    (typeof tabTitle === 'string' && tabTitle.trim()) ? tabTitle.trim() : currentTabTitle,
+            readPass:    (typeof readPass === 'string' && readPass.trim()) ? readPass.trim() : currentReadPass,
+            accentColor: (typeof accentColor === 'string' && /^#[0-9a-fA-F]{6}$/.test(accentColor)) ? accentColor : currentAccentColor,
+            siteIcon:    (typeof siteIcon === 'string' && siteIcon.trim()) ? siteIcon.trim().slice(0, 8) : currentSiteIcon,
+        };
+        await fs.mkdir(path.dirname(SETTINGS_FILE), { recursive: true });
+        await fs.writeFile(SETTINGS_FILE, JSON.stringify(settings, null, 2));
+        currentTitleMain   = settings.titleMain;
+        currentTitleAccent = settings.titleAccent;
+        currentTabTitle    = settings.tabTitle;
+        currentReadPass    = settings.readPass;
+        currentAccentColor = settings.accentColor;
+        currentSiteIcon    = settings.siteIcon;
+        console.log('✅ Settings updated');
+        res.json({ ok: true, settings });
+    } catch {
+        res.status(500).json({ error: 'Speichern fehlgeschlagen' });
+    }
+});
+
+// ── Route styles ──────────────────────────────────────────────────────────
+app.get('/route-styles', (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(currentRouteStyles);
+});
+
+app.get('/admin/route-styles', checkAdminPanel, (req, res) => {
+    res.setHeader('Cache-Control', 'no-store');
+    res.json(currentRouteStyles);
+});
+
+app.post('/admin/route-styles', checkAdminPanel, async (req, res) => {
+    const VALID_MODES = ['car', 'rv', 'bus', 'foot', 'boat', 'plane', 'misc'];
+    const body = req.body || {};
+    const styles = {};
+    for (const mode of VALID_MODES) {
+        const m = body[mode];
+        if (!m) continue;
+        const entry = {};
+        if (typeof m.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(m.color)) entry.color = m.color;
+        if (typeof m.weight === 'number' && m.weight >= 1 && m.weight <= 8) entry.weight = m.weight;
+        if (typeof m.dashArray === 'string') entry.dashArray = m.dashArray;
+        if (Object.keys(entry).length) styles[mode] = entry;
+    }
+    try {
+        await fs.mkdir(path.dirname(ROUTE_STYLES_FILE), { recursive: true });
+        await fs.writeFile(ROUTE_STYLES_FILE, JSON.stringify(styles, null, 2));
+        currentRouteStyles = styles;
+        res.json({ ok: true });
+    } catch {
+        res.status(500).json({ error: 'Speichern fehlgeschlagen' });
     }
 });
 

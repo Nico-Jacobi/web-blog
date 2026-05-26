@@ -2,8 +2,8 @@
 /**
  * Backfill thumbnails for every existing image in the storage tree.
  *
- * Walks <UPLOAD_DIR>/images/ recursively, generates a webp thumbnail
- * under <UPLOAD_DIR>/images/.thumbs/<same-relpath>.webp for any image
+ * Walks <UPLOAD_DIR>/media/ recursively, generates a webp thumbnail
+ * under <UPLOAD_DIR>/media/.thumbs/<same-relpath>.webp for any image
  * that doesn't already have one.  Idempotent — re-run safely.
  *
  * Usage:
@@ -25,7 +25,7 @@ try {
 }
 
 const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR || './storage');
-const IMAGES_DIR = path.join(UPLOAD_DIR, 'images');
+const IMAGES_DIR = path.join(UPLOAD_DIR, 'media');
 const THUMB_DIR_NAME = '.thumbs';
 const THUMB_WIDTH = 480;
 const THUMB_QUALITY = 75;
@@ -58,7 +58,7 @@ async function processFile(originalAbs) {
     const ext = path.extname(originalAbs).toLowerCase();
     if (!SUPPORTED.has(ext)) return;
 
-    // Build thumb path: images/foo/bar.jpg → images/.thumbs/foo/bar.webp
+    // Build thumb path: media/sydney/bar.jpg → media/.thumbs/sydney/bar.webp
     const relFromImages = path.relative(IMAGES_DIR, originalAbs).replace(/\\/g, '/');
     const stem = relFromImages.replace(/\.[^.]+$/, '');
     const thumbAbs = path.join(IMAGES_DIR, THUMB_DIR_NAME, `${stem}.webp`);
@@ -89,7 +89,7 @@ async function processFile(originalAbs) {
     try {
         await fs.access(IMAGES_DIR);
     } catch {
-        console.error(`❌ ${IMAGES_DIR} does not exist`);
+        console.error(`❌ ${IMAGES_DIR} does not exist. Run the migration script first.`);
         process.exit(1);
     }
     const start = Date.now();

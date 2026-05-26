@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * One-time migration: find files under images/ whose extension doesn't
+ * One-time migration: find files under media/ whose extension doesn't
  * match their actual content (magic bytes) and rename them.
  *
  * This fixes files uploaded by legacy Flutter apps that misdetect videos
@@ -19,7 +19,7 @@ const path = require('path');
 const fs = require('fs').promises;
 
 const UPLOAD_DIR = path.resolve(process.env.UPLOAD_DIR || './storage');
-const IMAGES_DIR = path.join(UPLOAD_DIR, 'images');
+const IMAGES_DIR = path.join(UPLOAD_DIR, 'media');
 const DRY_RUN = process.argv.includes('--dry-run');
 
 async function detectRealExt(absPath) {
@@ -55,7 +55,7 @@ async function walk(dir) {
     console.log(`Scanning ${IMAGES_DIR}${DRY_RUN ? ' (dry run)' : ''}...\n`);
     let files;
     try { files = await walk(IMAGES_DIR); } catch (err) {
-        console.error(`Cannot read ${IMAGES_DIR}: ${err.message}`);
+        console.error(`Cannot read ${IMAGES_DIR}: ${err.message}. Run the migration script first.`);
         process.exit(1);
     }
 

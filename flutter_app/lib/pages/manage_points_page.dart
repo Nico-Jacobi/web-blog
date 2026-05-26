@@ -31,6 +31,13 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
   Map<int, TripElement> _tripsByDestination = {};
   bool _isLoading = true;
 
+  // Original server rel paths ('sydney/foo.jpg') captured at load time, keyed
+  // by point id.  The UI replaces titleImagePath with the full local path for
+  // display, which would strip the stop subfolder on save — so we restore the
+  // original rel paths here instead of deriving them from the local path.
+  final Map<int, String> _origTitlePath = {};
+  final Map<int, List<String>> _origOtherPaths = {};
+
   void _rebuildTripIndex() {
     _tripsByDestination = {
       for (final t in _tripElements) t.pointId2: t,
@@ -57,8 +64,15 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
 
       List<InterestPoint> points = data['points'] as List<InterestPoint>;
 
-      // Convert filenames to full paths for UI display using MediaFile
+      _origTitlePath.clear();
+      _origOtherPaths.clear();
+
+      // Convert rel paths to full local paths for UI display, capturing the
+      // original server rel paths first so they survive the round-trip to save.
       for (var p in points) {
+        _origTitlePath[p.id] = p.titleImagePath;
+        _origOtherPaths[p.id] = List<String>.from(p.otherMediaPaths);
+
         if (p.titleImagePath.isNotEmpty) {
           final media = MediaFile.fromFilenameSync(
               p.titleImagePath, appDir.path);
@@ -88,23 +102,25 @@ class _ManagePointsPageState extends State<ManagePointsPage> {
 
   Future<void> _saveData() async {
     final cleanedPoints = _points.map((p) {
-      final titleName = path.basename(p.titleImagePath);
-      final otherNames = p.otherMediaPaths
-          .where((pathStr) => pathStr.isNotEmpty)
-          .map((pathStr) =>
-      pathStr.contains(Platform.pathSeparator)
-          ? path.basename(pathStr)
-          : pathStr)
-          .toList();
+      // Restore the original server rel path ('sydney/foo.jpg') captured at
+      // load.  Falling back to basename only for points without a captured
+      // entry (shouldn't happen, but keeps the data well-formed).
+      final titleName = _origTitlePath[p.id] ??
+          (p.titleImagePath.isEmpty ? '' : path.basename(p.titleImagePath));
+      final otherNames = _origOtherPaths[p.id] ??
+          p.otherMediaPaths
+              .where((pathStr) => pathStr.isNotEmpty)
+              .map((pathStr) => pathStr.contains(Platform.pathSeparator)
+                  ? path.basename(pathStr)
+                  : pathStr)
+              .toList();
 
       return InterestPoint(
         id: p.id,
         name: p.name,
         shortDescription: p.shortDescription,
         titleImagePath: titleName,
-        // Nur Dateiname!
         otherMediaPaths: otherNames,
-        // Nur Dateinamen!
         lat: p.lat,
         lon: p.lon,
         date: p.date,

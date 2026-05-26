@@ -57,6 +57,7 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
   String _originalLon = '';
   String _originalDate = '';
   String? _originalTitleImagePath;
+  String? _originalTitleServerPath; // e.g. 'sydney/media_123.jpg'
   Set<String> _originalOtherMediaPaths = {};
   TripMethod _originalTravelMethod = TripMethod.car;
 
@@ -153,14 +154,15 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     _originalDate = point.date ?? '';
 
     if (point.titleImagePath.isNotEmpty) {
+      _originalTitleServerPath = point.titleImagePath;
       final titleMedia = MediaFile.fromFilenameSync(point.titleImagePath, appDir.path);
       _titleImage = titleMedia.file;
       _originalTitleImagePath = titleMedia.file.path;
     }
 
     // Load media files
-    _otherMedia = point.otherMediaPaths.map((filename) {
-      return MediaFile.fromFilenameSync(filename, appDir.path);
+    _otherMedia = point.otherMediaPaths.map((serverRelPath) {
+      return MediaFile.fromFilenameSync(serverRelPath, appDir.path);
     }).toList();
 
     _originalOtherMediaPaths = _otherMedia.map((media) => media.file.path).toSet();
@@ -395,31 +397,37 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
           ? widget.existingPoint!.id
           : (points.isEmpty ? 1 : points.map((e) => e.id).reduce((a, b) => a > b ? a : b) + 1);
 
+      final slug = _toSlug(_nameCtrl.text.trim());
+
       // Handle title image
       String titleFilename;
       if (_titleImage!.path.startsWith(appDir.path)) {
-        // Already in app directory
-        titleFilename = path.basename(_titleImage!.path);
+        // Already in app directory — keep original server rel path so the
+        // server-side file location isn't changed on a simple edit.
+        titleFilename = _originalTitleServerPath ?? '$slug/${path.basename(_titleImage!.path)}';
       } else {
         // New image - compress and save
         final newFilename = _generateMediaFilename(path.extension(_titleImage!.path));
         final targetPath = path.join(appDir.path, newFilename);
         await _compressImage(_titleImage!, targetPath);
-        titleFilename = newFilename;
+        titleFilename = '$slug/$newFilename';
       }
 
       // Handle other media
       List<String> mediaFilenames = [];
       for (var media in _otherMedia) {
         if (media.file.path.startsWith(appDir.path)) {
-          // Already in app directory
-          mediaFilenames.add(media.filename);
+          // Already in app directory — keep existing server rel path.
+          final relPath = media.serverRelPath.isNotEmpty
+              ? media.serverRelPath
+              : '$slug/${media.filename}';
+          mediaFilenames.add(relPath);
         } else {
           // New media - compress and save
           final newFilename = _generateMediaFilename(media.extension);
           final targetPath = path.join(appDir.path, newFilename);
           await _compressMedia(media, targetPath);
-          mediaFilenames.add(newFilename);
+          mediaFilenames.add('$slug/$newFilename');
         }
       }
 
@@ -427,8 +435,8 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
         id: pointId,
         name: _nameCtrl.text.trim(),
         shortDescription: _shortDescCtrl.text.trim(),
-        titleImagePath: titleFilename,  // Just filename
-        otherMediaPaths: mediaFilenames,  // Just filenames
+        titleImagePath: titleFilename,  // 'slug/filename'
+        otherMediaPaths: mediaFilenames,  // ['slug/filename', ...]
         lat: double.tryParse(_latCtrl.text.trim()),
         lon: double.tryParse(_lonCtrl.text.trim()),
         date: _normalizeDate(_dateCtrl.text),
@@ -464,6 +472,14 @@ class _AddInterestPointPageState extends State<AddInterestPointPage> {
     }
   }
 
+
+  static String _toSlug(String name) {
+    var s = name.toLowerCase();
+    s = s.replaceAll('ä', 'ae').replaceAll('ö', 'oe').replaceAll('ü', 'ue').replaceAll('ß', 'ss');
+    s = s.replaceAll(RegExp(r'[^a-z0-9]+'), '-');
+    s = s.replaceAll(RegExp(r'^-+|-+$'), '');
+    return s.isEmpty ? 'stop' : s;
+  }
 
   Future<String> _compressImage(File file, String targetPath) async {
     final compressed = await FlutterImageCompress.compressAndGetFile(

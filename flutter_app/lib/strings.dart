@@ -91,6 +91,8 @@ class AppStrings {
   static const tripMethod_foot = "Zu Fuß";
   static const tripMethod_misc = "Sonstiges";
   static const tripMethod_bus = "Bus";
+  static const tripMethod_train = "Zug";
+  static const tripMethod_bike = "Fahrrad";
 
 
   static const sync_spinner_text = "Syncing...";

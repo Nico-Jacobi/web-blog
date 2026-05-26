@@ -10,6 +10,8 @@ enum TripMethod {
   rv,
   plane,
   foot,
+  train,
+  bike,
   misc;
 
   IconData get icon {
@@ -28,6 +30,10 @@ enum TripMethod {
         return Icons.scuba_diving;
       case TripMethod.bus:
         return Icons.directions_bus;
+      case TripMethod.train:
+        return Icons.train;
+      case TripMethod.bike:
+        return Icons.directions_bike;
     }
   }
 
@@ -47,6 +53,10 @@ enum TripMethod {
         return AppStrings.tripMethod_misc;
       case TripMethod.bus:
         return AppStrings.tripMethod_bus;
+      case TripMethod.train:
+        return AppStrings.tripMethod_train;
+      case TripMethod.bike:
+        return AppStrings.tripMethod_bike;
     }
   }
 }

@@ -26,6 +26,8 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
   bool _isSyncing = false;
   bool _syncEnabled = true;
   String _statusMessage = '';
+  int _downloadCurrent = 0;
+  int _downloadTotal = 0;
 
   List<FileStatus> _fileStatuses = [];
   Set<String> _syncedFiles = {};
@@ -90,12 +92,11 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
           exists: exists[1],
         ),
       ];
-      final filenamesList = allMediaFilenames.toList();
       for (var i = 0; i < mediaList.length; i++) {
         fileStatuses.add(FileStatus(
           path: mediaList[i].filename,
           type: FileType.image,
-          isSynced: _syncedFiles.contains(filenamesList[i]),
+          isSynced: _syncedFiles.contains(mediaList[i].filename),
           size: sizes[i + 2],
           exists: exists[i + 2],
         ));
@@ -167,8 +168,22 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
       _statusMessage = AppStrings.sync_downloading;
     });
 
+    setState(() {
+      _downloadCurrent = 0;
+      _downloadTotal = 0;
+    });
+
     try {
-      final success = await _syncService.initializeFromServer();
+      final success = await _syncService.initializeFromServer(
+        onProgress: (current, total) {
+          if (mounted) {
+            setState(() {
+              _downloadCurrent = current;
+              _downloadTotal = total;
+            });
+          }
+        },
+      );
 
       setState(() {
         _statusMessage = success
@@ -271,6 +286,7 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
                     ),
                   ),
                 ],
+                _buildDownloadProgress(),
               ],
             ),
           ),
@@ -377,6 +393,34 @@ class _SyncStatusPageState extends State<SyncStatusPage> {
           const SizedBox(height: 16),
         ],
       ),
+    );
+  }
+
+  Widget _buildDownloadProgress() {
+    if (!_isSyncing || _downloadTotal == 0) return const SizedBox.shrink();
+    final progress = _downloadCurrent / _downloadTotal;
+    return Column(
+      children: [
+        const SizedBox(height: 12),
+        ClipRRect(
+          borderRadius: BorderRadius.circular(8),
+          child: LinearProgressIndicator(
+            value: progress,
+            minHeight: 8,
+            backgroundColor: Colors.grey[200],
+            valueColor: AlwaysStoppedAnimation<Color>(accent),
+          ),
+        ),
+        const SizedBox(height: 6),
+        Text(
+          '$_downloadCurrent / $_downloadTotal Dateien heruntergeladen',
+          style: TextStyle(
+            fontSize: 12,
+            color: Colors.grey[600],
+            fontWeight: FontWeight.w500,
+          ),
+        ),
+      ],
     );
   }
 

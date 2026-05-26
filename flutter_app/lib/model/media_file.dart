@@ -6,13 +6,17 @@ class MediaFile {
   final File file;
   final bool isVideo;
 
-  MediaFile(this.file, this.isVideo);
+  // Relative path under the media/ directory, e.g. 'sydney/media_123.jpg'.
+  // Empty for temporary UI files that haven't been assigned a stop yet.
+  final String serverRelPath;
 
-  /// Returns the filename with extension (e.g., "media_123.jpg")
+  MediaFile(this.file, this.isVideo, [this.serverRelPath = '']);
+
+  /// Returns the local filename (e.g. "media_123.jpg")
   String get filename => path.basename(file.path);
 
-  /// Returns the server/relative path (e.g., "images/media_123.jpg")
-  String get serverPath => 'images/$filename';
+  /// Returns the full server path (e.g. "media/sydney/media_123.jpg")
+  String get serverPath => 'media/$serverRelPath';
 
   /// Returns the full application directory path asynchronously
   Future<String> get applicationPath async {
@@ -21,48 +25,38 @@ class MediaFile {
   }
 
   /// Returns the full application directory path synchronously
-  /// WARNING: Only use this if you already have the app directory
   String getApplicationPath(String appDirPath) {
     return path.join(appDirPath, filename);
   }
 
   /// Returns the normalized file extension.
-  /// Images always get .jpg because _compressImage() outputs JPEG format.
-  /// Videos always get .mp4 because VideoCompress outputs MP4.
   String get extension {
     if (isVideo) return '.mp4';
     return '.jpg';
   }
 
-  /// Returns true if this is an image file
   bool get isImage => !isVideo;
 
-  /// Creates a MediaFile from just a filename
-  /// Useful when loading from JSON where you only have the filename
-  static Future<MediaFile> fromFilename(String filename, {bool? isVideo}) async {
+  /// Creates a MediaFile from a server-relative path (e.g. 'sydney/media_123.jpg').
+  /// The local file is looked up by basename only, since local storage is flat.
+  static Future<MediaFile> fromFilename(String serverRelPath, {bool? isVideo}) async {
     final appDir = await getApplicationDocumentsDirectory();
-    final filePath = path.join(appDir.path, filename);
+    final localFilename = path.basename(serverRelPath);
+    final filePath = path.join(appDir.path, localFilename);
     final file = File(filePath);
-
-    // Auto-detect if video if not specified
-    final isVid = isVideo ?? _isVideoFile(filename);
-
-    return MediaFile(file, isVid);
+    final isVid = isVideo ?? _isVideoFile(localFilename);
+    return MediaFile(file, isVid, serverRelPath);
   }
 
-  /// Creates a MediaFile from just a filename (synchronous version)
-  /// Requires the app directory path to be provided
-  static MediaFile fromFilenameSync(String filename, String appDirPath, {bool? isVideo}) {
-    final filePath = path.join(appDirPath, filename);
+  /// Synchronous version — requires the app directory path to be provided.
+  static MediaFile fromFilenameSync(String serverRelPath, String appDirPath, {bool? isVideo}) {
+    final localFilename = path.basename(serverRelPath);
+    final filePath = path.join(appDirPath, localFilename);
     final file = File(filePath);
-
-    // Auto-detect if video if not specified
-    final isVid = isVideo ?? _isVideoFile(filename);
-
-    return MediaFile(file, isVid);
+    final isVid = isVideo ?? _isVideoFile(localFilename);
+    return MediaFile(file, isVid, serverRelPath);
   }
 
-  /// Helper method to detect if a filename is a video
   static bool _isVideoFile(String filename) {
     final ext = filename.toLowerCase();
     return ext.endsWith('.mp4') ||
@@ -71,12 +65,10 @@ class MediaFile {
         ext.endsWith('.mkv');
   }
 
-  /// Check if the file exists on disk
   Future<bool> exists() async {
     return await file.exists();
   }
 
-  /// Get file size in bytes
   Future<int> size() async {
     if (await file.exists()) {
       return await file.length();

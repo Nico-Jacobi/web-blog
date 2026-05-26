@@ -79,6 +79,8 @@ void main() async {
     useModernPicker = prefs.getBool('use_modern_picker') ?? false;
 
     StorageService.updatePickerImplementation();
+    await StorageService.migrateMediaPathsIfNeeded();
+    await StorageService.migrateAbsolutePathsIfNeeded();
 
     await Permission.location.request();
     await Permission.accessMediaLocation.request();

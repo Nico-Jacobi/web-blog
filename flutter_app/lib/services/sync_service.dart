@@ -119,14 +119,12 @@ class SyncService {
 
   // --- SERVER VERIFICATION ---
 
-  Future<bool> _verifyOnServer(String localPath) async {
+  Future<bool> _verifyOnServer(MediaFile media) async {
     try {
-      final file = File(localPath);
-      if (!await file.exists()) return false;
+      if (!await media.exists()) return false;
 
-      final localSize = await file.length();
-      final filename = p.basename(localPath);
-      final serverPath = 'images/$filename';
+      final localSize = await media.size();
+      final serverPath = media.serverPath; // 'media/sydney/media_123.jpg'
 
       final response = await http.post(
         Uri.parse('$baseUrl/verify'),
@@ -142,11 +140,11 @@ class SyncService {
         if (data['exists'] == true) {
           final serverSize = data['size'];
           final match = serverSize == localSize;
-          print('[SYNC] Verify $filename: ${match ? "✓ MATCH" : "✗ SIZE MISMATCH"} (local: $localSize, server: $serverSize)');
+          print('[SYNC] Verify ${media.filename}: ${match ? "✓ MATCH" : "✗ SIZE MISMATCH"} (local: $localSize, server: $serverSize)');
           return match;
         }
       }
-      print('[SYNC] Verify $filename: NOT ON SERVER');
+      print('[SYNC] Verify ${media.filename}: NOT ON SERVER');
       return false;
     } catch (e) {
       print('[SYNC] Verify error: $e');
@@ -154,18 +152,16 @@ class SyncService {
     }
   }
 
-  Future<Map<String, bool>> _batchVerifyOnServer(List<String> localPaths) async {
+  Future<Map<String, bool>> _batchVerifyOnServer(List<MediaFile> mediaFiles) async {
     const timeoutDuration = Duration(seconds: 30);
 
     try {
-      final pathMap = <String, String>{}; // server path -> local path
+      final pathMap = <String, String>{}; // server path -> local abs path
       final serverPaths = <String>[];
 
-      for (final localPath in localPaths) {
-        final filename = p.basename(localPath);
-        final serverPath = 'images/$filename';
-        pathMap[serverPath] = localPath;
-        serverPaths.add(serverPath);
+      for (final media in mediaFiles) {
+        pathMap[media.serverPath] = media.file.path;
+        serverPaths.add(media.serverPath);
       }
 
       print('[SYNC] Batch verifying ${serverPaths.length} files...');
@@ -211,7 +207,7 @@ class SyncService {
       print('[SYNC] Batch verify error: $e');
     }
 
-    return await _fallbackIndividualVerify(localPaths);
+    return await _fallbackIndividualVerify(mediaFiles);
   }
 
   Future<bool> hasUnsyncedChanges() async {
@@ -236,31 +232,32 @@ class SyncService {
     if (await _hasContentChanged('data/points.json', pointsJson)) return true;
     if (await _hasContentChanged('data/trips.json', tripsJson)) return true;
 
-    // 2. Check if any image path is missing from the sync state
+    // 2. Check if any image is missing from sync state.
+    // Sync state is keyed by basename to stay compatible with existing state files.
     for (var point in points) {
       if (point.titleImagePath.isNotEmpty &&
-          !_syncedFilesWithSize.containsKey(point.titleImagePath)) {
+          !_syncedFilesWithSize.containsKey(p.basename(point.titleImagePath))) {
         return true;
       }
       for (var name in point.otherMediaPaths) {
-        if (!_syncedFilesWithSize.containsKey(name)) return true;
+        if (!_syncedFilesWithSize.containsKey(p.basename(name))) return true;
       }
     }
 
     return false;
   }
 
-  Future<Map<String, bool>> _fallbackIndividualVerify(List<String> localPaths) async {
-    print('[SYNC] Using individual verification for ${localPaths.length} files');
+  Future<Map<String, bool>> _fallbackIndividualVerify(List<MediaFile> mediaFiles) async {
+    print('[SYNC] Using individual verification for ${mediaFiles.length} files');
     final results = <String, bool>{};
 
-    for (final localPath in localPaths) {
+    for (final media in mediaFiles) {
       try {
-        final verified = await _verifyOnServer(localPath);
-        results[localPath] = verified;
+        final verified = await _verifyOnServer(media);
+        results[media.file.path] = verified;
       } catch (e) {
-        print('[SYNC] Individual verify failed for $localPath: $e');
-        results[localPath] = false;
+        print('[SYNC] Individual verify failed for ${media.filename}: $e');
+        results[media.file.path] = false;
       }
 
       await Future.delayed(Duration(milliseconds: 100));
@@ -297,17 +294,14 @@ class SyncService {
       imageNames.addAll(point.otherMediaPaths);
     }
 
-// Create MediaFile objects to get server paths
+// Create MediaFile objects — serverRelPath is e.g. 'sydney/media_123.jpg'
     final appDir = await getApplicationDocumentsDirectory();
-    final mediaFiles = imageNames.map((filename) =>
-        MediaFile.fromFilenameSync(filename, appDir.path)
+    final mediaFiles = imageNames.map((serverRelPath) =>
+        MediaFile.fromFilenameSync(serverRelPath, appDir.path)
     ).toList();
 
-// Get absolute paths for verification
-    final absolutePaths = mediaFiles.map((m) => m.file.path).toList();
-
-// 2. Batch verify
-    final verificationResults = await _batchVerifyOnServer(absolutePaths);
+// 2. Batch verify using server paths
+    final verificationResults = await _batchVerifyOnServer(mediaFiles);
 
 // 3. Filter to get media that needs uploading
     final mediaToUpload = mediaFiles.where((media) {
@@ -322,12 +316,12 @@ class SyncService {
     print('[SYNC] Need to upload ${mediaToUpload.length} media files');
     skippedCount = mediaFiles.length - mediaToUpload.length;
 
-// 4. Upload using MediaFile
+// 4. Upload using server rel path (includes stop subfolder)
     for (int i = 0; i < mediaToUpload.length; i++) {
       final media = mediaToUpload[i];
-      print('[SYNC] Uploading ${i + 1}/${mediaToUpload.length}: ${media.filename}');
+      print('[SYNC] Uploading ${i + 1}/${mediaToUpload.length}: ${media.serverPath}');
 
-      final result = await _uploadFile(media.filename);
+      final result = await _uploadFile(media.serverRelPath);
       if (result['success']) {
         print('[SYNC] ✓ Upload request completed');
       } else {
@@ -335,11 +329,10 @@ class SyncService {
       }
     }
 
-// 5. Verify everything and count actual successes
-    final uploadAttemptPaths = mediaToUpload.map((m) => m.file.path).toList();
-    print('[SYNC] Verifying ${uploadAttemptPaths.length} uploads...');
+// 5. Verify uploaded files
+    print('[SYNC] Verifying ${mediaToUpload.length} uploads...');
 
-    final verifyResults = await _batchVerifyOnServer(uploadAttemptPaths);
+    final verifyResults = await _batchVerifyOnServer(mediaToUpload);
 
     int verifiedCount = 0;
     for (final entry in verifyResults.entries) {
@@ -515,7 +508,7 @@ class SyncService {
 
     try {
       final fileSize = await media.size();
-      final serverPath = media.serverPath;  // Uses "images/filename"
+      final serverPath = media.serverPath;  // e.g. "media/sydney/media_123.jpg"
 
       print('[SYNC] Uploading to server path: $serverPath ($fileSize bytes)');
 
@@ -578,7 +571,8 @@ class SyncService {
   }
 
   /// Downloads everything from server to initialize a fresh local app state.
-  Future<bool> initializeFromServer() async {
+  /// [onProgress] is called with (current, total) after each file is processed.
+  Future<bool> initializeFromServer({void Function(int current, int total)? onProgress}) async {
     print('[SYNC] ========== Initializing from Server ==========');
     try {
       final appDir = await getApplicationDocumentsDirectory();
@@ -629,17 +623,22 @@ class SyncService {
       }
       print('[SYNC] Found ${mediaFilenames.length} media files to download');
 
+      final mediaList = mediaFilenames.toList();
+      final total = mediaList.length;
+      int processed = 0;
       int downloadCount = 0;
-      for (String filename in mediaFilenames) {
+
+      for (String filename in mediaList) {
         final media = MediaFile.fromFilenameSync(filename, appDir.path);
 
         if (await media.exists()) {
           print('[SYNC] Media already exists locally: $filename');
           await _markAsSynced(media.file.path, await media.size());
+          onProgress?.call(++processed, total);
           continue;
         }
 
-        print('[SYNC] Downloading ${++downloadCount}/${mediaFilenames.length}: $filename');
+        print('[SYNC] Downloading ${++downloadCount}/$total: $filename');
         final size = await _downloadFile(media.serverPath, media.file.path);
         if (size > 0) {
           await _markAsSynced(media.file.path, size);
@@ -647,6 +646,7 @@ class SyncService {
         } else {
           print('[SYNC] ✗ Download failed');
         }
+        onProgress?.call(++processed, total);
       }
 
       print('[SYNC] ========== Initialization Complete ==========');

@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+import { API_BASE } from './constants.js';
 import { ArrowLeft } from 'lucide-react';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
@@ -10,6 +11,9 @@ import { useTripLoader } from './controller/useTripLoader.js';
 import { useHistoryNavigation } from './controller/useHistoryNavigation.js';
 import { registerServiceWorker } from './controller/usePushNotifications.js';
 import { slugify } from './controller/router.js';
+import { applyAccentColor } from './controller/accentColor.js';
+import { setFaviconEmoji } from './controller/favicon.js';
+export { setFaviconEmoji } from './controller/favicon.js';
 
 export default function App() {
     const { trip, loading, error, newPointIds, initialActiveId, login } = useTripLoader();
@@ -18,6 +22,21 @@ export default function App() {
     const [flyToCounter, setFlyToCounter] = useState(0);
     const [detailId, setDetailId] = useState(null);
     const [mobileShowMap, setMobileShowMap] = useState(false);
+    const [titleMain, setTitleMain] = useState('');
+    const [titleAccent, setTitleAccent] = useState('');
+
+    useEffect(() => {
+        fetch(`${API_BASE}/site-config`)
+            .then(r => r.json())
+            .then(d => {
+                if (d.titleMain)    setTitleMain(d.titleMain);
+                if (d.titleAccent)  setTitleAccent(d.titleAccent);
+                if (d.tabTitle)     document.title = d.tabTitle;
+                if (d.accentColor)  applyAccentColor(d.accentColor);
+                if (d.siteIcon)     setFaviconEmoji(d.siteIcon);
+            })
+            .catch(() => {});
+    }, []);
 
     const leafletReady = useLeaflet();
     const mapViewRef = useRef(null);
@@ -113,8 +132,8 @@ export default function App() {
 
     if (loading && !trip) {
         return (
-            <div className="fixed inset-0 bg-orange-50 flex items-center justify-center">
-                <div className="w-10 h-10 border-4 border-orange-200 border-t-orange-600 rounded-full animate-spin" />
+            <div className="fixed inset-0 bg-orange-50 dark:bg-slate-900 flex items-center justify-center">
+                <div className="w-10 h-10 border-4 border-orange-200 dark:border-orange-800 border-t-orange-600 dark:border-t-orange-500 rounded-full animate-spin" />
             </div>
         );
     }
@@ -130,8 +149,8 @@ export default function App() {
     }
 
     return (
-        <div className="flex flex-col h-dvh w-screen bg-slate-50 overflow-hidden">
-            <Header trip={trip} onMapToggle={() => { mobileShowMap ? handleMobileBack() : setMobileShowMap(true); }} />
+        <div className="flex flex-col h-dvh w-screen bg-slate-50 dark:bg-slate-900 overflow-hidden">
+            <Header trip={trip} titleMain={titleMain} titleAccent={titleAccent} onMapToggle={() => { mobileShowMap ? handleMobileBack() : setMobileShowMap(true); }} />
             <div className="flex flex-1 min-h-0 w-full overflow-hidden">
                 <div
                     className={`${mobileShowMap ? 'hidden' : 'block'} lg:block shrink-0 w-full lg:w-auto h-full`}
@@ -143,9 +162,9 @@ export default function App() {
                 <main className={`${mobileShowMap ? 'block' : 'hidden'} lg:block flex-1 relative min-h-0 min-w-0`}>
                     <button
                         onClick={handleMobileBack}
-                        className="lg:hidden absolute top-6 left-6 z-[1000] bg-white hover:bg-slate-50 p-2 rounded-full shadow-lg border border-slate-200 transition-all"
+                        className="lg:hidden absolute top-6 left-6 z-[1000] bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-800 p-2 rounded-full shadow-lg border border-slate-200 dark:border-slate-700 transition-all"
                     >
-                        <ArrowLeft size={20} className="text-slate-700" />
+                        <ArrowLeft size={20} className="text-slate-700 dark:text-slate-200" />
                     </button>
                     <MapView
                         ref={mapViewRef}

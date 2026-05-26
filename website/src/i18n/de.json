@@ -1,0 +1,102 @@
+{
+  "header": {
+    "loading": "Laden…"
+  },
+  "sidebar": {
+    "journey": "Reiseverlauf",
+    "stops": "Stopps"
+  },
+  "stopCard": {
+    "new": "Neu"
+  },
+  "pointDetail": {
+    "releaseToRefresh": "Loslassen zum Neuladen",
+    "pullToRefresh": "Zum Neuladen ziehen",
+    "whatHappened": "Was hier passiert ist",
+    "travelDay": "Reisetag",
+    "location": "Standort",
+    "latitude": "Breitengrad:",
+    "longitude": "Längengrad:"
+  },
+  "passwordGate": {
+    "title": "🔒 Passwort:",
+    "placeholder": "Passwort",
+    "denied": "Zugriff verweigert!",
+    "unlock": "Freischalten"
+  },
+  "gallery": {
+    "title": "Galerie",
+    "file": "DATEI",
+    "files": "DATEIEN"
+  },
+  "hero": {
+    "loading": "Bild wird geladen..."
+  },
+  "settings": {
+    "title": "Einstellungen",
+    "appearance": "Erscheinungsbild",
+    "light": "Hell",
+    "dark": "Dunkel",
+    "language": "Sprache",
+    "german": "Deutsch",
+    "english": "English"
+  },
+  "admin": {
+    "backToApp": "Zurück zur App",
+    "wrongPassword": "Falsches Passwort",
+    "checking": "Prüfe…",
+    "loading": "Lade…",
+    "saving": "Speichern…",
+    "saved": "Gespeichert",
+    "save": "Speichern",
+    "connectionError": "Verbindungsfehler",
+    "error": "Fehler",
+    "menu": "Menü",
+    "downloads": "Downloads",
+    "downloadsDesc": "Daten und Medien herunterladen",
+    "settings": "Einstellungen",
+    "settingsDesc": "Website-Konfiguration",
+    "icon": "Icon",
+    "iconDesc": "Tab-Icon im Browser",
+    "routes": "Routen",
+    "routesDesc": "Farbe, Linienstärke und Stil pro Verkehrsmittel",
+    "media": "Medien",
+    "allPhotosVideos": "alle Fotos & Videos",
+    "connecting": "Verbinde…",
+    "data": "Daten",
+    "noFiles": "Keine Dateien gefunden",
+    "filesLoadError": "Dateien konnten nicht geladen werden",
+    "headerTitle": "Header-Titel",
+    "normalBlack": "Normal (schwarz)",
+    "accentOrange": "Akzent (orange)",
+    "preview": "Vorschau:",
+    "tabTitle": "Tab-Titel",
+    "tabTitlePlaceholder": "Seitentitel im Browser-Tab",
+    "tabTitleHint": "Wird im Browser-Tab angezeigt",
+    "readPassword": "Read-Passwort",
+    "readPasswordHint": "Passwort zum Lesen der Website (nicht der Admin-Zugang)",
+    "accentColor": "Akzentfarbe",
+    "accentColorHint": "Farbe für Buttons, Links und Akzente auf der ganzen Website",
+    "settingsLoadError": "Einstellungen konnten nicht geladen werden",
+    "currentIcon": "Aktuelles Icon",
+    "currentIconHint": "Wird als Browser-Tab-Icon gesetzt",
+    "suggestions": "Vorschläge",
+    "customEmoji": "Eigenes Emoji",
+    "customEmojiHint": "Beliebiges Emoji eingeben — wird sofort als Vorschau gesetzt",
+    "routesCar": "Auto",
+    "routesRv": "Wohnmobil",
+    "routesBus": "Bus",
+    "routesFoot": "Zu Fuß",
+    "routesBoat": "Boot",
+    "routesPlane": "Flugzeug",
+    "routesTrain": "Zug",
+    "routesBike": "Fahrrad",
+    "routesMisc": "Sonstige",
+    "dashSolid": "Durchgehend",
+    "dashDashed": "Gestrichelt",
+    "dashLongDash": "Lang gestrichelt",
+    "dashDotted": "Gepunktet",
+    "dashDashDot": "Strich-Punkt",
+    "reset": "Zurücksetzen"
+  }
+}

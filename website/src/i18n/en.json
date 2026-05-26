@@ -1,0 +1,102 @@
+{
+  "header": {
+    "loading": "Loading…"
+  },
+  "sidebar": {
+    "journey": "Journey",
+    "stops": "Stops"
+  },
+  "stopCard": {
+    "new": "New"
+  },
+  "pointDetail": {
+    "releaseToRefresh": "Release to refresh",
+    "pullToRefresh": "Pull to refresh",
+    "whatHappened": "What happened here",
+    "travelDay": "Travel day",
+    "location": "Location",
+    "latitude": "Latitude:",
+    "longitude": "Longitude:"
+  },
+  "passwordGate": {
+    "title": "🔒 Password:",
+    "placeholder": "Password",
+    "denied": "Access denied!",
+    "unlock": "Unlock"
+  },
+  "gallery": {
+    "title": "Gallery",
+    "file": "FILE",
+    "files": "FILES"
+  },
+  "hero": {
+    "loading": "Loading image..."
+  },
+  "settings": {
+    "title": "Settings",
+    "appearance": "Appearance",
+    "light": "Light",
+    "dark": "Dark",
+    "language": "Language",
+    "german": "Deutsch",
+    "english": "English"
+  },
+  "admin": {
+    "backToApp": "Back to app",
+    "wrongPassword": "Wrong password",
+    "checking": "Checking…",
+    "loading": "Loading…",
+    "saving": "Saving…",
+    "saved": "Saved",
+    "save": "Save",
+    "connectionError": "Connection error",
+    "error": "Error",
+    "menu": "Menu",
+    "downloads": "Downloads",
+    "downloadsDesc": "Download data and media",
+    "settings": "Settings",
+    "settingsDesc": "Website configuration",
+    "icon": "Icon",
+    "iconDesc": "Browser tab icon",
+    "routes": "Routes",
+    "routesDesc": "Color, line weight and style per transport mode",
+    "media": "Media",
+    "allPhotosVideos": "all photos & videos",
+    "connecting": "Connecting…",
+    "data": "Data",
+    "noFiles": "No files found",
+    "filesLoadError": "Failed to load files",
+    "headerTitle": "Header title",
+    "normalBlack": "Normal (black)",
+    "accentOrange": "Accent (orange)",
+    "preview": "Preview:",
+    "tabTitle": "Tab title",
+    "tabTitlePlaceholder": "Browser tab title",
+    "tabTitleHint": "Shown in the browser tab",
+    "readPassword": "Read password",
+    "readPasswordHint": "Password to view the website (not the admin access)",
+    "accentColor": "Accent color",
+    "accentColorHint": "Color for buttons, links and accents across the entire website",
+    "settingsLoadError": "Failed to load settings",
+    "currentIcon": "Current icon",
+    "currentIconHint": "Used as the browser tab icon",
+    "suggestions": "Suggestions",
+    "customEmoji": "Custom emoji",
+    "customEmojiHint": "Enter any emoji — shown as preview immediately",
+    "routesCar": "Car",
+    "routesRv": "Motorhome",
+    "routesBus": "Bus",
+    "routesFoot": "Walking",
+    "routesBoat": "Boat",
+    "routesPlane": "Plane",
+    "routesTrain": "Train",
+    "routesBike": "Bike",
+    "routesMisc": "Other",
+    "dashSolid": "Solid",
+    "dashDashed": "Dashed",
+    "dashLongDash": "Long dash",
+    "dashDotted": "Dotted",
+    "dashDashDot": "Dash-dot",
+    "reset": "Reset"
+  }
+}

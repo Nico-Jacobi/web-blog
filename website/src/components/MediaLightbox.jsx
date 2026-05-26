@@ -44,7 +44,7 @@ export default function MediaLightbox({ media, currentIndex, onClose, onNavigate
                     <X size={24} className={`hidden md:block ${sharedIconStyle}`} />
                 </button>
 
-                <div className="absolute top-4 md:top-8 left-1/2 -translate-x-1/2 bg-white/90 backdrop-blur-sm px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-bold text-slate-700 pointer-events-auto">
+                <div className="absolute top-4 md:top-8 left-1/2 -translate-x-1/2 bg-white/90 dark:bg-slate-800/90 backdrop-blur-sm px-3 md:px-4 py-1.5 md:py-2 rounded-full text-xs md:text-sm font-bold text-slate-700 dark:text-slate-200 pointer-events-auto">
                     {currentIndex + 1} / {media.length}
                 </div>
 

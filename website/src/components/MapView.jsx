@@ -125,7 +125,7 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
     }, [activeId, flyToCounter, trip, mapReady]);
 
     return (
-        <div className="flex flex-col h-full bg-slate-100 p-2 sm:p-4 gap-2 sm:gap-3">
+        <div className="flex flex-col h-full bg-slate-100 dark:bg-slate-800 p-2 sm:p-4 gap-2 sm:gap-3">
             <div className="flex-1 min-h-0 rounded-2xl sm:rounded-3xl overflow-hidden relative shadow-lg">
                 <div ref={mapRef} className="w-full h-full z-10" />
             </div>

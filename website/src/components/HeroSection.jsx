@@ -1,7 +1,9 @@
 import React from 'react';
 import { Calendar, MapPin } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
 
 export default function HeroSection({ point, titleImageUrl }) {
+    const { t } = useSettings();
     return (
         <div className="mb-4 md:mb-8 rounded-2xl md:rounded-3xl overflow-hidden shadow-2xl border-2 md:border-4 border-white">
             {titleImageUrl ? (
@@ -40,10 +42,10 @@ export default function HeroSection({ point, titleImageUrl }) {
                     </div>
                 </div>
             ) : (
-                <div className="w-full h-[40vh] md:h-[60vh] bg-gradient-to-br from-slate-100 to-slate-200 flex items-center justify-center">
+                <div className="w-full h-[40vh] md:h-[60vh] bg-gradient-to-br from-slate-100 dark:from-slate-900 to-slate-200 dark:to-slate-800 flex items-center justify-center">
                     <div className="flex flex-col items-center gap-3 md:gap-4">
                         <div className="w-10 h-10 md:w-12 md:h-12 border-3 md:border-4 border-orange-500 border-t-transparent rounded-full animate-spin"></div>
-                        <p className="text-slate-400 font-medium text-sm md:text-base">Bild wird geladen...</p>
+                        <p className="text-slate-400 dark:text-slate-500 font-medium text-sm md:text-base">{t('hero.loading')}</p>
                     </div>
                 </div>
             )}

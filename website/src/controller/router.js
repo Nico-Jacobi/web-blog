@@ -13,8 +13,9 @@
  */
 
 const ROUTES = [
-    { name: 'stop', pattern: '/stop/:slug' },
-    { name: 'map',  pattern: '/map' },
+    { name: 'stop',  pattern: '/stop/:slug' },
+    { name: 'map',   pattern: '/map' },
+    { name: 'admin', pattern: '/admin' },
 ];
 
 // Vite injects BASE_URL (e.g. "/website/").  Normalise to "/website" (no trailing slash, "" for root).

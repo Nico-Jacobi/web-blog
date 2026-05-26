@@ -8,31 +8,29 @@ import { API_BASE } from '../constants.js';
 // invalidates everyone at once without touching the JSON schema.
 const CACHE_BUST = 'v3';
 
-/** Build the canonical image URL for a stored path. */
+/** Build the canonical image URL for a stored path (e.g. 'sydney/foo.jpg'). */
 export function imageUrl(path) {
     const clean = path.startsWith('/') ? path.slice(1) : path;
-    return `${API_BASE}/files/images/${clean}?${CACHE_BUST}`;
+    return `${API_BASE}/files/media/${clean}?${CACHE_BUST}`;
 }
 
 /**
  * Build the thumbnail URL for an image path.  Mirrors the server-side
- * convention: `images/foo/bar.jpg` → `images/.thumbs/foo/bar.webp`.
+ * convention: `media/sydney/bar.jpg` → `media/.thumbs/sydney/bar.webp`.
  * The server generates the thumb on first access if it doesn't exist
  * yet, so this URL is always safe to use for image paths.
  *
- * Returns the original URL for paths that don't live under `images/`
- * or for unsupported file types (videos), so callers can use it
- * uniformly without having to special-case.
+ * Returns the original URL for unsupported file types (videos), so
+ * callers can use it uniformly without having to special-case.
  */
 export function thumbUrl(path) {
     const clean = path.startsWith('/') ? path.slice(1) : path;
-    const rest = clean.replace(/^images\//, '');
-    const ext = (rest.match(/\.([^.\/]+)$/)?.[1] || '').toLowerCase();
+    const ext = (clean.match(/\.([^.\/]+)$/)?.[1] || '').toLowerCase();
     // Sharp without libheif can't decode HEIC/HEIF, so fall back.
     const supported = ['jpg', 'jpeg', 'png', 'webp'];
     if (!supported.includes(ext)) return imageUrl(clean);
-    const stem = rest.replace(/\.[^.]+$/, '');
-    return `${API_BASE}/files/images/.thumbs/${stem}.webp?${CACHE_BUST}`;
+    const stem = clean.replace(/\.[^.]+$/, '');
+    return `${API_BASE}/files/media/.thumbs/${stem}.webp?${CACHE_BUST}`;
 }
 
 export const apiService = {

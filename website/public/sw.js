@@ -7,9 +7,9 @@
 // Cross-origin: this SW is served from 1ej.de but proxies image requests
 // to api.1ej.de.  CORS is enabled server-side without restrictions.
 
-const IMAGE_CACHE = 'images-v2';
+const IMAGE_CACHE = 'images-v3';
 const API_HOST = 'api.1ej.de';
-const IMAGE_PATH_PREFIX = '/files/images/';
+const IMAGE_PATH_PREFIX = '/files/media/';
 
 // ── auth token persistence (IndexedDB) ───────────────────────────────
 const DB_NAME = 'sw-auth';

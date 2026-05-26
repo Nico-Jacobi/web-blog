@@ -1,7 +1,9 @@
 import { useState, useEffect } from 'react';
 import { Trip } from '../model/Trip.js';
+import { applyRouteStyles } from '../model/routeStyles.js';
 import { setupPushNotifications, sendAuthToServiceWorker } from './usePushNotifications.js';
 import { AUTH_COOKIE } from '../constants.js';
+import { API_BASE } from '../constants.js';
 import { getCookie, setCookie, deleteCookie } from '../utils.js';
 
 /**
@@ -21,12 +23,15 @@ export function useTripLoader() {
         setLoading(true);
         setError(null);
 
-        // Hand the token to the service worker so it can authenticate
-        // image requests on the page's behalf and cache them.
         sendAuthToServiceWorker(token);
 
-        Trip.getInstance(token)
-            .then(loadedTrip => {
+        const routeStylesFetch = fetch(`${API_BASE}/route-styles`)
+            .then(r => r.ok ? r.json() : null)
+            .catch(() => null);
+
+        Promise.all([Trip.getInstance(token), routeStylesFetch])
+            .then(([loadedTrip, routeStylesData]) => {
+                if (routeStylesData) applyRouteStyles(routeStylesData);
                 setTrip(loadedTrip);
 
                 const lastKnown = parseInt(localStorage.getItem('lastKnownPointOrder')) || 0;

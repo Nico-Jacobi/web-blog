@@ -1,21 +1,23 @@
 import React from 'react';
 import { Calendar, MapPin } from 'lucide-react';
+import { useSettings } from '../context/SettingsContext';
 
 export default function StopCard({ point, isActive, isNew, priority = 'auto', onInfoClick, onMapClick }) {
+    const { t } = useSettings();
     const image = point.titleThumbUrl;
     const eager = priority === 'high';
 
     return (
         <div
             onClick={() => onInfoClick(point.id)}
-            className={`p-4 rounded-2xl transition-all border-2 mb-0 cursor-pointer ${
+            className={`p-4 rounded-2xl transition-all mb-0 cursor-pointer border-l-4 ${
                 isActive
-                    ? 'bg-orange-50 border-orange-200 shadow-sm'
-                    : 'bg-white border-transparent hover:bg-slate-50'
+                    ? 'border-l-orange-400 dark:border-l-orange-500 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800'
+                    : 'border-l-transparent bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-800'
             }`}
         >
             <div className="flex gap-4 items-center">
-                <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 shrink-0">
+                <div className="w-20 h-20 rounded-xl overflow-hidden bg-slate-100 dark:bg-slate-700 shrink-0">
                     {image ? (
                         <img
                             src={image}
@@ -26,37 +28,37 @@ export default function StopCard({ point, isActive, isNew, priority = 'auto', on
                             className="w-full h-full object-cover"
                         />
                     ) : (
-                        <div className="w-full h-full bg-slate-200" />
+                        <div className="w-full h-full bg-slate-200 dark:bg-slate-700" />
                     )}
                 </div>
 
                 <div className="flex flex-col justify-center overflow-hidden flex-1 min-w-0">
                     <div className="flex items-center gap-2 min-w-0">
-                        <h3 className={`font-bold truncate ${isActive ? 'text-orange-900' : 'text-slate-800'}`}>
+                        <h3 className="font-bold truncate text-slate-800 dark:text-slate-100">
                             {point.title}
                         </h3>
                         {isNew && (
                             <span className="bg-orange-500 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full uppercase shrink-0 leading-none">
-                                Neu
+                                {t('stopCard.new')}
                             </span>
                         )}
                     </div>
 
                     {point.date && (
-                        <div className="flex items-center gap-1 text-slate-400 text-[10px] mt-0.5">
+                        <div className="flex items-center gap-1 text-slate-400 dark:text-slate-500 text-[10px] mt-0.5">
                             <Calendar size={12} />
                             <span>{point.date}</span>
                         </div>
                     )}
 
-                    <p className="text-slate-500 text-xs mt-1 line-clamp-2 leading-relaxed">
+                    <p className="text-slate-500 dark:text-slate-400 text-xs mt-1 line-clamp-2 leading-relaxed">
                         {point.desc}
                     </p>
                 </div>
 
                 <button
                     onClick={(e) => { e.stopPropagation(); onMapClick(point.id); }}
-                    className="w-10 h-10 flex items-center justify-center rounded-lg transition-all border-2 border-slate-200 text-slate-500 hover:bg-slate-50 shrink-0"
+                    className="w-10 h-10 flex items-center justify-center rounded-lg transition-all border-2 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800 shrink-0"
                 >
                     <MapPin size={16} />
                 </button>

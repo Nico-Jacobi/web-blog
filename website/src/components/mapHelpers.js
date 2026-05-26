@@ -1,8 +1,10 @@
 import { ROUTE_STYLES } from '../model/routeStyles.js';
 import { fetchAllRoutes } from '../controller/routingService.js';
 import { apiService, thumbUrl, imageUrl } from '../controller/apiService.js';
+import { getAccentColor } from '../controller/accentColor.js';
 
 export function createPopupContent(point, img, onOpenDetail) {
+    const isDark = document.documentElement.classList.contains('dark');
     const popupDiv = document.createElement('div');
 
     const width = 'clamp(160px, 18vw, 280px)';
@@ -16,8 +18,9 @@ export function createPopupContent(point, img, onOpenDetail) {
     const calendarIcon = `<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>`;
 
     popupDiv.style.cssText = `width:${width}; font-family:ui-sans-serif,system-ui,sans-serif; padding:2px;`;
+    const placeholderBg = isDark ? '#334155' : '#e2e8f0';
     popupDiv.innerHTML = `
-        ${img ? `<img src="${img}" style="width:100%; height:${imageHeight}; object-fit:cover; border-radius:8px; margin-bottom:6px; display:block;"/>` : `<div style="width:100%; height:${imageHeight}; background:#e2e8f0; border-radius:8px; margin-bottom:6px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:${descSize};">Loading...</div>`}
+        ${img ? `<img src="${img}" style="width:100%; height:${imageHeight}; object-fit:cover; border-radius:8px; margin-bottom:6px; display:block;"/>` : `<div style="width:100%; height:${imageHeight}; background:${placeholderBg}; border-radius:8px; margin-bottom:6px; display:flex; align-items:center; justify-content:center; color:#94a3b8; font-size:${descSize};">Loading...</div>`}
         <div style="display:flex; flex-direction:column; gap:2px;">
             <strong style="font-size:${titleSize}; font-weight:800;">${point.title}</strong>
             <div style="display:flex; align-items:center; gap:4px; font-size:${dateSize}; color:#94a3b8;">
@@ -29,7 +32,7 @@ export function createPopupContent(point, img, onOpenDetail) {
             </p>
             <button
                 id="detail-btn-${point.id}"
-                style="margin-top:6px; padding:${buttonPadding}; background:transparent; color:#f97316; border:2px solid #fb923c; border-radius:6px; font-size:${buttonSize}; font-weight:600; width:100%; cursor:pointer;"
+                style="margin-top:6px; padding:${buttonPadding}; background:transparent; color:var(--accent,#f97316); border:2px solid var(--accent,#f97316); border-radius:6px; font-size:${buttonSize}; font-weight:600; width:100%; cursor:pointer;"
             >
                 Details
             </button>
@@ -70,10 +73,11 @@ export function addImageGpsMarkers(map, trip, imageMarkersRef, onImageFullscreen
     apiService.fetchImageGpsAll(trip.password).then(entries => {
         if (!map._container) return;
         entries.forEach(entry => {
+            const accent = getAccentColor();
             const marker = L.circleMarker([entry.lat, entry.lng], {
                 radius: 4,
-                color: '#F97316',
-                fillColor: '#F97316',
+                color: accent,
+                fillColor: accent,
                 fillOpacity: 0.7,
                 weight: 1,
                 bubblingMouseEvents: false
@@ -123,10 +127,10 @@ export function addImageGpsMarkers(map, trip, imageMarkersRef, onImageFullscreen
 }
 
 export function buildMarkerHtml(isNew) {
-    const dot = `<div style="background:#F97316; width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 5px rgba(0,0,0,0.3);"></div>`;
+    const dot = `<div style="background:var(--accent,#F97316); width:14px; height:14px; border-radius:50%; border:2px solid #fff; box-shadow:0 0 5px rgba(0,0,0,0.3);"></div>`;
     if (isNew) {
         return `<div style="position:relative; width:36px; height:36px; display:flex; align-items:center; justify-content:center;">
-                     <div style="position:absolute; width:22px; height:22px; border-radius:50%; border:2px solid #F97316; opacity:0.6; animation:pulse-ring 2s ease-out infinite;"></div>
+                     <div style="position:absolute; width:22px; height:22px; border-radius:50%; border:2px solid var(--accent,#F97316); opacity:0.6; animation:pulse-ring 2s ease-out infinite;"></div>
                      ${dot}
                    </div>`;
     }

@@ -1,23 +1,18 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Map, Calendar, Route, RefreshCw } from 'lucide-react';
-import kangarooIcon from '../../kangaroo.svg';
 import { usePullToRefresh } from '../controller/usePullToRefresh.js';
+import SettingsPanel from './SettingsPanel';
+import { useSettings } from '../context/SettingsContext';
 
-export default function Header({ trip, onMapToggle }) {
+export default function Header({ trip, onMapToggle, titleMain, titleAccent }) {
+    const { t, locale } = useSettings();
     const dateRange = trip?.getDateRange() || '';
     const totalDistance = trip?.getTotalDistance();
-    const [bouncing, setBouncing] = useState(false);
     const { pullDistance, refreshing, pullProgress, touchHandlers } = usePullToRefresh();
-
-    const handleKangarooClick = () => {
-        if (bouncing) return;
-        setBouncing(true);
-        setTimeout(() => setBouncing(false), 800);
-    };
 
     return (
         <header
-            className="bg-white border-b border-orange-100 shadow-sm shrink-0 select-none"
+            className="bg-white dark:bg-slate-900 border-b border-orange-100 dark:border-slate-700 shadow-sm shrink-0 select-none"
             onTouchStart={touchHandlers.onTouchStart}
             onTouchMove={touchHandlers.onTouchMove}
             onTouchEnd={touchHandlers.onTouchEnd}
@@ -32,20 +27,22 @@ export default function Header({ trip, onMapToggle }) {
                 </div>
 
                 <div className="min-w-0">
-                    <h1 className="font-black text-sm sm:text-xl lg:text-2xl tracking-tight text-slate-900 truncate">
-                        Jennys & Leons <span className="text-orange-600">Australien Trip</span>
+                    <h1
+                        className="font-black text-sm sm:text-xl lg:text-2xl tracking-tight text-slate-900 dark:text-white truncate cursor-default select-none"
+                    >
+                        {titleMain || "Jennys & Leons"}{titleAccent && <> <span className="text-orange-600">{titleAccent}</span></>}
                     </h1>
-                    <div className="flex items-center gap-2 sm:gap-3 text-slate-400 text-[10px] sm:text-xs font-medium mt-0.5 sm:mt-1">
+                    <div className="flex items-center gap-2 sm:gap-3 text-slate-400 dark:text-slate-500 text-[10px] sm:text-xs font-medium mt-0.5 sm:mt-1">
                         <span className="flex items-center gap-1 shrink-0">
                             <Calendar className="w-3 h-3 sm:w-3 sm:h-3" />
                             <span>{dateRange || "Nov '25 - Jan '26"}</span>
                         </span>
                         {totalDistance && (
                             <>
-                                <span className="w-1 h-1 bg-slate-200 rounded-full shrink-0"></span>
+                                <span className="w-1 h-1 bg-slate-200 dark:bg-slate-700 rounded-full shrink-0"></span>
                                 <span className="flex items-center gap-1 shrink-0">
                                     <Route className="w-3 h-3 sm:w-3 sm:h-3" />
-                                    {totalDistance.toLocaleString('de-DE')} km
+                                    {totalDistance.toLocaleString(locale === 'de' ? 'de-DE' : 'en-GB')} km
                                 </span>
                             </>
                         )}
@@ -53,26 +50,9 @@ export default function Header({ trip, onMapToggle }) {
                 </div>
             </div>
 
-            <button
-                onClick={handleKangarooClick}
-                className="hidden sm:block h-10 w-10 rounded-full border-2 border-orange-100 p-0.5 shrink-0 cursor-pointer bg-transparent"
-                style={bouncing ? { animation: 'kangaroo-bounce 0.8s ease-in-out' } : undefined}
-            >
-                <style>{`
-                    @keyframes kangaroo-bounce {
-                        0%, 100% { transform: translateY(0) rotate(0deg); }
-                        15% { transform: translateY(-18px) rotate(-8deg); }
-                        30% { transform: translateY(0) rotate(0deg); }
-                        45% { transform: translateY(-12px) rotate(8deg); }
-                        60% { transform: translateY(0) rotate(0deg); }
-                        75% { transform: translateY(-6px) rotate(-4deg); }
-                        90% { transform: translateY(0) rotate(0deg); }
-                    }
-                `}</style>
-                <div className="w-full h-full rounded-full bg-orange-50 flex items-center justify-center overflow-hidden">
-                    <img src={kangarooIcon} alt="Kangaroo" className="w-6 h-6" />
-                </div>
-            </button>
+            <div className="flex items-center gap-2">
+                <SettingsPanel />
+            </div>
             </div>
 
             <div
@@ -95,7 +75,7 @@ export default function Header({ trip, onMapToggle }) {
                 />
                 {refreshing && (
                     <span className="text-[10px] text-orange-400 font-medium mt-1" style={{ animation: 'pulse-opacity 1s ease-in-out infinite' }}>
-                        Laden…
+                        {t('header.loading')}
                     </span>
                 )}
             </div>

@@ -1,4 +1,4 @@
-import { Car, Plane, Bus, Ship, Footprints, Caravan, Compass } from 'lucide-react';
+import { Car, Plane, Bus, Ship, Footprints, Caravan, Compass, Train, Bike } from 'lucide-react';
 
 export const ROUTE_STYLES = {
     car: {
@@ -58,6 +58,25 @@ export const ROUTE_STYLES = {
         icon: Plane
     },
 
+    train: {
+        color: '#D97706',
+        weight: 3,
+        opacity: 0.85,
+        lineCap: 'round',
+        label: 'Zug',
+        icon: Train
+    },
+
+    bike: {
+        color: '#65A30D',
+        weight: 2,
+        opacity: 0.8,
+        lineCap: 'round',
+        dashArray: '4,5',
+        label: 'Fahrrad',
+        icon: Bike
+    },
+
     misc: {
         color: '#9CA3AF',
         weight: 2,
@@ -67,3 +86,19 @@ export const ROUTE_STYLES = {
         icon: Compass
     }
 };
+
+export function applyRouteStyles(overrides) {
+    if (!overrides || typeof overrides !== 'object') return;
+    for (const [mode, vals] of Object.entries(overrides)) {
+        if (!ROUTE_STYLES[mode] || !vals) continue;
+        if (typeof vals.color === 'string' && /^#[0-9a-fA-F]{6}$/.test(vals.color)) {
+            ROUTE_STYLES[mode].color = vals.color;
+        }
+        if (typeof vals.weight === 'number' && vals.weight >= 1 && vals.weight <= 8) {
+            ROUTE_STYLES[mode].weight = vals.weight;
+        }
+        if ('dashArray' in vals) {
+            ROUTE_STYLES[mode].dashArray = vals.dashArray || undefined;
+        }
+    }
+}

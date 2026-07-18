@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Download, FileJson, Lock, ArrowLeft, HardDrive, ImageIcon, Settings, Eye, EyeOff, Check, RotateCcw, Route, Car, Bus, Ship, Plane, Footprints, Compass, Caravan, Smile, Train, Bike } from 'lucide-react';
+import { Download, FileJson, Lock, ArrowLeft, HardDrive, ImageIcon, Settings, Eye, EyeOff, Check, RotateCcw, Route, Car, Bus, Ship, Plane, Footprints, Compass, Caravan, Smile, Train, Bike, Menu, X } from 'lucide-react';
 import { API_BASE } from '../constants.js';
 import { setFaviconEmoji } from '../App.jsx';
 import { BASE_PATH } from '../controller/router.js';
@@ -129,11 +129,13 @@ function DownloadsSection({ token }) {
         }
     };
 
-    const handleDownloadMedia = async () => {
-        setDownloading('__media__');
+    // Streams a zip endpoint to a blob download with byte progress.
+    // key marks which button is busy; prefix names the saved file.
+    const handleZipDownload = async (endpoint, key, prefix) => {
+        setDownloading(key);
         setMediaBytes(0);
         try {
-            const res = await fetch(`${API_BASE}/admin/download-media`, {
+            const res = await fetch(`${API_BASE}${endpoint}`, {
                 headers: { 'x-admin-token': token },
             });
             const reader = res.body.getReader();
@@ -150,7 +152,7 @@ function DownloadsSection({ token }) {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `media-backup-${new Date().toISOString().slice(0, 10)}.zip`;
+            a.download = `${prefix}-${new Date().toISOString().slice(0, 10)}.zip`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);
@@ -163,6 +165,11 @@ function DownloadsSection({ token }) {
         }
     };
 
+    const handleDownloadMedia = () =>
+        handleZipDownload('/admin/download-media', '__media__', 'media-backup');
+    const handleDownloadFull = () =>
+        handleZipDownload('/admin/download-full', '__full__', 'full-backup');
+
     if (error) return <p className="text-red-500 text-sm">{error}</p>;
     if (!files) return <p className="text-slate-400 dark:text-slate-500 text-sm">{t('admin.loading')}</p>;
 
@@ -170,6 +177,29 @@ function DownloadsSection({ token }) {
 
     return (
         <div className="space-y-6">
+            <div>
+                <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">{t('admin.fullBackup')}</h3>
+                <button onClick={handleDownloadFull} disabled={downloading === '__full__'} className={rowClass}>
+                    <span className="flex items-center gap-3 text-slate-700 dark:text-slate-300 font-medium">
+                        <HardDrive size={16} className="text-slate-400 dark:text-slate-500 shrink-0" />
+                        {t('admin.fullBackup')} <span className="text-slate-400 dark:text-slate-500 font-normal">({t('admin.fullBackupDesc')})</span>
+                    </span>
+                    <span className="flex items-center gap-2 text-slate-400 dark:text-slate-500 shrink-0 ml-4">
+                        {downloading === '__full__' ? (
+                            <span className="text-xs text-orange-500 tabular-nums">
+                                {mediaBytes > 0 ? `${(mediaBytes / 1024 / 1024).toFixed(1)} MB…` : t('admin.connecting')}
+                            </span>
+                        ) : (
+                            <>
+                                <span className="text-xs">zip</span>
+                                <Download size={15} />
+                            </>
+                        )}
+                    </span>
+                </button>
+                <p className="text-xs text-slate-400 dark:text-slate-500 mt-1.5">{t('admin.fullBackupHint')}</p>
+            </div>
+
             <div>
                 <h3 className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-wider mb-2">{t('admin.media')}</h3>
                 <button onClick={handleDownloadMedia} disabled={downloading === '__media__'} className={rowClass}>
@@ -669,6 +699,7 @@ export default function AdminPage() {
     const [token, setToken] = useState(() => sessionStorage.getItem(SESSION_KEY));
     const [verified, setVerified] = useState(false);
     const [activeSection, setActiveSection] = useState('downloads');
+    const [menuOpen, setMenuOpen] = useState(false);
 
     const NAV = [
         { id: 'downloads', label: t('admin.downloads'), icon: HardDrive },
@@ -694,9 +725,16 @@ export default function AdminPage() {
     }
 
     return (
-        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col">
+        <div className="h-screen overflow-hidden bg-slate-50 dark:bg-slate-950 flex flex-col">
             <header className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-700 px-6 py-4 flex items-center justify-between shrink-0">
                 <div className="flex items-center gap-3">
+                    <button
+                        onClick={() => setMenuOpen(true)}
+                        className="md:hidden -ml-1 p-1.5 text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors"
+                        aria-label={t('admin.menu')}
+                    >
+                        <Menu size={20} />
+                    </button>
                     <div className="bg-slate-800 text-white p-2 rounded-xl">
                         <Lock size={15} />
                     </div>
@@ -718,15 +756,36 @@ export default function AdminPage() {
             </header>
 
             <div className="flex flex-1 min-h-0">
-                <nav className="w-52 shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 p-4">
-                    <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-wider mb-2 px-2">{t('admin.menu')}</p>
+                {/* Mobile backdrop */}
+                {menuOpen && (
+                    <div
+                        onClick={() => setMenuOpen(false)}
+                        className="md:hidden fixed inset-0 z-30 bg-black/40"
+                    />
+                )}
+
+                <nav
+                    className={`w-52 shrink-0 bg-white dark:bg-slate-900 border-r border-slate-200 dark:border-slate-700 p-4 transition-transform duration-200
+                        fixed inset-y-0 left-0 z-40 md:static md:z-auto md:translate-x-0
+                        ${menuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+                >
+                    <div className="flex items-center justify-between mb-2 px-2">
+                        <p className="text-[10px] font-bold text-slate-300 dark:text-slate-600 uppercase tracking-wider">{t('admin.menu')}</p>
+                        <button
+                            onClick={() => setMenuOpen(false)}
+                            className="md:hidden -mr-1 p-1 text-slate-400 hover:text-slate-700 dark:hover:text-slate-200 transition-colors"
+                            aria-label="Close"
+                        >
+                            <X size={18} />
+                        </button>
+                    </div>
                     {NAV.map(item => {
                         const Icon = item.icon;
                         const active = activeSection === item.id;
                         return (
                             <button
                                 key={item.id}
-                                onClick={() => setActiveSection(item.id)}
+                                onClick={() => { setActiveSection(item.id); setMenuOpen(false); }}
                                 className={`w-full flex items-center gap-2.5 px-3 py-2.5 rounded-xl text-sm font-medium transition-colors text-left ${
                                     active ? 'bg-slate-800 text-white' : 'text-slate-600 dark:text-slate-400 hover:bg-slate-50 dark:hover:bg-slate-800'
                                 }`}
@@ -738,7 +797,7 @@ export default function AdminPage() {
                     })}
                 </nav>
 
-                <main className="flex-1 p-8 overflow-y-auto">
+                <main className="flex-1 p-4 sm:p-8 overflow-y-auto">
                     {activeSection === 'downloads' && (
                         <>
                             <h2 className="text-xl font-black text-slate-900 dark:text-white mb-1">{t('admin.downloads')}</h2>

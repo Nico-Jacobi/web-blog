@@ -1183,6 +1183,53 @@ app.get('/admin/download-media', checkAdminPanel, (req, res) => {
     req.on('close', () => zip.kill());
 });
 
+// Full backup: everything needed to restore the blog on a fresh server —
+// data/ (points, trips, settings, route styles, caches) and media/ (all
+// photos & videos).  Thumbnails are excluded; they regenerate on demand.
+// A manifest at the archive root identifies the format so a future
+// /admin/restore endpoint can validate uploads before unpacking.
+const BACKUP_MANIFEST_NAME = 'backup-manifest.json';
+
+app.get('/admin/download-full', checkAdminPanel, async (req, res) => {
+    const filename = `full-backup-${new Date().toISOString().slice(0, 10)}.zip`;
+    const manifestAbs = path.join(UPLOAD_DIR, BACKUP_MANIFEST_NAME);
+    try {
+        await fs.writeFile(manifestAbs, JSON.stringify({
+            format: 'web-blog-full-backup',
+            version: 1,
+            createdAt: new Date().toISOString(),
+            contents: ['data', 'media'],
+        }, null, 2));
+    } catch (err) {
+        console.error('Backup manifest write failed:', err.message);
+        return res.status(500).json({ error: 'Backup failed' });
+    }
+
+    res.setHeader('Cache-Control', 'no-store');
+    res.setHeader('Content-Disposition', `attachment; filename="${filename}"`);
+    res.setHeader('Content-Type', 'application/zip');
+
+    const zip = spawn('zip', ['-r', '-', BACKUP_MANIFEST_NAME, 'data', 'media',
+        '-x', 'media/.thumbs/*',
+        '-x', 'media/.thumbs/*/*',
+        '-x', 'media/.thumbs/*/*/*',
+        '-x', '*.tmp',
+    ], { cwd: UPLOAD_DIR });
+    zip.stdout.pipe(res);
+    zip.stderr.on('data', d => console.error('zip stderr:', d.toString()));
+    zip.on('error', err => {
+        console.error('zip failed:', err.message);
+        if (!res.headersSent) res.status(500).json({ error: 'zip not available on this server' });
+        else res.destroy();
+    });
+    zip.on('close', code => {
+        fs.rm(manifestAbs, { force: true }).catch(() => {});
+        if (code !== 0) console.error(`zip exited with code ${code}`);
+        else console.log(`✅ Full backup download complete`);
+    });
+    req.on('close', () => zip.kill());
+});
+
 app.get('/admin/download', checkAdminPanel, async (req, res) => {
     const fileName = req.query.file;
     if (!fileName || fileName.includes('/') || fileName.includes('\\') || fileName.includes('..')) {

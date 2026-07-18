@@ -47,12 +47,17 @@ export function createPopupContent(point, img, onOpenDetail) {
     return popupDiv;
 }
 
-export function drawRoutes(map, trip) {
+export function drawRoutes(map, trip, onDistanceUpdate) {
     const L = window.L;
 
-    fetchAllRoutes(trip, (index, coords, mode) => {
+    fetchAllRoutes(trip, (index, coords, mode, distanceMeters) => {
         const style = ROUTE_STYLES[mode] || ROUTE_STYLES.car;
         L.polyline(coords, { ...style, lineJoin: 'round' }).addTo(map);
+        const route = trip.routes[index];
+        if (route && distanceMeters != null) {
+            trip.setRouteDistance(route.from, route.to, distanceMeters / 1000);
+            onDistanceUpdate?.();
+        }
     });
 }
 

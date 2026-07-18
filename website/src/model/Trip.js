@@ -14,6 +14,13 @@ export class Trip {
             to: r.pointId2,
             mode: r.method
         }));
+
+        // Keyed by "from:to" → distance in km from OSRM (populated async after routes load)
+        this.routeDistances = {};
+    }
+
+    setRouteDistance(from, to, km) {
+        this.routeDistances[`${from}:${to}`] = km;
     }
 
     static async getInstance(password) {
@@ -55,11 +62,15 @@ export class Trip {
         let total = 0;
 
         this.routes.forEach(route => {
-            const p1 = this.getPoint(route.from);
-            const p2 = this.getPoint(route.to);
-
-            if (p1?.lat && p2?.lat) {
-                total += haversineDistance(p1.lat, p1.lng, p2.lat, p2.lng);
+            const key = `${route.from}:${route.to}`;
+            if (key in this.routeDistances) {
+                total += this.routeDistances[key];
+            } else {
+                const p1 = this.getPoint(route.from);
+                const p2 = this.getPoint(route.to);
+                if (p1?.lat && p2?.lat) {
+                    total += haversineDistance(p1.lat, p1.lng, p2.lat, p2.lng);
+                }
             }
         });
 
@@ -78,11 +89,12 @@ export class Trip {
     }
 
     getDistanceBetween(fromId, toId) {
+        const key = `${fromId}:${toId}`;
+        if (key in this.routeDistances) return Math.round(this.routeDistances[key]);
+
         const p1 = this.getPoint(fromId);
         const p2 = this.getPoint(toId);
-
         if (!p1?.lat || !p2?.lat) return null;
-
         return Math.round(haversineDistance(p1.lat, p1.lng, p2.lat, p2.lng));
     }
 }

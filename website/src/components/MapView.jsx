@@ -2,7 +2,7 @@ import React, { useState, useEffect, useRef, forwardRef, useImperativeHandle } f
 import Legend from './Legend.jsx';
 import { createPopupContent, drawRoutes, addImageGpsMarkers, buildMarkerHtml, findClosestMarker } from './mapHelpers.js';
 
-const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop, leafletReady, trip, newPointIds }, ref) => {
+const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop, leafletReady, trip, newPointIds, onDistanceUpdate }, ref) => {
     const mapRef = useRef(null);
     const mapInstance = useRef(null);
     const markersRef = useRef({});
@@ -71,7 +71,7 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
             keepBuffer: 8
         }).addTo(map);
 
-        drawRoutes(map, trip);
+        drawRoutes(map, trip, onDistanceUpdate);
         addImageGpsMarkers(map, trip, imageMarkersRef, (src) => setFullscreenImage(src));
         addPointMarkers(L, map, trip, newPointIds, markersRef, mapInteractionRef, onSelectStop, onOpenDetail);
         setupClickHandler(map, trip, markersRef, imageMarkersRef, mapInteractionRef, activeId, onSelectStop);
@@ -125,12 +125,12 @@ const MapView = forwardRef(({ activeId, flyToCounter, onOpenDetail, onSelectStop
     }, [activeId, flyToCounter, trip, mapReady]);
 
     return (
-        <div className="flex flex-col h-full bg-slate-100 dark:bg-slate-800 p-2 sm:p-4 gap-2 sm:gap-3">
+        <div className="flex flex-col h-full bg-white dark:bg-slate-900 p-2 sm:p-4">
             <div className="flex-1 min-h-0 rounded-2xl sm:rounded-3xl overflow-hidden relative shadow-lg">
                 <div ref={mapRef} className="w-full h-full z-10" />
-            </div>
-            <div className="shrink-0">
-                <Legend usedModes={usedModes} />
+                <div className="absolute bottom-3 left-2 right-2 sm:left-1/2 sm:right-auto sm:-translate-x-1/2 z-[1000]">
+                    <Legend usedModes={usedModes} />
+                </div>
             </div>
             {fullscreenImage && (
                 <div

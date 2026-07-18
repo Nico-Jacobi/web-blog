@@ -125,7 +125,7 @@ export async function fetchRoute(p1, p2, mode) {
  * Fetch routes for a trip from the backend `/routes` endpoint.
  * Falls back to straight lines per segment if the server is unreachable.
  *
- * Calls onRoute(index, coords, mode) per segment.  Order: latest→first
+ * Calls onRoute(index, coords, mode, distanceMeters) per segment.  Order: latest→first
  * so earlier segments render on top, matching the legacy behaviour.
  */
 export async function fetchAllRoutes(trip, onRoute) {
@@ -137,7 +137,7 @@ export async function fetchAllRoutes(trip, onRoute) {
             const backendRoutes = await res.json();
             for (let i = backendRoutes.length - 1; i >= 0; i--) {
                 const r = backendRoutes[i];
-                onRoute(i, r.coords, r.method);
+                onRoute(i, r.coords, r.method, r.distance);
             }
             return;
         }
@@ -151,6 +151,6 @@ export async function fetchAllRoutes(trip, onRoute) {
         const p1 = trip.getPoint(route.from);
         const p2 = trip.getPoint(route.to);
         if (!p1?.lat || !p2?.lat) continue;
-        onRoute(index, [[p1.lat, p1.lng], [p2.lat, p2.lng]], route.mode);
+        onRoute(index, [[p1.lat, p1.lng], [p2.lat, p2.lng]], route.mode, haversineDistanceMeters(p1, p2));
     }
 }

@@ -476,7 +476,7 @@ async function fetchOsrmRoute(p1, p2, profile) {
         const direct = haversineMeters(p1.lat, p1.lng, p2.lat, p2.lng);
         if (direct > 0 && routeDist / direct > ROUTE_MAX_DETOUR_FACTOR) return null;
         const raw = data.routes[0].geometry.coordinates.map(([lng, lat]) => [lat, lng]);
-        return simplifyCoords(raw);
+        return { coords: simplifyCoords(raw), distance: routeDist };
     } catch (err) {
         console.warn(`OSRM failed (${profile}): ${err.message}`);
         return null;
@@ -487,37 +487,67 @@ async function fetchOsrmRoute(p1, p2, profile) {
 // the same segment from OSRM.
 const PENDING_ROUTES = new Map();
 
+// Read a cache entry; handles legacy array format and new { c, d } format.
+// Returns { coords, distance } or null.
+function readCacheEntry(cached) {
+    if (!cached) return null;
+    if (Array.isArray(cached)) return { coords: simplifyCoords(cached), distance: null };
+    return { coords: cached.c, distance: cached.d };
+}
+
 async function getRouteCoords(p1, p2, method) {
     if (method === 'plane') {
         const key = routeKey(p1, p2, 'plane');
         const cache = await loadRoutesCache();
-        if (key in cache) return cache[key];
+        if (key in cache) {
+            const entry = readCacheEntry(cache[key]);
+            if (!entry) return null;
+            // Migrate legacy array entries to new format
+            if (Array.isArray(cache[key])) {
+                const distance = haversineMeters(p1.lat, p1.lng, p2.lat, p2.lng);
+                cache[key] = { c: entry.coords, d: distance };
+                scheduleRoutesCacheSave();
+                return { coords: entry.coords, distance };
+            }
+            return entry;
+        }
         const arc = simplifyCoords(greatCircleArc(p1, p2));
-        cache[key] = arc;
+        const distance = haversineMeters(p1.lat, p1.lng, p2.lat, p2.lng);
+        cache[key] = { c: arc, d: distance };
         scheduleRoutesCacheSave();
-        return arc;
+        return { coords: arc, distance };
     }
     const profile = ROUTE_MODE_TO_PROFILE[method];
-    if (!profile) return null; // boat etc → straight line
+    if (!profile) {
+        // boat etc → straight line, haversine distance
+        return { coords: null, distance: haversineMeters(p1.lat, p1.lng, p2.lat, p2.lng) };
+    }
     const key = routeKey(p1, p2, profile);
     const cache = await loadRoutesCache();
     if (key in cache) {
-        const coords = cache[key];
-        if (!coords) return null;
-        // Migrate full-res legacy cache entries once, then store the simplified version.
-        const simplified = simplifyCoords(coords);
-        if (simplified.length !== coords.length) {
-            cache[key] = simplified;
+        const entry = readCacheEntry(cache[key]);
+        if (!entry) return null;
+        // Migrate legacy array entries to new format (distance unknown for old entries)
+        if (Array.isArray(cache[key])) {
+            cache[key] = { c: entry.coords, d: null };
             scheduleRoutesCacheSave();
+            return entry;
         }
-        return simplified;
+        // Simplify full-res legacy coords if needed
+        const simplified = simplifyCoords(entry.coords);
+        if (simplified.length !== entry.coords.length) {
+            cache[key] = { c: simplified, d: entry.distance };
+            scheduleRoutesCacheSave();
+            return { coords: simplified, distance: entry.distance };
+        }
+        return entry;
     }
     if (PENDING_ROUTES.has(key)) return PENDING_ROUTES.get(key);
     const promise = (async () => {
-        const coords = await fetchOsrmRoute(p1, p2, profile);
-        cache[key] = coords; // null cached too — don't retry every request
+        const result = await fetchOsrmRoute(p1, p2, profile); // { coords, distance } or null
+        cache[key] = result ? { c: result.coords, d: result.distance } : null;
         scheduleRoutesCacheSave();
-        return coords;
+        return result; // null on failure
     })();
     PENDING_ROUTES.set(key, promise);
     try { return await promise; }
@@ -802,9 +832,11 @@ app.get('/routes', checkAuth, async (req, res) => {
             const p1 = byId.get(t.pointId1);
             const p2 = byId.get(t.pointId2);
             if (!p1 || !p2 || !p1.lat || !p2.lat) continue;
-            const coords = await getRouteCoords(p1, p2, t.method);
-            const final = coords || [[p1.lat, p1.lng], [p2.lat, p2.lng]];
-            out.push({ from: t.pointId1, to: t.pointId2, method: t.method, coords: final });
+            const result = await getRouteCoords(p1, p2, t.method);
+            const finalCoords = result?.coords || [[p1.lat, p1.lng], [p2.lat, p2.lng]];
+            // Fall back to straight-line haversine when no routed distance is available
+            const finalDistance = result?.distance ?? haversineMeters(p1.lat, p1.lng, p2.lat, p2.lng);
+            out.push({ from: t.pointId1, to: t.pointId2, method: t.method, coords: finalCoords, distance: finalDistance });
         }
         await saveRoutesCacheNow(); // flush before responding
         console.log(`✅ ROUTES: ${out.length} segments served`);

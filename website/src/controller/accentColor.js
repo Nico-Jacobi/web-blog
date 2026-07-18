@@ -28,6 +28,7 @@ export function applyAccentColor(hex) {
         `.border-orange-200{border-color:color-mix(in srgb,${hex} 30%,#fff)!important}`,
         `.border-orange-100{border-color:color-mix(in srgb,${hex} 15%,#fff)!important}`,
         `.shadow-orange-200{--tw-shadow-color:color-mix(in srgb,${hex} 30%,#fff)!important}`,
+        `.dark .shadow-orange-200{--tw-shadow-color:color-mix(in srgb,${hex} 35%,#000)!important}`,
     ].join('');
 }
 

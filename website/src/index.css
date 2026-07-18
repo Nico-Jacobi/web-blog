@@ -42,6 +42,17 @@ body {
 .dark ::-webkit-scrollbar-thumb:hover { background: #64748b; }
 .dark * { scrollbar-color: #475569 transparent; scrollbar-width: thin; }
 
+/* Stops badge — light uses accent var, dark overrides the accent !important rules */
+:root { --accent: #ea580c; }
+.stops-badge {
+    background-color: color-mix(in srgb, var(--accent) 7%, #fff);
+    color: var(--accent);
+}
+.dark .stops-badge {
+    background-color: #334155 !important;
+    color: color-mix(in srgb, var(--accent) 50%, #fff) !important;
+}
+
 /* Leaflet popup dark mode */
 .dark .leaflet-popup-content-wrapper {
     background: #1e293b;

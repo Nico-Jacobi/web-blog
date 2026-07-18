@@ -12,17 +12,17 @@ export default function Header({ trip, onMapToggle, titleMain, titleAccent }) {
 
     return (
         <header
-            className="bg-white dark:bg-slate-900 border-b border-orange-100 dark:border-slate-700 shadow-sm shrink-0 select-none"
+            className="relative z-[1001] bg-white dark:bg-slate-900 shadow-sm shrink-0 select-none"
             onTouchStart={touchHandlers.onTouchStart}
             onTouchMove={touchHandlers.onTouchMove}
             onTouchEnd={touchHandlers.onTouchEnd}
         >
             <div className="h-16 sm:h-20 flex items-center justify-between px-3 sm:px-8">
             <div className="flex items-center gap-2 sm:gap-4 min-w-0">
-                <button onClick={onMapToggle} className="lg:hidden flex bg-orange-600 text-white p-1.5 sm:p-2.5 rounded-lg sm:rounded-2xl shadow-orange-200 shadow-lg shrink-0 cursor-pointer">
+                <button onClick={onMapToggle} className="lg:hidden flex bg-orange-600 text-white p-1.5 sm:p-2.5 rounded-lg sm:rounded-2xl shadow-lg shadow-orange-200 shrink-0 cursor-pointer">
                     <Map className="w-4 h-4 sm:w-6 sm:h-6" />
                 </button>
-                <div className="hidden lg:flex bg-orange-600 text-white p-2.5 rounded-2xl shadow-orange-200 shadow-lg shrink-0">
+                <div className="hidden lg:flex bg-orange-600 text-white p-2.5 rounded-2xl shadow-lg shadow-orange-200 shrink-0">
                     <Map className="w-6 h-6" />
                 </div>
 

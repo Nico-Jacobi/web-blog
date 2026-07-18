@@ -5,7 +5,7 @@ export default function Legend({ usedModes }) {
     if (!usedModes || usedModes.length === 0) return null;
 
     return (
-        <div className="bg-white dark:bg-slate-800 rounded-xl shadow-sm p-2 sm:p-2 px-3 sm:px-3 flex flex-wrap gap-2 sm:gap-3 items-center justify-center">
+        <div className="bg-white dark:bg-slate-900 rounded-xl shadow-sm p-2 px-3 flex flex-wrap gap-2 sm:gap-3 items-center justify-center">
             {usedModes.map(mode => {
                 const style = ROUTE_STYLES[mode];
                 if (!style) return null;

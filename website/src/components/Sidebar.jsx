@@ -50,14 +50,14 @@ export default function Sidebar({ activeId, onSelectStop, onOpenDetail, trip, ne
     let foundFirstNew = false;
 
     return (
-        <aside className="w-full lg:w-80 xl:w-96 flex flex-col border-r border-orange-100 dark:border-slate-700 bg-white dark:bg-slate-900 h-full">
+        <aside className="w-full lg:w-96 xl:w-[28rem] flex flex-col bg-white dark:bg-slate-900 h-full">
             {/* Sidebar Header */}
-            <div className="pt-8 pb-4 px-6 shrink-0">
+            <div className="pt-5 pb-4 px-6 shrink-0">
                 <div className="flex items-center justify-between">
                     <h2 className="text-xl font-black text-slate-900 dark:text-white tracking-tight">
                         {t('sidebar.journey')}
                     </h2>
-                    <span className="bg-orange-50 dark:bg-slate-800 text-orange-600 text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
+                    <span className="stops-badge text-[10px] font-bold px-2 py-0.5 rounded-full uppercase">
                         {trip.points.length} {t('sidebar.stops')}
                     </span>
                 </div>
